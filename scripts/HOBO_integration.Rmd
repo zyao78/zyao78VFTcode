@@ -1,0 +1,226 @@
+---
+title: "HOBO_integration"
+output: html_document
+date: "2025-07-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r}
+library(dplyr)
+library(readr)
+library(here)
+library(tidyverse)
+library(lubridate)
+```
+
+
+
+
+## load in hobo files
+```{r}
+ME_HOBO  <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/ME_2022_HOBO.csv", skip = 1, header = TRUE)
+```
+
+
+```{r}
+IA_HOBO  <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2024/VFT climate data 2024/IA.hobo.2024.csv", skip = 1, header = TRUE)
+```
+
+
+```{r, in cases of multiple files for the same site} 
+IA_HOBO1 <-  read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/IA_20170227_HOBO.csv",skip = 1, header = TRUE)
+IA_HOBO2 <-  read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/IA_20170601_HOBO.csv", skip = 1,header = TRUE)
+colnames(IA_HOBO2) <- colnames(IA_HOBO1)
+IA_HOBO <- rbind(IA_HOBO1,IA_HOBO2)
+```
+
+
+```{r}
+GSP_LI_HOBO <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2024/VFT climate data 2024/GSP-LI.hobo.2024.csv", skip = 1, header = TRUE)
+
+GSP_BI_HOBO <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2024/VFT climate data 2024/GSP-BI.hobo.2024.csv", skip = 1, header = TRUE)
+
+GSP_BI_HOBO$SWC2 <- NA
+GSP_LI_HOBO$SWC2 <- NA
+
+```
+
+```{r}
+CM_HOBO <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/CM_2022_HOBO.csv", skip = 1, header = TRUE)
+```
+
+```{r}
+CH_HOBO <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2024/VFT climate data 2024/CH.hobo.2024.csv", skip = 1, header = TRUE)
+```
+
+
+```{r}
+CM_HOBO1 <-read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CM_20170221_HOBO.csv",skip = 1, header = TRUE)
+CM_HOBO2 <-read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CM_20170530_HOBO.csv",skip = 1, header = TRUE)
+CM_HOBO3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CM_20171128_HOBO.csv",skip = 1, header = TRUE)
+
+colnames(CM_HOBO1) <- colnames(CM_HOBO2) <- colnames(CM_HOBO3)
+
+CM_HOBO <- rbind(CM_HOBO1, CM_HOBO2, CM_HOBO3)
+
+
+```
+
+```{r}
+CH_HOBO1 <-read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2019/VFT climate data 2019/CH_20190430_HOBO.csv",skip = 1, header = TRUE)
+
+CH_HOBO2 <-read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2019/VFT climate data 2019/CH_20190709_HOBO.csv",skip = 1, header = TRUE)
+
+CH_HOBO2$SWC2 <- NA
+#CH_HOBO3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/CH_20161017_HOBO.csv",skip = 1, header = TRUE)
+
+colnames(CH_HOBO1) <- colnames(CH_HOBO2) #<- colnames(CH_HOBO3)
+
+CH_HOBO <- rbind(CH_HOBO1, CH_HOBO2) #, CH_HOBO3)
+```
+
+```{r}
+B1_HOBO <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2024/VFT climate data 2024/B1.hobo.2024.csv", skip = 1, header = TRUE)
+```
+
+```{r}
+B2_HOBO <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2024/VFT climate data 2024/B2.hobo.2024.csv", skip = 1, header = TRUE)
+
+```
+
+
+```{r}
+B1_HOBO1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B1_20160512_HOBO.csv", skip = 1, header = TRUE)
+B1_HOBO2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B1_20161014_HOBO.csv", skip = 1, header = TRUE)
+colnames(B1_HOBO1) <- colnames(B1_HOBO2)
+
+
+B1_HOBO <- rbind(B1_HOBO1,B1_HOBO2)
+```
+
+
+
+```{r}
+B2_HOBO1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B2_20160512_HOBO.csv", skip = 1, header = TRUE)
+B2_HOBO2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B2_20160615_HOBO.csv", skip = 1, header = TRUE)
+B2_HOBO3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B2_20161014_HOBO.csv", skip = 1, header = TRUE)
+colnames(B2_HOBO1) <- colnames(B2_HOBO2) <- colnames(B2_HOBO3)
+
+
+B2_HOBO <- rbind(B2_HOBO1,B2_HOBO2, B2_HOBO3)
+
+
+```
+
+```{r}
+dat.list <- list(
+  #ME = ME_HOBO,
+  IA = IA_HOBO,
+  GSP_LI = GSP_LI_HOBO,
+  GSP_BI = GSP_BI_HOBO,
+  #CM = CM_HOBO,
+  CH = CH_HOBO,  
+  B1 = B1_HOBO,
+  B2 = B2_HOBO
+)
+
+dat.list <- lapply(dat.list, function(HOBO) {           
+  HOBO <- HOBO[ , -1]    # delete the first column which contains no useful information
+  colnames(HOBO) <- c("date", "SWC1", "SWC2")   ## sometimes there's only one SWC column, modify if needed
+  return(HOBO)
+})
+
+HOBO2024 <- bind_rows(dat.list, .id = "site") # vertically merge dataframes and create a new column that indicates sites
+unique(HOBO2024$site)
+
+# extract months and days
+HOBO2024$date_parsed <- mdy_hms(HOBO2024$date)   # first parse the date that is in mdy_hms format
+HOBO2024$month <- month(HOBO2024$date_parsed)
+HOBO2024$day   <- day(HOBO2024$date_parsed)
+HOBO2024$year  <- year(HOBO2024$date_parsed)
+
+```
+
+
+## bind all years of data
+
+```{r}
+# make sure colnames for HOBOxxxx files are the same
+HOBO_all <- rbind(HOBO2015,HOBO2016,HOBO2017, HOBO2018, HOBO2019, HOBO2020, HOBO2022, HOBO2024)
+unique(HOBO_all$year)
+
+HOBO_all$startyear <- ifelse(
+  ((HOBO_all$month > 6) | (HOBO_all$month == 6 & HOBO_all$day >= 15)),
+  HOBO_all$year,
+  (HOBO_all$year)-1
+)
+```
+## calculate mean monthly 
+```{r}
+
+HOBO_upto2024 <- HOBO_upto2024 %>%
+  filter(
+    (SWC1 >= 0 & SWC1 <= 1) | 
+      (SWC2 >= 0 & SWC2 <= 1)
+  )
+HOBO_upto2024$mSWC <- 0
+attach(HOBO_upto2024)
+
+HOBO_upto2024$mSWC <- ifelse(!is.na(SWC1) & SWC1 >= 0 & !is.na(SWC2) & SWC2 >= 0&SWC1<=1& SWC2<=1,
+         (SWC1 + SWC2) / 2,
+         ifelse(is.na(SWC1) | SWC1 <= 0 |SWC1>=1,
+                SWC2,
+                ifelse(is.na(SWC2) | SWC2 <= 0 |SWC2>=1,
+                       SWC1,
+                       NA)))
+detach(HOBO_upto2024)
+any(is.na(HOBO_upto2024$mSWC))
+
+monthlySM <- HOBO_upto2024 %>%
+  group_by(month, startyear, site) %>%    # for startyear of 2021 for example, months 6-12 were in 2021 and 1-5 were in 2015.
+  summarize(mean = mean(mSWC))
+
+monthly_wide <- monthlySM %>%    # transpose and then add to Climvar
+    tidyr::pivot_wider(
+    names_from = month,
+    values_from = mean,
+    names_prefix = "moisture_"
+  )
+
+unique(monthly_wide$startyear)
+unique(monthly_wide$site)
+Climvar <- monthly_wide
+```
+
+## since we assume an annual census date of June 15th, Months start on the 15th to the 14th
+
+```{r}
+HOBO_upto2024$newMonth <- NA
+HOBO_upto2024$newMonth <- ifelse(
+  HOBO_upto2024$day >= 15,
+  HOBO_upto2024$month,
+  ifelse(HOBO_upto2024$month == 1, 12, HOBO_upto2024$month - 1)
+)
+```
+
+
+
+# export
+```{r}
+write.csv(HOBO_upto2024, "HOBO_upto2024.csv")
+
+```
+
+
+
+#Climvar1 <- left_join(Climvar,monthly_wide, by=c("site", "startyear"))
+
+Climvar <- Climvar %>%
+  rows_update(monthly_wide, by = c("site", "startyear"))  # use rows update after initially performing left_join to avoid creating new columns
+

@@ -1,0 +1,82 @@
+---
+title: "regional_precipitation_GridMET"
+output: html_document
+date: "2025-07-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## load data
+```{r}
+B1_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_B1.csv")
+B2_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_B2.csv")
+CH_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_CH.csv")
+CM_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_CM.csv")
+IA_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_IA.csv")
+ME_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_ME.csv")
+GSP_BI_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_GSP_BI.csv")
+GSP_LI_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_GSP_LI.csv")
+
+dat.list_reg <- list(
+  ME = ME_reg,
+  IA = IA_reg,
+  GSP_LI = GSP_LI_reg,
+  GSP_BI = GSP_BI_reg,
+  CM = CM_reg,
+  CH = CH_reg,  
+  B1 = B1_reg,
+  B2 = B2_reg
+)
+
+dat.list_reg <- lapply(dat.list_reg, function(reg) {           
+  colnames(reg) <- c("date", "Temp")   
+  return(reg)
+})
+
+Reg_T_upto2024 <- bind_rows(dat.list_reg, .id = "site") # vertically merge dataframes and create a new column that indicates sites
+Reg_T_upto2024$date_parsed <- ymd(Reg_T_upto2024$date)   # first parse the date that is in mdy_hms format
+Reg_T_upto2024$month <- month(Reg_T_upto2024$date_parsed)
+Reg_T_upto2024$day   <- day(Reg_T_upto2024$date_parsed)
+Reg_T_upto2024$year  <- year(Reg_T_upto2024$date_parsed)
+
+#ggplot(Reg_prec_upto2024, aes(x = day, y = prec, color = factor(year), linetype = site)) +
+  #geom_line() +
+  #theme_minimal()
+
+```
+## export
+```{r}
+
+Reg_clim_upto2024 <- Reg_prec_upto2024 %>% 
+  left_join(Reg_T_upto2024, by = c( "date_parsed", "site","month", "day", "year"))
+
+Reg_clim_upto2024$startyear <- NA
+Reg_clim_upto2024$startyear <- ifelse(
+  ((Reg_clim_upto2024$month > 6) | (Reg_clim_upto2024$month == 6 & Reg_clim_upto2024$day >= 15)),
+  Reg_clim_upto2024$year,
+  (Reg_clim_upto2024$year)-1
+)
+
+Reg_clim_upto2024$newMonth <- NA
+Reg_clim_upto2024$newMonth <- ifelse(
+  Reg_clim_upto2024$day >= 15,
+  Reg_clim_upto2024$month,
+  ifelse(Reg_clim_upto2024$month == 1, 12, Reg_clim_upto2024$month - 1)
+)
+
+
+write.csv(Reg_clim_upto2024, "Reg_clim_upto2024.csv")
+
+
+```
+
+###
+
+   
+
+```
+
+```
+

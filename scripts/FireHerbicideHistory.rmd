@@ -1,0 +1,109 @@
+---
+title: "Fire history"
+output: html_notebook
+---
+
+
+# 1. Coarse fire history (e.g., year since fire) from Allison from 2016 to 2018
+
+Allison's data on fire history at each of the sites, except Green Swamp. 
+
+```{r}
+
+demoVFT$burn[which(demoVFT$site== "CH" & demoVFT$year== 2016)] <- 7 # "year" references the ending year of the transition
+demoVFT$burn[which(demoVFT$site== "CH" & demoVFT$year== 2017)] <- 8
+demoVFT$burn[which(demoVFT$site== "CH" & demoVFT$year== 2018)] <- 9
+
+demoVFT$burn[which(demoVFT$site== "CM" & demoVFT$year== 2016)] <- 1
+demoVFT$burn[which(demoVFT$site== "CM" & demoVFT$year== 2017)] <- 2
+demoVFT$burn[which(demoVFT$site== "CM" & demoVFT$year== 2018)] <- 1
+
+
+demoVFT$burn[which(demoVFT$site== "IA" & demoVFT$year== 2016)] <- 2
+demoVFT$burn[which(demoVFT$site== "IA" & demoVFT$year== 2017)] <- 3
+demoVFT$burn[which(demoVFT$site== "IA" & demoVFT$year== 2018)] <- 4
+
+demoVFT$burn[which(demoVFT$site== "ME" & demoVFT$year== 2016)] <- 12
+demoVFT$burn[which(demoVFT$site== "ME" & demoVFT$year== 2017)] <- 1
+demoVFT$burn[which(demoVFT$site== "ME" & demoVFT$year== 2018)] <- 2
+
+
+demoVFT$burn[which(demoVFT$site== "B2" & demoVFT$year== 2016)] <- 1 
+demoVFT$burn[which(demoVFT$site== "B2" & demoVFT$year== 2017)] <- 2
+demoVFT$burn[which(demoVFT$site== "B2" & demoVFT$year== 2018)] <- 3
+
+demoVFT$burn[which(demoVFT$site== "B1" & demoVFT$year== 2016)] <- 9
+demoVFT$burn[which(demoVFT$site== "B1" & demoVFT$year== 2017)] <- 10
+demoVFT$burn[which(demoVFT$site== "B1" & demoVFT$year== 2018)] <- 11
+
+
+
+
+```
+
+
+Allison and Bill gave me contact details for the follow sites. 
+
+  - Croatan National Forest: [Andrew Jackson](andrew.walker@usda.gov)
+  - Camp Lejeune: [Gary Haught](gary.haught@usmc.mil)
+  - Green Swamp Preserve: [Zachary West](zwest@tnc.org)
+  - Ft Bragg: [Stacy Huskins](stacy.d.huskins.civ@mail.mil)
+
+
+Wade Wall from USGS also gave Bill access to fire [shapefiles](https://gec.cr.usgs.gov/outgoing/baecv/LBA/LBA_CU_C01_V01/).
+
+I've downloaded email exchanges with dates of burns dating back to the last fire before the census at each site. 
+
+
+
+## 2. Fine-detailed fire history 
+
+Andrew Jackson gave the folllowing dates for burns that occurred at our two Croatan sites. Allison says that fire in 2018-03-01 did not reach our plots (see email), and Bill confirmed via a Zoom meeting on Jun 9 2021. 
+
+```{r Croatan NF - dates }
+
+ch_fire <- as.Date(c("2005-01-29", "2006-11-06", "2009-11-17", "2018-03-01"), format = "%Y-%m-%d")
+
+cm_fire <- as.Date(c("2007-01-12", "2012-03-12", "2017-06-29", "2020-03-10"), format = "%Y-%m-%d")
+
+```
+
+
+Gary Haught gave the following dates for burns that occurred at our two Camp Lejeune sites. 
+
+```{r Camp Lejeune }
+
+ia_fire <- as.Date(c("2012-01-31", "2015-02-13", "2020-02-10")) 
+ 
+me_fire <- as.Date(c("2005-01-04", "2017-02-18", "2020-03-10", "2024-02-29"))
+
+me_herbicide <- as.Date(c("2024-01-01"))
+  
+```
+
+
+Zach West gave the following fire history dates, and said in the most recent email that Big Island is on the docket to be burned in 2021. 
+
+```{r Green Swamp Preserve }
+
+gspli_fire <- as.Date(c("2007-01-01","2010-01-27","2013-01-20", "2015-01-20", "2017-08-15", "2019-08-19", "2020-08-19","2023-02-13"), format = "%Y-%m-%d")
+
+# A. Walker gave inconsistent dates for LI and BI (see numerous emails in box site). All fire dates up to November 8, 2024 at LI and BI were taken from an excel file containing data from all recorded fires sent from N. Burmester (on the box site). 
+
+gspbi_fire <- as.Date(c("2005-02-06","2011-01-24","2012-02-03","2013-02-10","2015-07-17", "2017-03-23", "2021-02-02", "2023-05-22"), format = "%Y-%m-%d")
+
+```
+
+Controlled burn at B1 for our burn experiments occurred on 2018-06-08, but I do not think they reached the census plots. B1 is in fire management area (342) and B2 is in fire management area (337). 
+
+Stacy confirmed 2019 (only) and 2016 by email and shapefiles confirmed 2016 and 2013 fires. 
+
+```{r Ft Bragg }
+
+B1_fire <- as.Date(c("2013-03-10", "2016-06-11", "2019-03-16"), format = "%Y-%m-%d")
+
+B2_fire <- as.Date(c("2008-06-01", "2016-06-08", "2019-03-16"), format = "%Y-%m-%d") # last before 2015 is unknown, but it did occur in 2008
+
+```
+
+

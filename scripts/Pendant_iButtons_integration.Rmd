@@ -1,0 +1,404 @@
+---
+title: "pendant_iButtons_integration"
+output: html_document
+date: "2025-07-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(dplyr)
+library(readr)
+library(here)
+library(tidyverse)
+library(lubridate)
+```
+
+## load data, be aware of how many rows to skip
+
+#ME
+```{r}
+ME_2015_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/ME_quad4_20160620_ibutton.csv", skip = 14, header = TRUE)   
+ME_2015_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/ME_end_20160620_ibutton_2.csv", skip = 14, header = TRUE)   
+ME_2015 <- rbind(ME_2015_2,ME_2015_1)
+
+ME_2016_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/ME_quad10_20161017_ibutton.csv", skip = 14, header = TRUE)   
+ME_2016_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/ME_quad4_20161017_ibutton.csv", skip = 14, header = TRUE)   
+ME_2016_3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/ME_quad4_20160620_ibutton.csv", skip = 14, header = TRUE)   
+ME_2016_4 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/ME_end_20160620_ibutton_2.csv", skip = 14, header = TRUE)
+ME_2016 <- rbind (ME_2016_1, ME_2016_2, ME_2016_3, ME_2016_4)
+
+ME_2017_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/ME_quad10_20171211_ibutton.csv", skip = 14, header = TRUE)
+ME_2017_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/ME_quad10_20170601_ibutton.csv", skip = 14, header = TRUE)
+ME_2017_3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/ME_quad10_20170227_ibutton.csv", skip = 14, header = TRUE)
+ME_2017_4 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/ME_quad4_20171211_ibutton.csv", skip = 14, header = TRUE)
+ME_2017_5 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/ME_quad4_20170601_ibutton.csv", skip = 14, header = TRUE)
+ME_2017_6 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/ME_quad4_20170227_ibutton.csv", skip = 14, header = TRUE)
+ME_2017 <- rbind(ME_2017_1,ME_2017_2,ME_2017_3,ME_2017_4,ME_2017_5,ME_2017_6)
+
+## no ME 2018 an 2019 iButton
+
+ME_2020 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2020/VFT climate data 2020/ME_Quad1_20200616_pendant.csv", skip = 1, header = TRUE)
+ME_2020 <- ME_2020 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+
+ME_2022_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/ME_2022_pendant_Quad10.csv", skip = 1, header = TRUE)
+ME_2022_1 <- ME_2022_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+ME_2022_2<- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/ME_2022_pendant_Quad4.csv", skip = 1, header = TRUE)
+ME_2022_2 <- ME_2022_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+ME_2022 <- rbind(ME_2022_2,ME_2022_1)
+
+## no ME 2024
+
+ME <- rbind(ME_2015, ME_2016, ME_2017, ME_2020, ME_2022)
+
+```
+#IA 
+```{r}
+IA_2015_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/IA_start_20160620_ibutton.csv", skip = 14, header = TRUE)
+IA_2015_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/IA_end_20160620_ibutton.csv", skip = 14, header = TRUE)
+IA_2015 <- rbind(IA_2015_1, IA_2015_2)
+
+IA_2016_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/IA_start_20160620_ibutton.csv", skip = 14, header = TRUE)
+IA_2016_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/IA_end_20161017_ibutton.csv", skip = 14, header = TRUE)
+IA_2016_3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/IA_end_20160620_ibutton.csv", skip = 14, header = TRUE)
+IA_2016 <- rbind(IA_2016_1, IA_2016_2, IA_2016_3)
+
+IA_2017_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/IA_start_20171211_ibutton.csv", skip = 14, header = TRUE)
+IA_2017_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/IA_start_20170601_ibutton.csv", skip = 14, header = TRUE)
+IA_2017_3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/IA_start_20170227_ibutton.csv", skip = 14, header = TRUE)
+IA_2017_4 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/IA_end_20171211_ibutton.csv", skip = 14, header = TRUE)
+IA_2017_5 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/IA_end_20170601_ibutton.csv", skip = 14, header = TRUE)
+IA_2017_6 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/IA_end_20170227_ibutton.csv", skip = 14, header = TRUE)
+IA_2017 <- rbind(IA_2017_1,IA_2017_2,IA_2017_3,IA_2017_4,IA_2017_5,IA_2017_6)
+
+IA_2022_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/IA_2022_pendant_Start.csv", skip = 1, header = TRUE)
+IA_2022_1 <- IA_2022_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+IA_2022_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/IA_2022_pendant_End.csv", skip = 1, header = TRUE)
+IA_2022_2 <- IA_2022_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+IA_2022 <- rbind(IA_2022_1, IA_2022_2)
+
+IA <- rbind(IA_2015, IA_2016, IA_2017, IA_2022)
+
+```
+#CM
+```{r}
+CM_2015 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/CM_quad6_20160510_ ibutton.csv", skip = 14, header = TRUE)
+
+CM_2016_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/CM_quad7_20161017_ibutton.csv", skip = 14, header = TRUE)
+CM_2016_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/CM_quad6_20160510_ ibutton.csv", skip = 14, header = TRUE)
+CM_2016_3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/CM_quad1_20161017_ibutton.csv", skip = 14, header = TRUE)
+CM_2016_4 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/CM_quad1_20160510_ibutton.csv", skip = 14, header = TRUE)
+CM_2016 <- rbind(CM_2016_1, CM_2016_2,CM_2016_3, CM_2016_4)
+
+CM_2017_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CM_quad7_20171128_ibutton.csv", skip = 14, header = TRUE)
+CM_2017_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CM_quad7_20170530_ibutton.csv", skip = 14, header = TRUE)
+CM_2017_3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CM_quad7_020170221_ibutton.csv", skip = 14, header = TRUE)
+CM_2017_4 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CM_quad1_20171128_ibutton.csv", skip = 14, header = TRUE)
+CM_2017_5 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CM_quad1_20170530_ibutton.csv", skip = 14, header = TRUE)
+CM_2017_6 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CM_quad1_20170221_ibutton.csv", skip = 14, header = TRUE)
+CM_2017 <- rbind(CM_2017_6,CM_2017_5, CM_2017_4, CM_2017_3,CM_2017_2,CM_2017_1)
+
+CM_2018_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2018/VFT HOBO and iButton data 2018/CM_quad7_20180702_ibutton.csv", skip = 14, header = TRUE)
+CM_2018_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2018/VFT HOBO and iButton data 2018/CM_quad1_20180702_ibutton.csv", skip = 14, header = TRUE)
+CM_2018 <- rbind(CM_2018_2,CM_2018_1)
+
+CM_2019_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2019/VFT climate data 2019/CM_second_20190617_pendant.csv", skip = 1, header = TRUE)
+CM_2019_1 <- CM_2019_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+CM_2019_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2019/VFT climate data 2019/CM_first_20190617_pendant.csv", skip = 1, header = TRUE)
+CM_2019_2 <- CM_2019_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+CM_2019 <- rbind(CM_2019_1,CM_2019_2)
+
+CM_2020_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2020/VFT climate data 2020/CM_Quad6_20200614_pendant.csv", skip = 1, header = TRUE)
+CM_2020_1 <- CM_2020_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+CM_2020_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2020/VFT climate data 2020/CM_Quad1_20200614_pendant.csv", skip = 1, header = TRUE)
+CM_2020_2 <- CM_2020_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+CM_2020 <- rbind(CM_2020_1,CM_2020_2)
+
+CM_2022<- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/CM_2022_pendant_Quad1.csv", skip = 1, header = TRUE)
+CM_2022 <- CM_2022 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+
+CM <- rbind(CM_2015, CM_2016, CM_2017, CM_2018, CM_2019, CM_2020, CM_2022)
+```
+# CH
+```{r}
+CH_2015_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/CH_quadEAST_20160510_ ibutton.csv", skip = 14, header = TRUE)
+CH_2015_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/CH_quadWEST_20160510_ibutton.csv", skip = 14, header = TRUE)
+CH_2015 <- rbind(CH_2015_1, CH_2015_2)
+
+CH_2016_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/CH_quad1_20161017_ibutton.csv", skip = 14, header = TRUE)
+CH_2016_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/CH_quad7_20161017_ibutton.csv", skip = 14, header = TRUE)
+CH_2016_3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/CH_quadEAST_20160510_ ibutton.csv", skip = 14, header = TRUE)
+CH_2016_4 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/CH_quadWEST_20160510_ibutton.csv", skip = 14, header = TRUE)
+CH_2016 <- rbind(CH_2016_4, CH_2016_3, CH_2016_2, CH_2016_1)
+
+CH_2017_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CH_quad1_20170221_ibutton.csv", skip = 14, header = TRUE)
+CH_2017_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CH_quad1_20170530_ibutton.csv", skip = 14, header = TRUE)
+CH_2017_3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CH_quad1_20171128_ibutton.csv", skip = 14, header = TRUE)
+CH_2017_4 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CH_quad7_20170221_ibutton.csv", skip = 14, header = TRUE)
+CH_2017_5 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CH_quad7_20170530_ibutton.csv", skip = 14, header = TRUE)
+CH_2017_6 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/CH_quad7_20171128_ibutton.csv", skip = 14, header = TRUE)
+CH_2017 <- rbind(CH_2017_6,CH_2017_5, CH_2017_4, CH_2017_3, CH_2017_2, CH_2017_1)
+
+CH_2018_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2018/VFT HOBO and iButton data 2018/CH_quad1_20180702_ibutton.csv", skip = 14, header = TRUE)
+CH_2018_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2018/VFT HOBO and iButton data 2018/CH_quad7_20180702_ibutton.csv", skip = 14, header = TRUE)
+CH_2018 <- rbind(CH_2018_2, CH_2018_1)
+
+CH_2018_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2018/VFT HOBO and iButton data 2018/CH_quad1_20180702_ibutton.csv", skip = 14, header = TRUE)
+CH_2018_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2018/VFT HOBO and iButton data 2018/CH_quad7_20180702_ibutton.csv", skip = 14, header = TRUE)
+CH_2018 <- rbind(CH_2018_2, CH_2018_1)
+
+CH_2020_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2020/VFT climate data 2020/CH_Quad1_20200614_pendant.csv", skip = 1, header = TRUE)
+CH_2020_1 <- CH_2020_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+CH_2020_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2020/VFT climate data 2020/CH_Quad7_20200614_pendant.csv", skip = 1, header = TRUE)
+CH_2020_2 <- CH_2020_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+CH_2020 <- rbind(CH_2020_1,CH_2020_2)
+
+
+CH_2022_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/CH_2022_pendant_Quad1.csv", skip = 1, header = TRUE)
+CH_2022_1 <- CH_2022_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+CH_2022_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/CH_2022_pendant_Quad7.csv", skip = 1, header = TRUE)
+CH_2022_2 <- CH_2022_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+CH_2022 <- rbind(CH_2022_1,CH_2022_2)
+
+CH <- rbind(CH_2015, CH_2016, CH_2017, CH_2018, CH_2020, CH_2022)
+
+```
+# B1
+```{r}
+B1_2015_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/B1_quad1_20150911_ibutton.csv", skip = 14, header = TRUE)
+B1_2015_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/B1_quad7_20150911_ibutton.csv", skip = 14, header = TRUE)
+B1_2015_3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/B1_quad16_20150911_ibutton.csv", skip = 14, header = TRUE)
+B1_2015 <- rbind(B1_2015_1, B1_2015_2,B1_2015_3)
+
+B1_2016_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B1_quad1_20160512_ibutton.csv", skip = 14, header = TRUE)
+B1_2016_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B1_quad1_20161014_ibutton.csv", skip = 14, header = TRUE)
+B1_2016_3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B1_quad7_20160512_ibutton.csv", skip = 14, header = TRUE)
+B1_2016_4 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B1_quad7_20161014_ibutton.csv", skip = 14, header = TRUE)
+B1_2016 <- rbind(B1_2016_1, B1_2016_2,B1_2016_3, B1_2016_4)
+
+B1_2017_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/B1_quad1_20170309_ibutton.csv", skip = 14, header = TRUE)
+B1_2017_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/B1_quad7_20170309_ibutton.csv", skip = 14, header = TRUE)
+B1_2017 <- rbind(B1_2017_1, B1_2017_2)
+
+B1_2020_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2020/VFT climate data 2020/B1_Quad1_20200622_pendant.csv", skip = 1, header = TRUE)
+B1_2020_1 <- B1_2020_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+B1_2020_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2020/VFT climate data 2020/B1_Quad7_20200622_pendant.csv", skip = 1, header = TRUE)
+B1_2020_2 <- B1_2020_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+B1_2020 <- rbind(B1_2020_1,B1_2020_2)
+
+
+B1_2022_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/B1_2022_pendant_Quad1.csv", skip = 1, header = TRUE)
+B1_2022_1 <- B1_2022_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+B1_2022_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/B1_2022_pendant_Quad7.csv", skip = 1, header = TRUE)
+B1_2022_2 <- B1_2022_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+B1_2022 <- rbind(B1_2022_1,B1_2022_2)
+
+B1_2024_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2024/VFT climate data 2024/B1..q1.pendant.2024.csv", skip = 1, header = TRUE)
+B1_2024_1 <- B1_2024_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+B1_2024_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2024/VFT climate data 2024/B1.q7.pendant.2024.csv", skip = 1, header = TRUE)
+B1_2024_2 <- B1_2024_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+B1_2024 <- rbind(B1_2024_1,B1_2024_2)
+B1 <- rbind(B1_2015, B1_2016, B1_2017, B1_2020, B1_2022, B1_2024)
+```
+#B2
+```{r}
+B2_2015_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/B2_quad3_20150911_ibutton.csv", skip = 14, header = TRUE)
+B2_2015_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2015/VFT HOBO and iButton data 2015/B2_quad16_20150911_ibutton.csv", skip = 14, header = TRUE)
+B2_2015 <- rbind(B2_2015_2, B2_2015_1)
+
+B2_2016_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B2_quad3_20160512_ibutton.csv", skip = 14, header = TRUE)
+B2_2016_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B2_quad3_20160615_ibutton.csv", skip = 14, header = TRUE)
+B2_2016_3 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B2_quad3_20161014_ibutton.csv", skip = 14, header = TRUE)
+B2_2016_4 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B2_quad16_20161014_ibutton.csv", skip = 14, header = TRUE)
+B2_2016_5 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2016/VFT HOBO and iButton data 2016/B2_quad20_20160512_ibutton.csv", skip = 14, header = TRUE)
+B2_2016 <- rbind(B2_2016_1, B2_2016_2,B2_2016_3, B2_2016_4,B2_2016_5)
+
+B2_2017_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/B2_quad3_20170309_ibutton.csv", skip = 14, header = TRUE)
+B2_2017_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2017/VFT HOBO and iButton data 2017/B2_quad16_20170309_ibutton.csv", skip = 14, header = TRUE)
+B2_2017 <- rbind(B2_2017_2, B2_2017_1)
+
+B2_2022 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/B2_2022_pendant_Quad16.csv", skip = 1, header = TRUE)
+B2_2022 <- B2_2022 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+
+B2_2024 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2024/VFT climate data 2024/B2.q1.pendant.2024.csv", skip = 1, header = TRUE)
+B2_2024 <- B2_2024 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+
+B2 <- rbind(B2_2015, B2_2016, B2_2017,B2_2022, B2_2024)
+```
+#GSP_BI
+```{r}
+GSP_BI_2018_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2018/VFT HOBO and iButton data 2018/GSP-BI-end-pendant_6_21_2018.csv", skip = 1, header = TRUE)
+GSP_BI_2018_1 <- GSP_BI_2018_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+GSP_BI_2018_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2018/VFT HOBO and iButton data 2018/GSP-BI-start-pendant_6_21_2018.csv", skip = 1, header = TRUE)
+GSP_BI_2018_2 <- GSP_BI_2018_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+GSP_BI_2018 <- rbind(GSP_BI_2018_2, GSP_BI_2018_1)
+
+GSP_BI_2020_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2020/VFT climate data 2020/GSPBI_Start_20200617_pendant.csv", skip = 1, header = TRUE)
+GSP_BI_2020_1 <- GSP_BI_2020_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+GSP_BI_2020_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2020/VFT climate data 2020/GSPBI_End_20200617_pendant.csv", skip = 1, header = TRUE)
+GSP_BI_2020_2 <- GSP_BI_2020_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+GSP_BI_2020 <- rbind(GSP_BI_2020_2, GSP_BI_2020_1)
+
+
+GSP_BI_2022_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/GSP-BI_2022_pendant_End.csv", skip = 1, header = TRUE)
+GSP_BI_2022_1 <- GSP_BI_2022_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+GSP_BI_2022_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/GSP-BI_2022_pendant_Start.csv", skip = 1, header = TRUE)
+GSP_BI_2022_2 <- GSP_BI_2022_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+GSP_BI_2022 <- rbind(GSP_BI_2022_2, GSP_BI_2022_1)
+
+GSP_BI_2024 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2024/VFT climate data 2024/GSP-BI.end.pendant.2024.csv", skip = 1, header = TRUE)
+GSP_BI_2024 <- GSP_BI_2024 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+
+GSP_BI <- rbind(GSP_BI_2018, GSP_BI_2020, GSP_BI_2022, GSP_BI_2024)
+
+```
+# GSP_LI
+```{r}
+GSP_LI_2018_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2018/VFT HOBO and iButton data 2018/gsp_li_end_pendant_6_21_18.csv", skip = 1, header = TRUE)
+GSP_LI_2018_1 <- GSP_LI_2018_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+GSP_LI_2018_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT HOBO and iButton data 2018/VFT HOBO and iButton data 2018/gsp_li_start_pendant_6_21_18.csv", skip = 1, header = TRUE)
+GSP_LI_2018_2 <- GSP_LI_2018_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+GSP_LI_2018 <- rbind(GSP_LI_2018_2, GSP_LI_2018_1)
+
+GSP_LI_2020 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2020/VFT climate data 2020/GSPLI_End_20200617_pendant.csv", skip = 1, header = TRUE)
+GSP_LI_2020 <- GSP_LI_2020 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+
+GSP_LI_2022_1 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/GSP-LI_2022_pendant_End.csv", skip = 1, header = TRUE)
+GSP_LI_2022_1 <- GSP_LI_2022_1 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+GSP_LI_2022_2 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2022/VFT climate data 2022/GSP-LI_2022_pendant_Start.csv", skip = 1, header = TRUE)
+GSP_LI_2022_2 <- GSP_LI_2022_2 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+GSP_LI_2022 <- rbind(GSP_LI_2022_2, GSP_LI_2022_1)
+
+GSP_LI_2024 <- read.csv("F:/VFT/TSF_effect/climate variables/VFT climate data 2024/VFT climate data 2024/GSP.LI.pendant.2024.csv", skip = 1, header = TRUE)
+GSP_LI_2024 <- GSP_LI_2024 %>%
+  select(Date.Time = 2, Value = 3) %>%
+  mutate(Unit = "C")
+
+GSP_LI <- rbind(GSP_LI_2018, GSP_LI_2020, GSP_LI_2022, GSP_LI_2024)
+
+
+```
+
+```{r}
+dat.list_soilT <- list(
+  ME = ME,
+  IA = IA,
+  GSP_LI = GSP_LI,
+  GSP_BI = GSP_BI,
+  CM = CM,
+  CH = CH,  
+  B1 = B1,
+  B2 = B2
+)
+SoilT_upto2024 <- bind_rows(dat.list_soilT, .id = "site") # vertically merge dataframes and create a new column that indicates sites
+
+# date parse
+SoilT_upto2024$date_parsed <- parse_date_time(
+  SoilT_upto2024$Date.Time,
+  orders = c("mdy HMS p", "mdy HM p","mdy HM" )
+  
+)
+
+SoilT_upto2024$month <- month(SoilT_upto2024$date_parsed)
+SoilT_upto2024$day   <- day(SoilT_upto2024$date_parsed)
+SoilT_upto2024$year  <- year(SoilT_upto2024$date_parsed)
+
+table(SoilT_upto2024$day)
+
+SoilT_upto2024$startyear <- ifelse(
+  ((SoilT_upto2024$month > 6) | (SoilT_upto2024$month == 6 & SoilT_upto2024$day >= 15)),
+  SoilT_upto2024$year,
+  (SoilT_upto2024$year)-1
+)
+
+SoilT_upto2024$newMonth <- NA
+SoilT_upto2024$newMonth <- ifelse(
+  SoilT_upto2024$day >= 15,
+  SoilT_upto2024$month,
+  ifelse(SoilT_upto2024$month == 1, 12, SoilT_upto2024$month - 1)
+)
+
+```
+
+## check on individual sites
+```{r}
+CM_sub <- SoilT_upto2024 [which(SoilT_upto2024$site == "CM"),]
+
+```
+## export
+```{r}
+write.csv(SoilT_upto2024, "SoilT_upto2024.csv")
+```
+

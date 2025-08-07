@@ -1,0 +1,537 @@
+---
+title: "Code for combining data with previous years"
+author: "Natalie Z. Kerr & Allison Louthan"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+Before running this code, please do the following to data for the current year (see VFT > VFT protocol and instructions > Procedure for making data sheets files and maps VFT.docx):
+
+*  First, for plants that say *new* or *missed* in the comments, add a new ID. Each new or missed plant gets a unique ID, of the form: 18.1. (for the first plant found in 2018), or 19.2. (for the second plant found in 2019). Do not forget the final period. Each new or missed plant ID can be repeated across populations (e.g., CM and CH can both have a 19.1.), but do not repeat IDs within a population (e.g., CM cannot have two 19.1.).   
+
+*  If comment says old tp but missed or something similar (from 2019 onwards), do a search for the plant in previous years to find the correct plant ID. x/y or mark may not necessarily be the same, so search plants both quad/x/y and by mark around the same quad/x/y. If not found, then assign a new ID.   
+
+*  If discontinued and/or no measurements (without a note/comment saying sen, mpd, dead, or disc), then leave blank.  
+    
+    
+## 1. Libraries
+
+```{r Setup, include = FALSE }
+
+library(here)
+library(tidyverse)
+library(readxl)
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+<br> 
+
+## 2. Upload data for 2023
+
+```{r Append all 2023 data }
+
+dat.list <- list()
+
+dat.list[[1]] <- read_xlsx("B1-23.xlsx", col_types = rep("text", 12))
+dat.list[[1]]$site <- "B1"
+  
+dat.list[[2]] <- read_xlsx("B2-23.xlsx", col_types = rep("text", 12))
+dat.list[[2]]$site <- "B2"
+
+dat.list[[3]] <- read_xlsx("CH-23.xlsx", col_types = rep("text", 12))
+dat.list[[3]]$site <- "CH"
+
+dat.list[[4]] <- read_xlsx("CM-23.xlsx", col_types = rep("text", 12))
+dat.list[[4]]$site <- "CM"
+
+dat.list[[5]] <- read_xlsx("GSP-BI-23.xlsx", sheet = 1, col_types = rep("text", 12))
+dat.list[[5]]$site <- "GSP-BI"
+
+dat.list[[6]] <- read_xlsx("GSP-BI-23.xlsx", sheet = 2, col_types = rep("text", 12))
+dat.list[[6]]$site <- "GSP-BI"
+
+dat.list[[7]] <- read_xlsx("GSP-LI-23.xlsx", sheet = 1, col_types = rep("text", 12))
+dat.list[[7]]$site <- "GSP-LI"
+
+dat.list[[8]] <- read_xlsx("GSP-LI-23.xlsx", sheet = 2, col_types = rep("text", 12))
+dat.list[[8]]$site <- "GSP-LI"
+
+
+dat.list[[9]] <- read_xlsx("IA-23.xlsx", col_types = rep("text", 12))
+dat.list[[9]]$site <- "IA"
+
+dat.list[[10]] <- read_xlsx("ME-23.xlsx", col_types = rep("text", 12))
+dat.list[[10]]$site <- "ME"
+
+dat23 <- do.call("rbind", dat.list)
+dat23[is.na(dat23)] <- ""
+
+names23 <- names(dat23)[1:(ncol(dat23)-1)]
+fdat23 <- dat23 %>% dplyr::select(c("site", all_of(names23))) %>% rename(quad = Quad, x = X, y = Y, mark = Mrk)
+colnames(fdat23)[colnames(fdat23) == "FL23"] <- "FLW23"
+
+
+```
+
+
+
+### 1a Data wrangling 
+
+After loading datasets, add a suffix of the two digit year to the N, L, F, Notes, and Comm column in the annual_data file. Replace with current year. Only do, if needed. Note that the code chunk is currently set to not evaluate this code. 
+
+```{r Add "XX" year suffice to columns, eval = F }
+
+names(fdat23)[which(names(fdat23) %in% c("N", "L", "FR", "FLW", "Notes", "Comm", "Measurer"))] <- paste(names(fdat23)[which(names(fdat23) %in% c("N", "L", "FR", "FLW", "Notes", "Comm", "Measurer"))], "23", sep="")  
+
+head(fdat23)
+
+```
+
+
+Next, we need to ensure our designations of dead and alive correspond with previous years' data. For any plants where aliveXX = 0, we need to determine whether it died in XX year or a previous year. If a previous year, then AliveXX needs to be blank and the 0 for dead should be in the appropriate year when it was first detected as dead. 
+
+```{r Add Alive23 column }
+
+fdat23$Alive23 <- "1"
+
+fdat23[which(str_detect(fdat23$Notes23, "disc")),]
+table(fdat23[which(str_detect(fdat23$Notes23, "disc")),]$Notes23)
+
+# If mpd or dead has a earlier year, then leave blank for Alive23 column
+for(i in 1:nrow(fdat23)){
+  if(dat23$Notes23[i] != "") {
+   if(str_detect(fdat23$Notes23[i], "mpd23") | str_detect(fdat23$Notes23[i], "dead23")) {
+    fdat23$Alive23[i] <- "0"  } 
+  
+   if(str_detect(fdat23$Notes23[i], "mpd22") | str_detect(fdat23$Notes23[i], "dead22")) {
+    fdat23$Alive23[i] <- as.character("")  } 
+      
+   if(str_detect(fdat23$Notes23[i], "mpd21") | str_detect(fdat23$Notes23[i], "dead21")) { # unlikely to exceed 21, but just in case
+    fdat23$Alive23[i] <- as.character("")  }
+    
+   if(str_detect(fdat23$Notes23[i], "mpd20") | str_detect(fdat23$Notes23[i], "dead20")) { 
+    fdat23$Alive23[i] <- as.character("")  }
+  
+   if(str_detect(fdat23$Notes23[i], "disc")) { 
+     if(fdat23$N23[i] == ""){
+    fdat23$Alive23[i] <- as.character("")  }} 
+    
+  }   
+  
+  if(str_detect(fdat23$Comm23[i], "not done") | str_detect(fdat23$Comm23[i], "notdone") |
+     str_detect(fdat23$Comm23[i], "not measured")) {
+     if(fdat23$N23[i] == ""){
+    fdat23$Alive23[i] <- as.character("")  }}    
+
+  
+}
+
+table(fdat23$Alive23)
+
+```
+
+
+
+
+Add a column labeled SizeXX to annual_data dataset. Replace with current year. 
+
+Here, Size is longest leaf length x number of leaves, summed across rosettes. Size columns in previous years seems to be the product of the two size metrics, rather than ln(N*L). It might be that we take the natural log of this product later. The function below calculates size (somewhat) efficiently, returning an NA if number of leaves is blank, and otherwise, returning size. It uses N (number of leaves) and L (longest leaf length) as arguments.   
+
+```{r Add sizeXX }
+
+annual_data$size23 <- ""
+for(i in 1:nrow(annual_data)){
+  if(annual_data$N23[i] == "") {
+    annual_data$size23[i] <- "" } else {
+      
+      if(annual_data$N23[i] == "0") {
+        annual_data$size23[i] <- 0 } else {
+  
+      annual_data$size23[i] <- sum(as.numeric(strsplit(annual_data$N23[i], split="[,,]")[[1]])) *
+                           max(as.numeric(strsplit(annual_data$L23[i], split="[,,]")[[1]])) }
+}}
+
+class(fdat23$size23)
+
+```
+
+
+### 1b Data checks and export file
+
+Before exporting these files, let's conduct some checks. 
+
+```{r Conduct some checks }
+
+nrow(subset(fdat23, N23 == "0")) # 161 rows with N = 0
+table(subset(fdat23, N23 == "0")$L23) # for all N = 0, L is blank. Good! 
+
+table(subset(fdat23, N23 == "0")$Comm23) # for all N = 0, they have appropriate labeling -- either new lvs or sen
+table(subset(fdat23, grepl("new", Comm23))$Comm23) # all new lvs are correctly labeled (i.e., no "new leaves")
+
+table(subset(fdat23, grepl("new lvs", Comm23))$N23) # all comments with "new lvs" have 0 in N23 column
+table(subset(fdat23, grepl("sen", Comm23))$N23) # all comments with "sen" have 0 in N23 column
+
+table(subset(fdat23, grepl("dead", Notes23))$N23) # all notes with "dead" have blank in N23
+
+table(subset(fdat23, grepl("inf", Comm23))$N23) # all comments containing "inf" are not blank in N23
+
+table(subset(fdat23, N23 == "")$Comm23)
+table(subset(fdat23, N23 == "")$Notes23)
+
+```
+
+
+```{r Export datafile for current year }
+
+#saveRDS(fdat23, file = "alldemodata_2023.rds")
+write.csv(fdat23, file = "alldemodata_2023.csv", row.names=FALSE)
+
+
+```
+
+
+## 2. Combine with previous years
+
+
+Next, we need to load the dataset from the most recent survey and the datafrom from previous surveys into R and modify them. To do so,  
+
+* You need to keep all files (rmd, csv, etc) in the same folder when running this code.  
+    + Remember to replace any necessary code with current years (e.g. 2019 -> 2020 etc) 
+* Load the most recent annual dataset into R as a csv file, calling it *annual_data*
+* Load the most recent wide-format dataset into R as a csv, calling it *wide_data*. That wide-format dataset should be stored on the box site, under VFT > VFT clean master data > alldemodata_uptoYYYY (where YYYY is the 4-digit year of the year prior).  
+* All columns should be a vector of characters, since R will substitute NA values for blank cells if its a string of numeric or integer values. 
+
+```{r Upload datasets}
+
+annual_data <- read.csv("alldemodata_2023.csv", colClasses = "character")
+wide_data <- read.csv("alldemodata_upto2022.csv", colClasses = "character")
+
+
+```
+
+
+<br> 
+
+### 2a. Data wrangling 
+
+
+Make a new column in annual_data called UID that includes both the site and the plant ID, for both datasets. This is a unique identifier for individual plants, as ID has duplicates across sites. 
+
+```{r Add site_ID }
+
+annual_data$site_ID <- paste(annual_data$site, annual_data$ID, sep = "_") 
+wide_data$site_ID <- paste(wide_data$site, wide_data$ID, sep = "_") 
+
+```
+
+
+### 2b. Combine datasets 
+
+To combine the data from the most recent survey with previous years’ data (now called, respectively, annual_data and wide_data): 
+
+* Combine the wide-format dataset with the annual dataset using the R package dplyr
+    + First, combine annual datasets with previous data for existing plants **only**.
+    + Second, combine annual datasets with preious data for all plants, then anti_join with the wide_data to get a full dataset for new plants **only** that have all NAs values in previous years.
+    + Third, replace all NA values in "".
+    + Finally, join those two datasets together.
+    
+We want to have years without data to have just blank cells rather than NA values which represent missing data, hence why this code is longer than just a simple full_join()
+
+```{r Joining datasets across years }
+
+allexist_data <- full_join(wide_data, annual_data %>% select(-quad), 
+                           by = c("site", "ID", "site_ID"), suffix = c("_annual", "_wide"), keep = FALSE)
+
+
+# replace x,y and mark with the most recent ones (if existing in 23 or not different to 22)
+allexist_data$x <- NA
+allexist_data$y <- NA
+allexist_data$mark <- NA
+for(i in 1:nrow(allexist_data)){
+  
+  #X COORDINATES
+  if(is.na(allexist_data$x_wide[i])) { 
+    allexist_data$x[i] <- allexist_data$x_annual[i] } else{
+      if(is.na(allexist_data$x_annual[i])) {
+        allexist_data$x[i] <- allexist_data$x_wide[i] } else{
+          
+            if(allexist_data$x_annual[i] == allexist_data$x_wide[i]) { 
+                allexist_data$x[i] <- allexist_data$x_annual[i] } # IF THEY ARE THE SAME
+  
+            if(allexist_data$x_annual[i] != allexist_data$x_wide[i]) { 
+              allexist_data$x[i] <- allexist_data$x_wide[i] }
+        }             
+      } 
+   
+  #Y COORDINATES
+  if(is.na(allexist_data$y_wide[i])) { 
+    allexist_data$y[i] <- allexist_data$y_annual[i] } else{
+      if(is.na(allexist_data$y_annual[i])) {
+        allexist_data$y[i] <- allexist_data$y_wide[i] } else{
+          
+            if(allexist_data$y_annual[i] == allexist_data$y_wide[i]) { 
+                allexist_data$y[i] <- allexist_data$y_annual[i] } # IF THEY ARE THE SAME
+  
+            if(allexist_data$y_annual[i] != allexist_data$y_wide[i]) { 
+              allexist_data$y[i] <- allexist_data$y_wide[i] }
+        }             
+    } 
+  
+  #MARK COORDINATES
+  if(is.na(allexist_data$mark_wide[i])) { 
+    allexist_data$mark[i] <- allexist_data$mark_annual[i] } else{
+      if(is.na(allexist_data$mark_annual[i])) {
+        allexist_data$mark[i] <- allexist_data$mark_wide[i] } else{
+          
+            if(allexist_data$mark_annual[i] == allexist_data$mark_wide[i]) { 
+                allexist_data$mark[i] <- allexist_data$mark_annual[i] } # IF THEY ARE THE SAME
+  
+            if(allexist_data$mark_annual[i] != allexist_data$mark_wide[i]) { 
+              allexist_data$mark[i] <- allexist_data$mark_wide[i] }
+        }             
+      } 
+  
+  } 
+
+all_data1 <- allexist_data %>% dplyr::select(-x_annual, -y_annual, -mark_annual,
+                                            -x_wide, -y_wide, -mark_wide) # remove these columns
+
+identifier_names <- c("site_ID", "site", "ID", "quad", "mark", "x", "y")
+other_names <- names(all_data1)[!names(all_data1) %in% identifier_names]
+all_data <- all_data1[, c(identifier_names, other_names)]
+all_data[is.na(all_data)] <- ""
+  
+```
+
+
+
+<br> 
+
+## 3. Final corrections 
+
+#### 3a. Change alive/dead status for resurrected plants 
+
+Check that Alive across years is correct. Replace "NA"/""/"0" with "1" between years where plant observed alive, and add to notes with "PresAliveXX" to the year that you presumed it was alive (i.e. usually current year since observed alive in that year). 
+
+```{r Alive for 15 and 23 but not 16-22  }
+
+test1 <- all_data %>% filter(Alive23 == 1) %>% 
+                      filter(N15 != "" | L15 != "" | FR15 != "") %>% # if N, L, or FR have numbers
+                      filter(libsur15_16 == "0") 
+
+
+nrow(test1) # 0 plants, makes sense since this would mean it resurrected after 7 years
+
+
+```
+
+
+```{r Alive for 16 and 23 but not 17-22 }
+
+test2 <- all_data %>% filter(Alive23 == 1) %>% 
+                      filter(N16 != "" | L16 != "" | FR16 != "") %>% # if N, L, or FR have numbers
+                      filter(libsur16_17 == "0")
+nrow(test2) # 0 plants, makes sense since this would mean it resurrected after 6 years
+
+```
+
+
+```{r Alive for 17 and 22 but not 18-22 }
+
+test3 <- all_data %>% filter(Alive23 == 1) %>% 
+                      filter(N17 != "" | L17 != "" | FR17 != "") %>% # if N, L, or FR have numbers
+                      filter(libsur17_18 == "0")
+
+nrow(test3) # 0 plants, makes sense since this would mean it resurrected after 5 years
+
+
+```
+
+
+
+```{r Alive for 18 and 23 but not 19-22 }
+
+test4 <- all_data %>% filter(Alive23 == 1) %>% 
+                      filter(N18 != "" | L18 != "" | FR18 != "") %>% # if N, L, or FR have numbers
+                      filter(libsur18_19 == "0") 
+
+nrow(test4) # 0 plants, makes sense since this would mean it resurrected after 4 years
+
+
+
+# Change AliveYR-1_YR for years were it was PRESUMED dead to being alive AND enter "PresAliveYR" meaning presumed alive. 
+for(i in 1:nrow(test4)){
+  
+  if(all_data$libsur18_19[which(all_data$site_ID == test4$site_ID[i])] == "0") {
+  all_data$Comm19[which(all_data$site_ID == test4$site_ID[i])] <- ifelse(all_data$Comm19[which(all_data$site_ID == test4$site_ID[i])] == "", "PresAlive19", paste(all_data$Comm19[which(all_data$site_ID == test4$site_ID[i])], " PresAlive19", sep = ";")) }   
+  
+  all_data$Comm20[which(all_data$site_ID == test4$site_ID[i])] <- ifelse(all_data$Comm20[which(all_data$site_ID == test4$site_ID[i])] == "", "PresAlive20", paste(all_data$Comm20[which(all_data$site_ID == test4$site_ID[i])], " PresAlive20", sep = ";")) 
+  
+  all_data$Comm21[which(all_data$site_ID == test4$site_ID[i])] <- ifelse(all_data$Comm21[which(all_data$site_ID == test4$site_ID[i])] == "", "PresAlive21", paste(all_data$Comm21[which(all_data$site_ID == test4$site_ID[i])], " PresAlive21", sep = ";")) 
+
+  all_data$Comm22[which(all_data$site_ID == test4$site_ID[i])] <- ifelse(all_data$Comm22[which(all_data$site_ID == test4$site_ID[i])] == "", "PresAlive22", paste(all_data$Comm22[which(all_data$site_ID == test4$site_ID[i])], " PresAlive22", sep = ";")) 
+
+  all_data$libsur18_19[which(all_data$site_ID == test4$site_ID[i])] <- 1   
+  all_data$libsur19_20[which(all_data$site_ID == test4$site_ID[i])] <- 1  
+  all_data$libsur20_21[which(all_data$site_ID == test4$site_ID[i])] <- 1  
+  all_data$libsur21_22[which(all_data$site_ID == test4$site_ID[i])] <- 1
+}
+
+all_data[all_data$site_ID %in% test4$site_ID, ] # "PresAliveXX" is entered into the appropriate columns.
+
+retest4 <- all_data %>%  filter(Alive23 == 1) %>% 
+                      filter(N18 != "" | L18 != "" | FR18 != "") %>% # if N, L, or FR have numbers
+                      filter(libsur18_19 == "0") 
+
+nrow(retest4) # 0 plants 
+
+```
+
+
+```{r Alive for 19 and 23 but not 20-22 }
+
+test5 <- all_data %>% filter(Alive23 == 1) %>% 
+                      filter(N19 != "" | L19 != "" | FR19 != "") %>% # if N, L, or FR have numbers
+                      filter(libsur19_20 == "0") 
+
+nrow(test5) # 0 plants, very few (to none) would resurrect after three years
+
+
+# Change AliveYR-1_YR for years were it was PRESUMED dead to being alive AND enter "PresAliveYR" meaning presumed alive. 
+for(i in 1:nrow(test5)){
+  
+  if(all_data$libsur19_20[which(all_data$site_ID == test5$site_ID[i])] == "0") {
+  all_data$Comm20[which(all_data$site_ID == test5$site_ID[i])] <- ifelse(all_data$Comm20[which(all_data$site_ID == test5$site_ID[i])] == "", "PresAlive20", paste(all_data$Comm20[which(all_data$site_ID == test5$site_ID[i])], " PresAlive20", sep = ";")) } 
+  
+  all_data$Comm21[which(all_data$site_ID == test5$site_ID[i])] <- ifelse(all_data$Comm21[which(all_data$site_ID == test5$site_ID[i])] == "", "PresAlive21", paste(all_data$Comm21[which(all_data$site_ID == test5$site_ID[i])], " PresAlive21", sep = ";")) 
+
+  all_data$Comm22[which(all_data$site_ID == test5$site_ID[i])] <- ifelse(all_data$Comm22[which(all_data$site_ID == test5$site_ID[i])] == "", "PresAlive22", paste(all_data$Comm22[which(all_data$site_ID == test5$site_ID[i])], " PresAlive22", sep = ";")) 
+  
+  all_data$libsur19_20[which(all_data$site_ID == test5$site_ID[i])] <- 1  
+  all_data$libsur20_21[which(all_data$site_ID == test5$site_ID[i])] <- 1  
+  all_data$libsur21_22[which(all_data$site_ID == test5$site_ID[i])] <- 1
+}
+
+all_data[all_data$site_ID %in% test5$site_ID, ] # "PresAliveXX" is entered into the appropriate columns.
+
+retest5 <- all_data %>%  filter(Alive23 == 1) %>% 
+                      filter(N19 != "" | L19 != "" | FR19 != "") %>% # if N, L, or FR have numbers
+                      filter(libsur19_20 == "0")
+
+nrow(retest5) # 0 plants 
+
+```
+
+
+```{r Alive for 20 and 23 but not 21-22 }
+
+test6 <- all_data %>% filter(Alive23 == 1) %>% 
+                      filter(N20 != "" | L20 != "" | FR20 != "") %>% # if N, L, or FR have numbers
+                      filter(libsur20_21 == "0") 
+
+nrow(test6) # 0 plants
+
+# Change AliveYR-1_YR for years were it was PRESUMED dead to being alive AND enter "PresAliveYR" meaning presumed alive. 
+for(i in 1:nrow(test6)){
+  
+  if(all_data$libsur20_21[which(all_data$site_ID == test6$site_ID[i])] == "0") {
+  all_data$Comm21[which(all_data$site_ID == test6$site_ID[i])] <- ifelse(all_data$Comm21[which(all_data$site_ID == test6$site_ID[i])] == "", "PresAlive21", paste(all_data$Comm21[which(all_data$site_ID == test6$site_ID[i])], " PresAlive21", sep = ";")) } 
+
+  all_data$Comm22[which(all_data$site_ID == test6$site_ID[i])] <- ifelse(all_data$Comm22[which(all_data$site_ID == test6$site_ID[i])] == "", "PresAlive22", paste(all_data$Comm22[which(all_data$site_ID == test6$site_ID[i])], " PresAlive22", sep = ";")) 
+  
+  all_data$libsur20_21[which(all_data$site_ID == test6$site_ID[i])] <- 1  
+  all_data$libsur21_22[which(all_data$site_ID == test6$site_ID[i])] <- 1
+}
+
+all_data[all_data$site_ID %in% test6$site_ID, ] # "PresAliveXX" is entered into the appropriate columns.
+
+retest6 <- all_data %>%  filter(Alive23 == 1) %>% 
+                      filter(N20 != "" | L20 != "" | FR20 != "") %>% # if N, L, or FR have numbers
+                      filter(libsur20_21 == "0") 
+
+nrow(retest6) # 0 plants 
+
+
+```
+
+```{r Alive for 21 and 23 but not 22 }
+
+test7 <- all_data %>% filter(Alive23 == 1) %>% 
+                      filter(N21 != "" | L21 != "" | FR21 != "") %>% # if N, L, or FR have numbers
+                      filter(libsur21_22 == "0") 
+
+nrow(test7) # 118 plants
+
+# Change AliveYR-1_YR for years were it was PRESUMED dead to being alive AND enter "PresAliveYR" meaning presumed alive. 
+for(i in 1:nrow(test7)){
+
+  if(all_data$libsur21_22[which(all_data$site_ID == test7$site_ID[i])] == "0") {
+  all_data$Comm22[which(all_data$site_ID == test7$site_ID[i])] <- ifelse(all_data$Comm22[which(all_data$site_ID == test7$site_ID[i])] == "", "PresAlive22", paste(all_data$Comm22[which(all_data$site_ID == test7$site_ID[i])], " PresAlive22", sep = ";")) } 
+  
+  all_data$libsur21_22[which(all_data$site_ID == test7$site_ID[i])] <- 1
+}
+
+all_data[all_data$site_ID %in% test7$site_ID, ] # "PresAliveXX" is entered into the appropriate columns.
+
+retest7 <- all_data %>% filter(Alive23 == 1) %>% 
+                      filter(N21 != "" | L21 != "" | FR21 != "") %>% # if N, L, or FR have numbers
+                      filter(libsur21_22 == "0") 
+
+nrow(retest7) # 0 plants 
+
+```
+
+
+<br> 
+
+
+
+```{r If previous year had "0", then assign current year as "" }
+
+table(all_data$Alive23) # 280 = 0, 1955 = 1
+
+for(i in 1:nrow(all_data)){
+  if(all_data$libsur15_16[i] == "0" | 
+     all_data$libsur16_17[i] == "0" | 
+     all_data$libsur17_18[i] == "0" |
+     all_data$libsur18_19[i] == "0" |
+     all_data$libsur19_20[i] == "0" |
+     all_data$libsur20_21[i] == "0" |
+     all_data$libsur21_22[i] == "0") { all_data$Alive23[i] <- as.character("") }
+  
+}
+
+table(all_data$Alive23) # 264 = 0, 1943 = 1
+
+```
+
+
+
+```{r Final check for duplicates }
+
+test <- all_data %>% group_by(site, ID) %>% dplyr::summarise(n = n())
+table(test$n)
+
+```
+
+
+## 5. Export final datasets
+
+Finally, you can export the data file as both csv and rds (R object) files. Please change the year to the current year. 
+
+
+```{r Export files }
+
+all_data1 <- all_data %>% rename(libsur22_23 = Alive23)
+
+write.csv(all_data1, file = "alldemodata_upto2023.csv", row.names = FALSE)
+#saveRDS(all_data1, file = "alldemodata_upto2023.rds") # if R object is preferred
+
+```
+
+
+Next, upload this file onto box in the  VFT > VFT clean master data > alldemodata_uptoYYYY (where YYYY is the 4-digit year of the year prior).  
+
