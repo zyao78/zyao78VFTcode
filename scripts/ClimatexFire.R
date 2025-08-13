@@ -7,8 +7,6 @@ library(lme4)
 library(tidyverse)
 library(MuMIn)
 library(glue)
-HOBO_upto2024_2 <- HOBO_upto2024
-TBF_long <- read_csv("TBF_data_long_2024.csv")
 HOBO_upto2024$site[HOBO_upto2024$site == "GSP_BI"] <- "GSP-BI"
 HOBO_upto2024$site[HOBO_upto2024$site == "GSP_LI"] <- "GSP-LI"
 SoilT_upto2024$site[SoilT_upto2024$site == "GSP_BI"] <- "GSP-BI"
