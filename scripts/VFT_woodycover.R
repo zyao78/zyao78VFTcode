@@ -48,9 +48,9 @@ woody25$height <- woody25$legHeight - woody25$distance
 
 ## percentage cover by intercep
 
-woodyquad2 <- woody25 %>%
+woodyquad <- woody25 %>%
   group_by(site, quad, trans) %>%
-  summarise( percent_woody = sum(interc == 1) / n())
+  summarise( percent_woody = sum(interc == 1) / n(), meanHeight = mean(height, na.rm=TRUE), count_woody = sum(interc==1,na.rm=TRUE ) )
 
 ## left join the note
 WoodyNote <-woody25[!is.na(woody25$Note),] 
@@ -70,3 +70,10 @@ for (i in 1:nrow(woodyquad)){
 nrow(woodyquad[!is.na(woodyquad$note), ])
 
 
+### add TSF and TBF
+woodyquad$startyear <- 2024
+
+
+
+### export
+write.csv(woodyquad, "F:/VFT/VFT_github/zyao78VFTcode/processed-data/woodycover2025.csv")
