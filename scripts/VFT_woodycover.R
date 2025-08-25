@@ -30,14 +30,43 @@ dat.list[[6]]$site <- "GSP-LI"
 
 woody25 <- do.call("rbind", dat.list)
 
-## fill in 0s
+## fill in 0s and check for wrong entris
 woody25$interc[is.na(woody25$interc)] <- 0
 ## calculate woody height
 woody25$height <- NA
 woody25$height <- woody25$legHeight - woody25$distance
 
+table(woody25$legHeight)
+hist(woody25$distance)
+table(woody25$interc)
+
+wrong<- woody25[!is.na(woody25$height) & woody25$height < 0, ]
+woody25[1216, "distance"] <- 40   # fix wrong entries
+woody25[122, "distance"] <- NA   # fix wrong entries
+woody25$height <- woody25$legHeight - woody25$distance
+
+
 ## percentage cover by intercep
 
-woodyquad <- woody25 %>%
-  group_by(site, quad) %>%
-  summarise(percent_woody_2 = sum(interc == 1) / 81, percent_woody = sum(interc == 1) / n())
+woodyquad2 <- woody25 %>%
+  group_by(site, quad, trans) %>%
+  summarise( percent_woody = sum(interc == 1) / n())
+
+## left join the note
+WoodyNote <-woody25[!is.na(woody25$Note),] 
+  
+  
+woodyquad$note <- NA
+for (i in 1:nrow(woodyquad)){
+     match_index <- which(WoodyNote$quad == woodyquad$quad[i] &
+                            WoodyNote$site == woodyquad$site[i]&
+                            WoodyNote$trans == woodyquad$trans[i] )
+  
+     if (length(match_index) > 0){
+       woodyquad$note[i] <- WoodyNote$Note[match_index]
+     }
+}
+
+nrow(woodyquad[!is.na(woodyquad$note), ])
+
+
