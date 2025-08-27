@@ -32,6 +32,12 @@ woody25 <- do.call("rbind", dat.list)
 
 ## fill in 0s and check for wrong entris
 woody25$interc[is.na(woody25$interc)] <- 0
+wrong<- woody25[!is.na(woody25$height) & woody25$height < 0, ]
+woody25[1216, "distance"] <- 40   # fix wrong entries
+woody25[122, "distance"] <- NA   # fix wrong entries
+woody25$height <- woody25$legHeight - woody25$distance
+
+
 ## calculate woody height
 woody25$height <- NA
 woody25$height <- woody25$legHeight - woody25$distance
@@ -40,10 +46,7 @@ table(woody25$legHeight)
 hist(woody25$distance)
 table(woody25$interc)
 
-wrong<- woody25[!is.na(woody25$height) & woody25$height < 0, ]
-woody25[1216, "distance"] <- 40   # fix wrong entries
-woody25[122, "distance"] <- NA   # fix wrong entries
-woody25$height <- woody25$legHeight - woody25$distance
+
 
 
 ## percentage cover by intercep
