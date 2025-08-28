@@ -17,7 +17,6 @@ end_date_manager <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-dat
 end_date_field_notes <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "field_notes", rows=1,colNames= FALSE) %>% stringr::str_remove("FILE CURRENT AS OF ") %>% as.Date("%m/%d/%y")
 end_date_landsat <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "landsat", rows=1,colNames= FALSE) %>% stringr::str_remove("FILE CURRENT AS OF ") %>% as.Date("%m/%d/%y")
 
-end_date_landsat <- end_date_manager
 end_date_manager <- end_date_landsat
 
 sites <- c("B1", "B2", "CM", "CH", "IA", "ME", "GSP-LI", "GSP-BI")
@@ -63,4 +62,4 @@ for (i in 1:length(sites)){
 }
 }
 
-write.csv(fire_histories, "F:/VFT/VFT_github/zyao78VFTcode/processed-data/fire_histories_8_27_2025")
+write.csv(fire_histories, "F:/VFT/VFT_github/zyao78VFTcode/processed-data/fire_histories_8_27_2025.csv")
