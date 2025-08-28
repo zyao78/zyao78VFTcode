@@ -6,7 +6,6 @@ library(tidyverse)
 library(MuMIn)
 library(glue)
 library(MASS)
-install.packages("DHARMa")
 library(glmmTMB)
 library(DHARMa)
 
@@ -46,6 +45,8 @@ woody25$height <- woody25$legHeight - woody25$distance
 wrong<- woody25[!is.na(woody25$height) & woody25$height < 0, ]
 woody25[1216, "distance"] <- 40   # fix wrong entries
 woody25[122, "distance"] <- NA   # fix wrong entries
+woody25$height <- woody25$legHeight - woody25$distance
+
 
 table(woody25$legHeight)
 hist(woody25$distance)
@@ -59,6 +60,7 @@ table(woody25$interc)
 woodyquad <- woody25 %>%
   group_by(site, quad, trans) %>%
   summarise( percent_woody = sum(interc == 1) / n(), meanHeight = mean(height, na.rm=TRUE), count_woody = sum(interc==1,na.rm=TRUE ) )
+woodyquad$meanHeight[woodyquad$meanHeight=="NaN"] <- NA
 
 ## left join the note
 WoodyNote <-woody25[!is.na(woody25$Note),] 
@@ -149,13 +151,17 @@ overdisp_fun <- function(model) {
 overdisp_fun(woody.count.poisson) 
 
 ## woody height
-woodysub3 <- woodyquad %>% 
-  filter_at(vars(TSF,TBF, logHeight), all_vars(!is.na(.)))
-hist(woodysub2$percent_woody)
 woodyquad$logHeight <- NA
 woodyquad$logHeight <- log(woodyquad$meanHeight+1)
+
+woodysub3 <- woodyquad %>% 
+  filter_at(vars(TSF,TBF, logHeight), all_vars(!is.na(.)))
+
 hist(woodyquad$logHeight)
-woody.height <- lmer(logHeight~TSF*TBF+(1|site), data=woodysub3)
+woody.height <- lm(logHeight~TSF*TBF, data=woodysub3)
+
+woody.height.M <- lmer(logHeight~TSF_M*TBF_M+(1|site), data=woodyquad)
+
 
 ### check anova
 summary(woody.percent)
@@ -166,7 +172,9 @@ car::Anova(woody.percent, type = 3)
 car::Anova(woody.count.nb, type = 3)
 car::Anova(woody.height, type = 3)
 
+summary(woody.height.M)
+car::Anova(woody.height.M, type = 3)
 
 
 ### export
-read_csv("F:/VFT/VFT_github/zyao78VFTcode/processed-data/fire_histories_8_27_2025.csv")
+write.csv(woodyquad,"F:/VFT/VFT_github/zyao78VFTcode/processed-data/woodyquad_8_28_25.csv")
