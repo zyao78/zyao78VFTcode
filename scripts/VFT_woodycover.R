@@ -25,14 +25,14 @@ dat.list[[3]]$site <- "B1"
 dat.list[[4]] <- read_xlsx("F:/VFT/data entry/2025/woody cover blank/woody cover template.xlsx", sheet = 4)
 dat.list[[4]]$site <- "B2"
 
-#dat.list[[5]] <- read_xlsx("F:/VFT/data entry/2025/woody cover blank/woody cover template.xlsx", sheet = 5)
-#dat.list[[5]]$site <- "IA"
+dat.list[[5]] <- read_xlsx("F:/VFT/data entry/2025/woody cover blank/woody cover template.xlsx", sheet = 5)
+dat.list[[5]]$site <- "IA"
 
-dat.list[[5]] <- read_xlsx("F:/VFT/data entry/2025/woody cover blank/woody cover template.xlsx", sheet = 6)
-dat.list[[5]]$site <- "GSP-BI"
+dat.list[[6]] <- read_xlsx("F:/VFT/data entry/2025/woody cover blank/woody cover template.xlsx", sheet = 6)
+dat.list[[6]]$site <- "GSP-BI"
 
-dat.list[[6]] <- read_xlsx("F:/VFT/data entry/2025/woody cover blank/woody cover template.xlsx", sheet = 7)
-dat.list[[6]]$site <- "GSP-LI"
+dat.list[[7]] <- read_xlsx("F:/VFT/data entry/2025/woody cover blank/woody cover template.xlsx", sheet = 7)
+dat.list[[7]]$site <- "GSP-LI"
 
 woody25 <- do.call("rbind", dat.list)
 
@@ -43,9 +43,9 @@ woody25$height <- NA
 woody25$height <- woody25$legHeight - woody25$distance
 
 wrong<- woody25[!is.na(woody25$height) & woody25$height < 0, ]
-woody25[1216, "distance"] <- 40   # fix wrong entries
-woody25[122, "distance"] <- NA   # fix wrong entries
-woody25$height <- woody25$legHeight - woody25$distance
+#woody25[1216, "distance"] <- 40   # fix wrong entries
+#woody25[122, "distance"] <- NA   # fix wrong entries
+#woody25$height <- woody25$legHeight - woody25$distance
 
 
 table(woody25$legHeight)
@@ -151,24 +151,33 @@ overdisp_fun <- function(model) {
 overdisp_fun(woody.count.poisson) 
 
 ## woody height
-woodyquad$logHeight <- NA
-woodyquad$logHeight <- log(woodyquad$meanHeight+1)
+woodyquad$IntHeight <- NA
+woodyquad$IntHeight <- woodyquad$meanHeight * woodyquad$count_woody
+woodyquad$IntHeight [woodyquad$count_woody == 0] <- 0
+
+
+woodyquad$logIntHeight <- NA
+woodyquad$logIntHeight <- log(woodyquad$IntHeight+1)
+hist(woodyquad$logIntHeight)  ## as upto2025, this followed a zero-inflated normal distribution
 
 woodysub3 <- woodyquad %>% 
-  filter_at(vars(TSF,TBF, logHeight), all_vars(!is.na(.)))
+  filter_at(vars(TSF,TBF, logIntHeight), all_vars(!is.na(.)))
 
-hist(woodyquad$logHeight)
-woody.height <- lm(logHeight~TSF*TBF, data=woodysub3)
+woody.height <- glmmTMB(logIntHeight ~ TSF*TBF+(1|site) , data = woodysub3,    # zero-inflated beta distribution
+                        family   = tweedie(link = "log")
+                        ,na.action = "na.fail")
 
-woody.height.M <- lmer(logHeight~TSF_M*TBF_M+(1|site), data=woodyquad)
+woody.height.M <- glmmTMB(logIntHeight ~ TSF_M*TBF_M+(1|site) , data = woodysub3,    # zero-inflated beta distribution
+                          family   = tweedie(link = "log")
+                          ,na.action = "na.fail")
 
 
 ### check anova
-summary(woody.percent)
+summary(woody.count.nb.M)
 summary(woody.count.nb)
 summary(woody.height)
 
-car::Anova(woody.percent, type = 3)
+car::Anova(woody.count.nb.M, type = 3)
 car::Anova(woody.count.nb, type = 3)
 car::Anova(woody.height, type = 3)
 
