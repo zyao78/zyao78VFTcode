@@ -1,7 +1,14 @@
 install.packages("future")
-library("lme4")
-library("lmerTest")
-library("car")
+install.packages("lme4")
+install.packages("lmerTest")
+install.packages("car")
+install.packages("AICcmodavg")
+install.packages("tidyverse")
+install.packages("MuMIn")
+install.packages("glue")
+install.packages("dplyr")
+
+
 library(AICcmodavg)
 library(lme4)
 library(tidyverse)
@@ -391,8 +398,8 @@ GM_RA_sur <- glmer(
 )
 
 summary(GM_RA_sur)
-sur_dredge_A <- MuMIn::dredge(GM_RA_sur, trace = 2) # dredge can only work for na.action="na.fail"
-sur_mod_RA <- MuMIn::get.models(sur_dredge, 1)[[1]]
+sur_dredge_RA <- MuMIn::dredge(GM_RA_sur, trace = 2) # dredge can only work for na.action="na.fail"
+sur_mod_RA <- MuMIn::get.models(sur_dredge_RA, 1)[[1]]
 
 sur_subset_MA <- 
   TBF_long %>% 
