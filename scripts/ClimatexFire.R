@@ -347,6 +347,8 @@ for (i in 1:nrow(TBF_long)) {
 
 
 #### model selection
+
+### create clim variables
 TBF_long$s.T_RA <- NA
 TBF_long$s.T_RA <- scale(TBF_long$T_RA) 
 TBF_long$s.P_RA <- NA
@@ -366,27 +368,33 @@ TBF_long$s.T_RC <- scale(TBF_long$T_RC)
 TBF_long$s.T_RD <- scale(TBF_long$T_RD) 
 TBF_long$s.T_RW <- scale(TBF_long$T_RW) 
 
+##
+TBF_long <- read_csv("data/TBFxClimate/TBF_long.csv") 
+colnames(TBF_long)
+
 ### Regional 
 ###
 
 ### Survival
-sur_subset <- 
+sur_subset_RA <- 
   TBF_long %>% 
   dplyr::filter(across(c( consur0_1, s.logsize0, TSF, TBF,site, s.T_RA, s.P_RA), ~ !is.na(.)))
+
 GM_RA_sur <- glmer(
   consur0_1 ~ s.logsize0 + TSF * TBF +
     s.T_RA + s.P_RA + s.T_RA:s.P_RA +
     I(s.T_RA^2) + I(s.P_RA^2) + I(s.T_RA^2 * s.P_RA^2) +
     (1 | site),
-  data = sur_subset,
+  data = sur_subset_RA,
   family = "binomial", 
   na.action = "na.fail"
 )
+
 summary(GM_RA_sur)
 sur_dredge_A <- MuMIn::dredge(GM_RA_sur, trace = 2) # dredge can only work for na.action="na.fail"
 sur_mod_RA <- MuMIn::get.models(sur_dredge, 1)[[1]]
 
-sur_subset_M <- 
+sur_subset_MA <- 
   TBF_long %>% 
   dplyr::filter(across(c( consur0_1, s.logsize0, TSF, TBF,site, s.P_RD, s.P_RW, s.P_RH, s.T_RC, s.T_RH, 
                           s.T_RD, s.T_RW), ~ !is.na(.)))
@@ -398,7 +406,7 @@ GM_RM_sur <- glmer(
     s.T_RD + s.P_RD + I(s.P_RD^2) + s.P_RD * s.T_RD +
     s.T_RH + s.P_RH + s.T_RH * s.P_RH + I(s.T_RH^2) +
     (1 | site), 
-  data = sur_subset_M, 
+  data = sur_subset_MA, 
   family = "binomial", 
   na.action = "na.fail"
 )
