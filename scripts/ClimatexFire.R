@@ -401,7 +401,7 @@ summary(GM_RA_sur)
 sur_dredge_RA <- MuMIn::dredge(GM_RA_sur, trace = 2) # dredge can only work for na.action="na.fail"
 sur_mod_RA <- MuMIn::get.models(sur_dredge_RA, 1)[[1]]
 
-sur_subset_MA <- 
+sur_subset_RM <- 
   TBF_long %>% 
   dplyr::filter(across(c( consur0_1, s.logsize0, TSF, TBF,site, s.P_RD, s.P_RW, s.P_RH, s.T_RC, s.T_RH, 
                           s.T_RD, s.T_RW), ~ !is.na(.)))
@@ -413,11 +413,11 @@ GM_RM_sur <- glmer(
     s.T_RD + s.P_RD + I(s.P_RD^2) + s.P_RD * s.T_RD +
     s.T_RH + s.P_RH + s.T_RH * s.P_RH + I(s.T_RH^2) +
     (1 | site), 
-  data = sur_subset_MA, 
+  data = sur_subset_RM, 
   family = "binomial", 
   na.action = "na.fail"
 )
-sur_dredge_M <- MuMIn::dredge(GM_RM_sur, trace = 2) # dredge can only work for na.action="na.fail"
+sur_dredge_RM <- MuMIn::dredge(GM_RM_sur_2, trace = 2) # dredge can only work for na.action="na.fail"
 sur_mod_RM <- MuMIn::get.models(sur_dredge_M, 1)[[1]]
 
 ### growth
@@ -427,6 +427,9 @@ gr_subset_A <-
   dplyr::filter(across(c( logsize1, s.logsize0, TSF, TBF,site, s.T_RA, s.P_RA), ~ !is.na(.)))
 
 
+
+## save env
+save(list = ls(), file = "processed-data/env_snapshot.RData")
 
 ### plotting 
 ggplot(P_RA, aes(x = factor(startyear), y = prec, fill = site)) +
