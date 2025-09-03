@@ -417,7 +417,8 @@ GM_RM_sur <- glmer(
   family = "binomial", 
   na.action = "na.fail"
 )
-sur_dredge_RM <- MuMIn::dredge(GM_RM_sur_2, trace = 2) # dredge can only work for na.action="na.fail"
+
+sur_dredge_RM <- MuMIn::dredge(GM_RM_sur, trace = 2) 
 sur_mod_RM <- MuMIn::get.models(sur_dredge_M, 1)[[1]]
 
 ### growth
