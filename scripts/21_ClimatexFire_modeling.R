@@ -18,29 +18,7 @@ library(glue)
 ###               make sure to enable parallel computing for faster model building
 ###
 ###
-## detect # of cores
-n_cores <- detectCores()
-n_cores
-dd <- MuMIn::dredge(
-  GM_RA_sur,
-  cluster = cluster,
-  trace   = 2
-)
-best_mod <- get.models(dd, 1)[[1]]
-stopCluster(cluster)
 
-
-## run pdredge
-dd <- MuMIn::dredge(
-  GM_RA_sur,
-  cluster = cluster,
-  trace   = 2
-)
-best_mod <- get.models(dd, 1)[[1]]
-
-
-### stop cluser
-stopCluster(cluster)
 
 
 
@@ -107,16 +85,17 @@ sur_dredge_RA <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
-
 sur_mod_RA <- get.models(sur_dredge_RA, 1)[[1]]
-stopCluster(cluster)
 summary(sur_mod_RA)
+stopCluster(cluster)
+
+### monthly clim var
 
 
 sur_subset_RM <- 
   TBF_long %>% 
-  dplyr::filter(across(c( consur0_1, s.logsize0, TSF, TBF,site, s.P_RD, s.P_RW, s.P_RH, s.T_RC, s.T_RH, 
-                          s.T_RD, s.T_RW), ~ !is.na(.)))
+  filter_at(vars(consur0_1, s.logsize0, TSF, TBF,site, s.P_RD, s.P_RW, s.P_RH, s.T_RC, s.T_RH, 
+                          s.T_RD, s.T_RW), all_vars(!is.na(.)))
 
 GM_RM_sur <- glmer(
   consur0_1 ~ s.logsize0 + TSF * TBF + 
@@ -130,8 +109,23 @@ GM_RM_sur <- glmer(
   na.action = "na.fail"
 )
 
-sur_dredge_RM <- MuMIn::dredge(GM_RM_sur, trace = 2) 
-sur_mod_RM <- MuMIn::get.models(sur_dredge_M, 1)[[1]]
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("sur_subset_RM"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+sur_dredge_RM <- MuMIn::dredge(
+  GM_RM_sur,
+  cluster = cluster,
+  trace   = 2
+)
+sur_mod_RM <- get.models(sur_dredge_RM, 1)[[1]]
+summary(sur_mod_RM)
+stopCluster(cluster)
+
+
+
 
 ### growth
 
@@ -142,7 +136,7 @@ gr_subset_A <-
 
 
 ## save env
-save(list = ls(), file = "processed-data/env_snapshot.RData")
+save(list = ls(), file = "env_snapshot.RData")
 
 ### plotting 
 ggplot(P_RA, aes(x = factor(startyear), y = prec, fill = site)) +

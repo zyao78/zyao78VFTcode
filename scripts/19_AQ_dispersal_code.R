@@ -6,7 +6,7 @@ library(MuMIn)
 library(tidyverse)
 library(popbio)
 library(parallel)
-
+install.packages("doParallel")
 library(doParallel)
 library(foreach)
 
