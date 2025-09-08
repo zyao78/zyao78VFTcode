@@ -52,24 +52,27 @@ colnames(TBF_long)
 
 
 ###
-###                            Regional  climate variables (Annual + Monthly)
+###                 Regional  climate variables (Annual + Monthly)
+###
+###         Define global mode according to Louthan et.al., 2022, Table 2.
+###
+###
+###
 ###
 
 
 
 ### Survival
-###
-
-## annual clim var
-sur_subset_RA <- 
+sur_subset_R <- 
   TBF_long %>% 
-  filter_at(vars(consur0_1, s.logsize0, TSF, TBF,site, s.T_RA, s.P_RA), all_vars(!is.na(.)))
-GM_RA_sur <- glmer(
-  consur0_1 ~ s.logsize0 + TSF * TBF +
-    s.T_RA + s.P_RA + s.T_RA:s.P_RA +
-    I(s.T_RA^2) + I(s.P_RA^2) + I(s.T_RA^2 * s.P_RA^2) +
+  filter_at(vars(consur0_1, s.logsize0, TSF, TBF, site, s.T_RA,s.T_RH, s.T_RD,
+                 s.P_RH, s.P_RD), all_vars(!is.na(.)))
+GM_R_sur <- glmer(
+  consur0_1 ~ s.logsize0 + TSF * TBF + I(TSF^2)+
+    s.T_RA + s.T_RH + I(s.T_RH^2) + s.T_RD +s.P_RH +
+    s.P_RH:s.T_RH + s.P_RD + 
     (1 | site),
-  data = sur_subset_RA,
+  data = sur_subset_R,
   family = "binomial", 
   na.action = "na.fail"
 )
@@ -78,62 +81,117 @@ n_cores <- detectCores()
 n_cores
 cluster <- makeCluster(n_cores - 1)
 registerDoParallel(cluster)
-clusterExport(cluster, c("sur_subset_RA"))   ### replace with different subset (different global models)
+clusterExport(cluster, c("sur_subset_R"))   ### replace with different subset (different global models)
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
-sur_dredge_RA <- MuMIn::dredge(
-  GM_RA_sur,
+
+sur_dredge_R <- MuMIn::dredge(
+  GM_R_sur,
   cluster = cluster,
   trace   = 2
 )
-sur_mod_RA <- get.models(sur_dredge_RA, 1)[[1]]
-summary(sur_mod_RA)
+sur_mod_R <- get.models(sur_dredge_R, 1)[[1]]
+summary(sur_mod_R)   ## large eigenvalue warning, rescale numeric variables
+
+dfs <- sur_subset_R
+dfs[,17:ncol(dfs)] <- scale(dfs[,17:ncol(dfs)]) ## scale num variables (not including consur_0_1)
+sur_mod_R_s <- update(sur_mod_R,data=dfs)
+summary(sur_mod_R_s)
+
+
 stopCluster(cluster)
-
-### monthly clim var
-
-
-sur_subset_RM <- 
-  TBF_long %>% 
-  filter_at(vars(consur0_1, s.logsize0, TSF, TBF,site, s.P_RD, s.P_RW, s.P_RH, s.T_RC, s.T_RH, 
-                          s.T_RD, s.T_RW), all_vars(!is.na(.)))
-
-GM_RM_sur <- glmer(
-  consur0_1 ~ s.logsize0 + TSF * TBF + 
-    s.T_RC + I(s.T_RC^2) +
-    s.T_RW + s.P_RW + s.T_RW * s.P_RW + I(s.P_RW^2) +
-    s.T_RD + s.P_RD + I(s.P_RD^2) + s.P_RD * s.T_RD +
-    s.T_RH + s.P_RH + s.T_RH * s.P_RH + I(s.T_RH^2) +
-    (1 | site), 
-  data = sur_subset_RM, 
-  family = "binomial", 
-  na.action = "na.fail"
-)
-
-n_cores <- detectCores()
-n_cores
-cluster <- makeCluster(n_cores - 1)
-registerDoParallel(cluster)
-clusterExport(cluster, c("sur_subset_RM"))   ### replace with different subset (different global models)
-clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
-sur_dredge_RM <- MuMIn::dredge(
-  GM_RM_sur,
-  cluster = cluster,
-  trace   = 2
-)
-sur_mod_RM <- get.models(sur_dredge_RM, 1)[[1]]
-summary(sur_mod_RM)
-stopCluster(cluster)
-
-
-
 
 ### growth
 
-gr_subset_A <- 
+gr_subset_R <- 
   TBF_long %>% 
-  dplyr::filter(across(c( logsize1, s.logsize0, TSF, TBF,site, s.T_RA, s.P_RA), ~ !is.na(.)))
+  filter_at(vars(logsize1, s.logsize0, TSF, TBF, site, s.T_RA, s.P_RA, s.T_RC, 
+                 s.T_RD, s.P_RH), all_vars(!is.na(.)))
+GM_R_gr <- lmer(
+  logsize1 ~ s.logsize0 + TSF * TBF + I(TSF^2)+ s.T_RA + I(s.T_RA^2) + s.P_RA + s.T_RA:s.P_RA +
+    s.T_RC + s.T_RD + s.P_RH +
+    (1 | site),
+  data = gr_subset_R,
+  na.action = "na.fail"
+)
 
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("gr_subset_R"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
+gr_dredge_R <- MuMIn::dredge(
+  GM_R_gr,
+  cluster = cluster,
+  trace   = 2
+)
+gr_mod_R <- get.models(gr_dredge_R, 1)[[1]]
+summary(gr_mod_R)
+stopCluster(cluster)
+
+## prob fruiting
+
+prep_subset_R <- 
+  TBF_long %>% 
+  filter_at(vars(prep1, s.logsize0, TSF, TBF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
+                 s.P_RH, ), all_vars(!is.na(.)))
+GM_R_prep <- glmer(
+  prep1 ~ s.logsize0 + TSF * TBF + I(TSF^2)+
+    s.T_RA + I(s.T_RA^2) +s.P_RA+ I(s.P_RA^2) + s.T_RA:s.P_RA+ I(s.T_RA^2):I(s.P_RA^2) +
+    s.T_RH + s.P_RH + s.T_RH:s.P_RH + s.T_RC +
+    (1 | site),
+  data = prep_subset_R,
+  family = "binomial", 
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("prep_subset_R"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+prep_dredge_R <- MuMIn::dredge(
+  GM_R_prep,
+  cluster = cluster,
+  trace   = 2
+)
+prep_mod_R <- get.models(prep_dredge_R, 1)[[1]]
+summary(prep_mod_R)
+stopCluster(cluster)
+
+### number of fruit
+
+crep_subset_R <- 
+  TBF_long %>% 
+  filter_at(vars(logcrep1, s.logsize0, TSF, TBF, site, s.T_RA, s.T_RH), all_vars(!is.na(.)))
+
+GM_R_crep <- lmer(
+  logcrep1 ~ s.logsize0 + TSF * TBF + I(TSF^2)+ s.T_RA + s.T_RH +
+    (1 | site),
+  data = crep_subset_R,
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("crep_subset_R"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+crep_dredge_R <- MuMIn::dredge(
+  GM_R_crep,
+  cluster = cluster,
+  trace   = 2
+)
+crep_mod_R <- get.models(crep_dredge_R, 1)[[1]]
+summary(crep_mod_R)
+stopCluster(cluster)
+
+## 
 
 ## save env
 save(list = ls(), file = "env_snapshot.RData")
