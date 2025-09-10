@@ -201,6 +201,46 @@ car::Anova(crep_mod_R, type = 3)
 stopCluster(cluster)
 
 ## 
+### integrated measure of fruiting 
+
+TBF_long$prep_Int <- NA
+TBF_long$prep_Int <- ifelse(
+  TBF_long$prep1 == 0 & is.na(TBF_long$logcrep1),
+  0,
+  TBF_long$prep1 * TBF_long$logcrep1
+)
+hist(TBF_long$prep_Int)   ## zero inflated distribution
+
+prep_Int_subset_R <- 
+  TBF_long %>% 
+  filter_at(vars(prep_Int, s.logsize0, TSF, TBF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
+                 s.P_RH, ), all_vars(!is.na(.)))
+
+GM_R_prep_Int <- glmmTMB(
+  prep_Int ~ s.logsize0 + TSF * TBF + I(TSF^2)+
+    s.T_RA + I(s.T_RA^2) +s.P_RA+ I(s.P_RA^2) + s.T_RA:s.P_RA+ I(s.T_RA^2):I(s.P_RA^2) +
+    s.T_RH + s.P_RH + s.T_RH:s.P_RH + s.T_RC +
+    (1 | site),
+  data = prep_Int_subset_R,
+  family   = tweedie(link = "log"),
+  na.action = "na.fail"
+)
+
+
+
+### attempt to square then scale
+
+TBF_long$sq.P_RA <- (TBF_long$P_RA)^2
+TBF_long$sq.T_RA <- (TBF_long$T_RA)^2
+TBF_long$sq.TSF <- (TBF_long$TSF)^2
+TBF_long$s.sq.P_RA <- scale(TBF_long$sq.P_RA)
+TBF_long$s.sq.T_RA <- scale(TBF_long$T_RA^2)
+TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF)
+TBF_long$s.TBF <- scale(TBF_long$TBF)
+
+plot(TBF_long$s.T_RA ~ TBF_long$s.sq.T_RA)
+
+
 
 ## save env
 save(list = ls(), file = "env_snapshot.RData")

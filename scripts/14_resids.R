@@ -11,3 +11,8 @@ residuals <- simulateResiduals(fittedModel = crep_mod_R, plot = F)
 plot(residuals)  # plot qq plot and simulated residual plot
 
 
+### get raw residuals
+
+residualPlots (prep_mod_R_s)
+plot(fitted(prep_mod_R_s), residuals(prep_mod_R_s))
+
