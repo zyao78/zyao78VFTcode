@@ -128,6 +128,7 @@ gr_dredge_R <- MuMIn::dredge(
 )
 gr_mod_R <- get.models(gr_dredge_R, 1)[[1]]
 summary(gr_mod_R)
+car::Anova(gr_mod_R, type = 3)
 stopCluster(cluster)
 
 ## prob fruiting
@@ -159,7 +160,14 @@ prep_dredge_R <- MuMIn::dredge(
   trace   = 2
 )
 prep_mod_R <- get.models(prep_dredge_R, 1)[[1]]
-summary(prep_mod_R)
+summary(prep_mod_R)   ## large eiigenvalue ratio value, rescale 
+
+dfs <- prep_subset_R
+dfs[,17:18] <- scale(dfs[,17:18]) ## scale num variables (not including consur_0_1)
+prep_mod_R_s <- update(prep_mod_R,data=dfs)
+summary(prep_mod_R_s)
+car::Anova(prep_mod_R_s, type = 3)
+
 stopCluster(cluster)
 
 ### number of fruit
@@ -189,6 +197,7 @@ crep_dredge_R <- MuMIn::dredge(
 )
 crep_mod_R <- get.models(crep_dredge_R, 1)[[1]]
 summary(crep_mod_R)
+car::Anova(crep_mod_R, type = 3)
 stopCluster(cluster)
 
 ## 
