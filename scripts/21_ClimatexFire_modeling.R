@@ -235,16 +235,42 @@ TBF_long$sq.T_RA <- (TBF_long$T_RA)^2
 TBF_long$sq.TSF <- (TBF_long$TSF)^2
 TBF_long$s.sq.P_RA <- scale(TBF_long$sq.P_RA)
 TBF_long$s.sq.T_RA <- scale(TBF_long$T_RA^2)
+TBF_long$s.TSF <- scale(TBF_long$TSF)
+
 TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF)
 TBF_long$s.TBF <- scale(TBF_long$TBF)
 
-plot(TBF_long$s.T_RA ~ TBF_long$s.sq.T_RA)
+prep_subset_R <- 
+  TBF_long %>% 
+  filter_at(vars(prep1, s.logsize0, TSF, TBF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
+                 s.P_RH,s.TSF,s.sq.TSF,s.sq.T_RA,s.sq.P_RA), all_vars(!is.na(.)))
+
+
+GM_R_prep_2 <- glmer(
+  prep1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+    s.T_RA + s.sq.T_RA +s.P_RA+ s.sq.P_RA + s.T_RA:s.P_RA+ s.sq.T_RA:s.sq.P_RA +
+    s.T_RH + s.P_RH + s.T_RH:s.P_RH + s.T_RC +
+    (1 | site),
+  data = prep_subset_R,
+  family = "binomial", 
+  na.action = "na.fail"
+)
+GM_R_prep <- glmer(
+  prep1 ~ s.logsize0 + s.TSF * s.TBF + I(s.TSF^2)+
+    s.T_RA + I(s.T_RA^2) +s.P_RA+ I(s.P_RA^2) + s.T_RA:s.P_RA+ I(s.T_RA^2):I(s.P_RA^2) +
+    s.T_RH + s.P_RH + s.T_RH:s.P_RH + s.T_RC +
+    (1 | site),
+  data = prep_subset_R,
+  family = "binomial", 
+  na.action = "na.fail"
+)
+
 
 
 
 ## save env
 save(list = ls(), file = "env_snapshot.RData")
-
+save(GM_R_prep_2, file = "GM_R_prep_2_9_11_25.Rdata")
 ### plotting 
 ggplot(P_RA, aes(x = factor(startyear), y = prec, fill = site)) +
   geom_bar(stat = "identity", position = "dodge") +
