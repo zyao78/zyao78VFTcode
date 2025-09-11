@@ -15,7 +15,7 @@ library("plyr")
 library("RColorBrewer")
 
 ##
-m1 <- GM_RM_sur
+m1 <- prep_mod_R
 ## check singularity
 
 tt <- getME(m1,"theta")
@@ -41,8 +41,13 @@ max(pmin(abs(sc_grad2),abs(grad2)))
 ## try restarting from previous fit ..
 
 ss <- getME(m1,c("theta","fixef"))
-m2 <- update(m1,start=ss,control=glmerControl(optCtrl=list(maxfun=2e4)))  ## if no warnings, stop from here
+m2 <- update(m1,start=ss,control=glmerControl(optCtrl=list(maxfun=2e5)))  ## if no warnings, stop from here
 
-                                                                                  GM_RM_sur_2 <- m2
+GM_RM_sur_2 <- m2
 
+### try a different optimizer
+m3 <- update(m1,start=ss,control=glmerControl(optimizer="bobyqa",
+                                                 optCtrl=list(maxfun=2e5)))
+prep_mod_R_2 <- m3
 
+summary(prep_mod_R_2)

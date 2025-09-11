@@ -265,12 +265,36 @@ GM_R_prep <- glmer(
   na.action = "na.fail"
 )
 
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("prep_subset_R"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
+prep_dredge_R <- MuMIn::dredge(
+  GM_R_prep_2,
+  cluster = cluster,
+  trace   = 2
+)
+
+prep_mod_R <- get.models(prep_dredge_R, 1)[[1]]
+summary(prep_mod_R)   ## large eiigenvalue ratio value, rescale 
+
+dfs <- prep_subset_R
+dfs[,17:18] <- scale(dfs[,17:18]) ## scale num variables (not including consur_0_1)
+prep_mod_R_s <- update(prep_mod_R,data=dfs)
+summary(prep_mod_R_s)
+car::Anova(prep_mod_R_s, type = 3)
+
+stopCluster(cluster)
 
 
 ## save env
 save(list = ls(), file = "env_snapshot.RData")
-save(GM_R_prep_2, file = "GM_R_prep_2_9_11_25.Rdata")
+save(prep_mod_R, file = "prep_mod_R.Rdata")
+save(prep_mod_R_2, file = "prep_mod_R_2.Rdata")
+
 ### plotting 
 ggplot(P_RA, aes(x = factor(startyear), y = prec, fill = site)) +
   geom_bar(stat = "identity", position = "dodge") +
