@@ -347,9 +347,55 @@ for (i in 1:nrow(TBF_long)) {
 
 
 
-### model first, then fill gaps in climate data with interpolation
+###  fill gaps in local climate data with interpolation
 ### ###
 
+LocalP <- read_csv("data/TBFxClimate/HOBO_upto2024.csv")
+LocalT <- read_csv("data/TBFxClimate/SoilT_upto2024.csv")
+HOBO_upto2024 <- read_csv("data/TBFxClimate/HOBO_upto2024.csv")
+RegionalTP<-read_csv("data/TBFxClimate/Reg_clim_upto2024.csv")
+
+### checks for month absence
+arr <- with(LocalT, tapply(month, list(site, year, factor(month, levels = 1:12)), length))
+arr2 <- aperm(arr, c(2, 3, 1))
+arr2
+
+### get daily summaries
+LocalT_daily <- LocalT %>%   
+  group_by(newMonth, month,day,startyear, site) %>%    # for startyear of 2021 for example, months 6-12 were in 2021 and 1-5 were in 2015.
+  summarize(meanST = mean(Value,na.rm = TRUE))
+
+Combined <- RegionalTP
+
+for (i in 1:nrow(Combined)) {
+  match <- LocalT_daily$meanST[LocalT_daily$site == Combined$site[i] & 
+                                 LocalT_daily$startyear == Combined$startyear[i] &
+                                 LocalT_daily$day == Combined$day[i] &
+                                 LocalT_daily$newMonth == Combined$newMonth[i] ] 
+  if (length(match) >= 1) {  # Ensure there's exactly one match
+    Combined$local_T[i] <- match
+  }
+}
 
 
 
+
+
+
+
+
+
+##### checking large scale climate trend
+Monthlyclimsum <- RegionalTP %>%
+  group_by(newMonth,site) %>%
+  summarize(meanP = mean (prec), meanT = mean(Temp, na.rm = T))
+
+Monthlyclimsum$newMonth <- as.factor()
+
+ggplot(data= Monthlyclimsum, aes(x= newMonth, y= meanT, group = site, color = site)) +
+  geom_line(linewidth = 1) + 
+  #geom_ribbon(aes(ymin = data_new1$sur$lwr, ymax = data_new1$sur$upr, fill= newTBF), alpha = 0.1) + 
+  labs(y= "mean monthly temperature (2015-2024)", x = "Month (M/15 - M+1/14)") +
+  #theme_bw() + theme(legend.position='none') +
+  theme(legend.position = "right") +
+  theme(text = element_text(size = 10))
