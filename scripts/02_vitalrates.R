@@ -20,7 +20,9 @@ TBF_data_long1$prep1 <- NA
 TBF_data_long1$prep1[which(TBF_data_long1$rep1==0 & !is.na(TBF_data_long1$rep1))] <- 0 # make sure no values assigned to NA
 TBF_data_long1$prep1[which(TBF_data_long1$rep1>0 & !is.na(TBF_data_long1$rep1))] <- 1
 TBF_data_long1$logcrep1 <- NA
+TBF_long$crep1 <- NA
 TBF_data_long1$logcrep1[which(TBF_data_long1$prep1== 1)] <- log(TBF_data_long1$rep1[which(TBF_data_long1$prep1== 1)]) #number of fruit
+TBF_long$crep1[which(TBF_long$prep1== 1)] <- TBF_long$rep1[which(TBF_long$prep1== 1)] #number of fruit
 
 prep <- glmer(prep1 ~ s.logsize0+ TSF*TBF  + (1|site), data= TBF_data_long1[which(TBF_data_long1$consur0_1== 1),], family= "binomial")
 crep1 <- lmer(logcrep1 ~ s.logsize0 +TSF*TBF+ (1|site), data= TBF_data_long1[which(TBF_data_long1$consur0_1== 1),])

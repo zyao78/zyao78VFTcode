@@ -3,7 +3,9 @@ install.packages("popbio")
 install.packages("parallel")
 install.packages("doParallel")
 install.packages("foreach")
+install.packages("performance")
 
+library(lme4)
 library(popbio)
 library(parallel)
 library(doParallel)
@@ -13,6 +15,7 @@ library(lme4)
 library(tidyverse)
 library(MuMIn)
 library(glue)
+library(performance)
 
 ###
 ###               make sure to enable parallel computing for faster model building
@@ -44,7 +47,16 @@ TBF_long$s.T_RC <- scale(TBF_long$T_RC)
 TBF_long$s.T_RD <- scale(TBF_long$T_RD) 
 TBF_long$s.T_RW <- scale(TBF_long$T_RW) 
 
-
+TBF_long$sq.P_RA <- (TBF_long$P_RA)^2
+TBF_long$sq.T_RA <- (TBF_long$T_RA)^2
+TBF_long$sq.T_RH <- (TBF_long$T_RH)^2
+TBF_long$s.sq.T_RH <- scale(TBF_long$sq.T_RH)
+TBF_long$sq.TSF <- (TBF_long$TSF)^2
+TBF_long$s.sq.P_RA <- scale(TBF_long$sq.P_RA)
+TBF_long$s.sq.T_RA <- scale(TBF_long$sq.T_RA)
+TBF_long$s.TSF <- scale(TBF_long$TSF)
+TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF)
+TBF_long$s.TBF <- scale(TBF_long$TBF)
 
 ##
 TBF_long <- read_csv("data/TBFxClimate/TBF_long.csv") 
@@ -65,11 +77,12 @@ colnames(TBF_long)
 ### Survival
 sur_subset_R <- 
   TBF_long %>% 
-  filter_at(vars(consur0_1, s.logsize0, TSF, TBF, site, s.T_RA,s.T_RH, s.T_RD,
+  filter_at(vars(consur0_1, s.logsize0, s.TSF,s.TBF, s.sq.TSF, site, s.T_RA,s.T_RH,s.T_RD,s.sq.T_RH,
                  s.P_RH, s.P_RD), all_vars(!is.na(.)))
+
 GM_R_sur <- glmer(
-  consur0_1 ~ s.logsize0 + TSF * TBF + I(TSF^2)+
-    s.T_RA + s.T_RH + I(s.T_RH^2) + s.T_RD +s.P_RH +
+  consur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+    s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
     s.P_RH:s.T_RH + s.P_RD + 
     (1 | site),
   data = sur_subset_R,
@@ -90,12 +103,15 @@ sur_dredge_R <- MuMIn::dredge(
   trace   = 2
 )
 sur_mod_R <- get.models(sur_dredge_R, 1)[[1]]
-summary(sur_mod_R)   ## large eigenvalue warning, rescale numeric variables
+summary(sur_mod_R)   
 
 dfs <- sur_subset_R
 dfs[,17:ncol(dfs)] <- scale(dfs[,17:ncol(dfs)]) ## scale num variables (not including consur_0_1)
 sur_mod_R_s <- update(sur_mod_R,data=dfs)
 summary(sur_mod_R_s)
+
+cc <- check_collinearity(sur_mod_R)
+cc
 
 
 stopCluster(cluster)
@@ -104,10 +120,10 @@ stopCluster(cluster)
 
 gr_subset_R <- 
   TBF_long %>% 
-  filter_at(vars(logsize1, s.logsize0, TSF, TBF, site, s.T_RA, s.P_RA, s.T_RC, 
+  filter_at(vars(logsize1, s.logsize0, s.TSF,s.sq.TSF, s.TBF, site, s.sq.T_RA,s.T_RA, s.P_RA, s.T_RC, 
                  s.T_RD, s.P_RH), all_vars(!is.na(.)))
 GM_R_gr <- lmer(
-  logsize1 ~ s.logsize0 + TSF * TBF + I(TSF^2)+ s.T_RA + I(s.T_RA^2) + s.P_RA + s.T_RA:s.P_RA +
+  logsize1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF + s.T_RA + s.sq.T_RA + s.P_RA + s.T_RA:s.P_RA +
     s.T_RC + s.T_RD + s.P_RH +
     (1 | site),
   data = gr_subset_R,
@@ -135,8 +151,9 @@ stopCluster(cluster)
 
 prep_subset_R <- 
   TBF_long %>% 
-  filter_at(vars(prep1, s.logsize0, TSF, TBF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
+  filter_at(vars(prep1, s.logsize0, s.TSF, s.TBF,s.sq.TSF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
                  s.P_RH, ), all_vars(!is.na(.)))
+
 GM_R_prep <- glmer(
   prep1 ~ s.logsize0 + TSF * TBF + I(TSF^2)+
     s.T_RA + I(s.T_RA^2) +s.P_RA+ I(s.P_RA^2) + s.T_RA:s.P_RA+ I(s.T_RA^2):I(s.P_RA^2) +
@@ -207,24 +224,25 @@ TBF_long$prep_Int <- NA
 TBF_long$prep_Int <- ifelse(
   TBF_long$prep1 == 0 & is.na(TBF_long$logcrep1),
   0,
-  TBF_long$prep1 * TBF_long$logcrep1
+  TBF_long$prep1 * TBF_long$crep1
 )
 hist(TBF_long$prep_Int)   ## zero inflated distribution
 
 prep_Int_subset_R <- 
   TBF_long %>% 
-  filter_at(vars(prep_Int, s.logsize0, TSF, TBF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
-                 s.P_RH, ), all_vars(!is.na(.)))
+  filter_at(vars(prep_Int, s.logsize0, s.TSF, s.TBF,s.sq.TSF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
+                 s.P_RH, s.sq.T_RA), all_vars(!is.na(.)))
 
-GM_R_prep_Int <- glmmTMB(
-  prep_Int ~ s.logsize0 + TSF * TBF + I(TSF^2)+
-    s.T_RA + I(s.T_RA^2) +s.P_RA+ I(s.P_RA^2) + s.T_RA:s.P_RA+ I(s.T_RA^2):I(s.P_RA^2) +
+GM_R_prep_Int <- glmer.nb(
+  prep_Int ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+    s.T_RA + s.sq.T_RA +s.P_RA + s.T_RA:s.P_RA+
     s.T_RH + s.P_RH + s.T_RH:s.P_RH + s.T_RC +
     (1 | site),
   data = prep_Int_subset_R,
-  family   = tweedie(link = "log"),
-  na.action = "na.fail"
-)
+  na.action = "na.fail",
+  control = glmerControl(optimizer = "bobyqa",
+                         optCtrl   = list(maxfun = 2e5))
+) 
 
 
 
@@ -232,11 +250,12 @@ GM_R_prep_Int <- glmmTMB(
 
 TBF_long$sq.P_RA <- (TBF_long$P_RA)^2
 TBF_long$sq.T_RA <- (TBF_long$T_RA)^2
+TBF_long$sq.T_RH <- (TBF_long$T_RH)^2
+TBF_long$s.sq.T_RH <- scale(TBF_long$sq.T_RH)
 TBF_long$sq.TSF <- (TBF_long$TSF)^2
 TBF_long$s.sq.P_RA <- scale(TBF_long$sq.P_RA)
-TBF_long$s.sq.T_RA <- scale(TBF_long$T_RA^2)
+TBF_long$s.sq.T_RA <- scale(TBF_long$sq.T_RA)
 TBF_long$s.TSF <- scale(TBF_long$TSF)
-
 TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF)
 TBF_long$s.TBF <- scale(TBF_long$TBF)
 
@@ -246,24 +265,17 @@ prep_subset_R <-
                  s.P_RH,s.TSF,s.sq.TSF,s.sq.T_RA,s.sq.P_RA), all_vars(!is.na(.)))
 
 
-GM_R_prep_2 <- glmer(
+GM_R_prep_2 <- glm(
   prep1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
-    s.T_RA + s.sq.T_RA +s.P_RA+ s.sq.P_RA + s.T_RA:s.P_RA+ s.sq.T_RA:s.sq.P_RA +
+    s.T_RA + s.sq.T_RA +s.P_RA + s.T_RA:s.P_RA+
     s.T_RH + s.P_RH + s.T_RH:s.P_RH + s.T_RC +
-    (1 | site),
+    site,
   data = prep_subset_R,
   family = "binomial", 
   na.action = "na.fail"
-)
-GM_R_prep <- glmer(
-  prep1 ~ s.logsize0 + s.TSF * s.TBF + I(s.TSF^2)+
-    s.T_RA + I(s.T_RA^2) +s.P_RA+ I(s.P_RA^2) + s.T_RA:s.P_RA+ I(s.T_RA^2):I(s.P_RA^2) +
-    s.T_RH + s.P_RH + s.T_RH:s.P_RH + s.T_RC +
-    (1 | site),
-  data = prep_subset_R,
-  family = "binomial", 
-  na.action = "na.fail"
-)
+)       ##### louthan et al., 2022 table 2 minus the quadratic terms for annual precip (hard to interpret)
+
+
 
 n_cores <- detectCores()
 n_cores
@@ -279,13 +291,9 @@ prep_dredge_R <- MuMIn::dredge(
 )
 
 prep_mod_R <- get.models(prep_dredge_R, 1)[[1]]
-summary(prep_mod_R)   ## large eiigenvalue ratio value, rescale 
+summary(prep_mod_R)   
 
-dfs <- prep_subset_R
-dfs[,17:18] <- scale(dfs[,17:18]) ## scale num variables (not including consur_0_1)
-prep_mod_R_s <- update(prep_mod_R,data=dfs)
-summary(prep_mod_R_s)
-car::Anova(prep_mod_R_s, type = 3)
+
 
 stopCluster(cluster)
 

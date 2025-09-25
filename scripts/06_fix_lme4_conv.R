@@ -15,7 +15,7 @@ library("plyr")
 library("RColorBrewer")
 
 ##
-m1 <- prep_mod_R
+m1 <- sur_mod_R
 ## check singularity
 
 tt <- getME(m1,"theta")
@@ -48,6 +48,6 @@ GM_RM_sur_2 <- m2
 ### try a different optimizer
 m3 <- update(m1,start=ss,control=glmerControl(optimizer="bobyqa",
                                                  optCtrl=list(maxfun=2e5)))
-prep_mod_R_2 <- m3
+sur_mod_R <- m3
 
-summary(prep_mod_R_2)
+summary(sur_mod_R)
