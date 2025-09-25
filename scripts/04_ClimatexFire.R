@@ -366,6 +366,9 @@ LocalT_daily <- LocalT %>%
   summarize(meanST = mean(Value,na.rm = TRUE))
 
 Combined <- RegionalTP
+Combined$local_T <- NA
+
+
 
 for (i in 1:nrow(Combined)) {
   match <- LocalT_daily$meanST[LocalT_daily$site == Combined$site[i] & 
@@ -377,13 +380,7 @@ for (i in 1:nrow(Combined)) {
   }
 }
 
-
-
-
-
-
-
-
+plot(Combined$Temp, Combined$local_T)
 
 ##### checking large scale climate trend
 Monthlyclimsum <- RegionalTP %>%
