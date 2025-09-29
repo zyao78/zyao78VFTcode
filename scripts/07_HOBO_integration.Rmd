@@ -161,7 +161,7 @@ HOBO_all$startyear <- ifelse(
   (HOBO_all$year)-1
 )
 ```
-## calculate mean monthly 
+## calculate mean  
 ```{r}
 
 HOBO_upto2024 <- HOBO_upto2024 %>%
@@ -170,8 +170,8 @@ HOBO_upto2024 <- HOBO_upto2024 %>%
       (SWC2 >= 0 & SWC2 <= 1)
   )
 HOBO_upto2024$mSWC <- 0
-attach(HOBO_upto2024)
 
+attach(HOBO_upto2024)
 HOBO_upto2024$mSWC <- ifelse(!is.na(SWC1) & SWC1 >= 0 & !is.na(SWC2) & SWC2 >= 0&SWC1<=1& SWC2<=1,
          (SWC1 + SWC2) / 2,
          ifelse(is.na(SWC1) | SWC1 <= 0 |SWC1>=1,
@@ -213,7 +213,7 @@ HOBO_upto2024$newMonth <- ifelse(
 
 # export
 ```{r}
-write.csv(HOBO_upto2024, "HOBO_upto2024.csv")
+write.csv(HOBO_upto2024, "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/HOBO_upto2024.csv")
 
 ```
 

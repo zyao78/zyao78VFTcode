@@ -2,8 +2,9 @@
 install.packages("popbio")
 install.packages("parallel")
 install.packages("doParallel")
-install.packages("foreach")
+install.packages("carData")
 install.packages("performance")
+install.packages("glmm.hp")
 
 library(lme4)
 library(popbio)
@@ -16,7 +17,7 @@ library(tidyverse)
 library(MuMIn)
 library(glue)
 library(performance)
-
+library(car)
 ###
 ###               make sure to enable parallel computing for faster model building
 ###
@@ -89,6 +90,19 @@ GM_R_sur <- glmer(
   family = "binomial", 
   na.action = "na.fail"
 )
+## treating site as fixed effect
+GM_R_sur_2 <- glm(
+  consur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+    s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
+    s.P_RH:s.T_RH + s.P_RD + 
+    site,
+  data = sur_subset_R,
+  family = "binomial", 
+  na.action = "na.fail"
+)
+
+summary(GM_R_sur)
+
 
 n_cores <- detectCores()
 n_cores
@@ -97,13 +111,13 @@ registerDoParallel(cluster)
 clusterExport(cluster, c("sur_subset_R"))   ### replace with different subset (different global models)
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
-sur_dredge_R <- MuMIn::dredge(
-  GM_R_sur,
+sur_dredge_R_2 <- MuMIn::dredge(
+  GM_R_sur_2,
   cluster = cluster,
   trace   = 2
 )
-sur_mod_R <- get.models(sur_dredge_R, 1)[[1]]
-summary(sur_mod_R)   
+sur_mod_R_2 <- get.models(sur_dredge_R_2, 1)[[1]]
+summary(sur_mod_R_2)   
 
 dfs <- sur_subset_R
 dfs[,17:ncol(dfs)] <- scale(dfs[,17:ncol(dfs)]) ## scale num variables (not including consur_0_1)
@@ -309,3 +323,6 @@ ggplot(P_RA, aes(x = factor(startyear), y = prec, fill = site)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
   labs(x = "startyear", y = "annual cum Prec", fill = "site")+
   ggtitle("annual reg prec")
+
+
+r.squaredGLMM(gr_mod_R)

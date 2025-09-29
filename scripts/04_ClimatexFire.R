@@ -365,8 +365,13 @@ LocalT_daily <- LocalT %>%
   group_by(newMonth, month,day,startyear, site) %>%    # for startyear of 2021 for example, months 6-12 were in 2021 and 1-5 were in 2015.
   summarize(meanST = mean(Value,na.rm = TRUE))
 
+LocalP_daily <- LocalP %>%   
+  group_by(newMonth, month,day,startyear, site) %>%    # for startyear of 2021 for example, months 6-12 were in 2021 and 1-5 were in 2015.
+  summarize(meanSP = mean(mSWC,na.rm = TRUE))
+
 Combined <- RegionalTP
 Combined$local_T <- NA
+Combined$local_P <- NA
 
 
 
@@ -379,8 +384,31 @@ for (i in 1:nrow(Combined)) {
     Combined$local_T[i] <- match
   }
 }
+for (i in 1:nrow(Combined)) {
+  match <- LocalP_daily$meanSP[LocalP_daily$site == Combined$site[i] & 
+                                 LocalP_daily$startyear == Combined$startyear[i] &
+                                 LocalP_daily$day == Combined$day[i] &
+                                 LocalP_daily$newMonth == Combined$newMonth[i] ] 
+  if (length(match) >= 1) {  # Ensure there's exactly one match
+    Combined$local_P[i] <- match
+  }
+}
+any(is.na(Combined$local_P))
 
-plot(Combined$Temp, Combined$local_T)
+Combined <- Combined %>%
+  rename(
+    regional_T = Temp,
+    regional_P = prec
+  )
+colnames(Combined)
+
+plot(Combined$regional_T, Combined$local_T)
+plot(Combined$regional_P, Combined$local_P)
+
+
+#### linear model predicting local temperature
+lm_localT <- lm(Local_T~Temp+site,data=Combined)
+
 
 ##### checking large scale climate trend
 Monthlyclimsum <- RegionalTP %>%
