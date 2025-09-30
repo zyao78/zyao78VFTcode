@@ -403,11 +403,100 @@ Combined <- Combined %>%
 colnames(Combined)
 
 plot(Combined$regional_T, Combined$local_T)
-plot(Combined$regional_P, Combined$local_P)
+plot(Combined$regional_P, Combined$local_P) ### variables on very different scale, hard to visualize
+
+Combined$s.regional_P <- NA
+Combined$s.local_P  <- NA
+Combined$s.logregional_P <- NA
+
+Combined$c <- scale(log(Combined$regional_P+0.1))
+Combined$s.local_P  <- scale(Combined$local_P)
+hist(Combined$s.logregional_P)
 
 
-#### linear model predicting local temperature
-lm_localT <- lm(Local_T~Temp+site,data=Combined)
+
+#####            linear model predicting local temperature       #######
+####
+####
+###
+## allow slopes to vary among sites + T*P interaction
+Local_T_subset <- 
+  Combined %>% 
+  filter_at(vars(local_T,regional_T,s.logregional_P,site), all_vars(!is.na(.)))
+
+GM_localT <- lm(local_T~regional_T+
+                   site+site:regional_T,data=Local_T_subset,
+                na.action = "na.fail")    
+
+dredge_localT <- MuMIn::dredge(
+  GM_localT,
+  trace   = 2
+)
+lm_localT <- get.models(dredge_localT, 1)[[1]]
+  ## local P
+Local_P_subset <- 
+  Combined %>% 
+  filter_at(vars(local_P,regional_T,s.logregional_P,site), all_vars(!is.na(.)))
+
+GM_localP <- lm(local_P~regional_T+s.logregional_P+
+                  site+regional_T:s.logregional_P+site:s.logregional_P,data=Local_P_subset,
+                na.action = "na.fail")    
+dredge_localP <- MuMIn::dredge(
+  GM_localP,
+  trace   = 2
+)
+lm_localP <- get.models(dredge_localP, 1)[[1]]
+
+##check residuals
+par(mfrow = c(2, 2))
+summary(lm_localT)
+plot(lm_localP)
+plot(lm_localT)
+
+### local_T model looks funky,
+
+## log local_T
+Combined$logLocal_T <- NA
+Combined$logLocal_T <- log(Combined$local_T)
+hist(Combined$logLocal_T)   ## slightly more normal try building a model
+Local_T_log_subset <- 
+  Combined %>% 
+  filter_at(vars(logLocal_T,regional_T,s.logregional_P,site), all_vars(!is.na(.)))
+GM_localT_log <- lm(logLocal_T~regional_T+
+                       site+site:regional_T,data=Local_T_log_subset,
+                     na.action = "na.fail")    
+dredge_localT_log <- MuMIn::dredge(
+  GM_localT_log,
+  trace   = 2
+)
+lm_localT_log <- get.models(dredge_localT_log, 1)[[1]]
+summary(lm_localT_log)
+plot(lm_localT_log)
+hist(lm_localT_log$residuals)  ### model fit has improved substantially, keep localT_log, don't proceed further
+
+### try removing the possible fire induced soilT peaks, this is not recommended
+hist(Combined$local_T)
+Combined$local_T_rm_ex <- NA
+Combined$local_T_rm_ex <- ifelse(Combined$local_T < 40, Combined$local_T, NA )
+Local_T_rmex_subset <- 
+  Combined %>% 
+  filter_at(vars(local_T_rm_ex,regional_T,s.logregional_P,site), all_vars(!is.na(.)))
+GM_localT_rmex <- lm(local_T_rm_ex~regional_T+s.logregional_P+
+                  site+regional_T:s.logregional_P+site:regional_T,data=Local_T_rmex_subset,
+                na.action = "na.fail")    
+dredge_localT_rmex <- MuMIn::dredge(
+  GM_localT_rmex,
+  trace   = 2
+)
+lm_localT_rmex <- get.models(dredge_localT_rmex, 1)[[1]]
+summary(lm_localT_rmex)
+par(mfrow = c(2, 2))
+plot(lm_localT_rmex)    
+
+
+
+
+
 
 
 ##### checking large scale climate trend
@@ -424,3 +513,6 @@ ggplot(data= Monthlyclimsum, aes(x= newMonth, y= meanT, group = site, color = si
   #theme_bw() + theme(legend.position='none') +
   theme(legend.position = "right") +
   theme(text = element_text(size = 10))
+
+
+write.csv(Combined, "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/Climvar_combined.csv")
