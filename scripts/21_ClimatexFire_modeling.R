@@ -132,8 +132,8 @@ stopCluster(cluster)
 
 ### growth
 
-gr_subset_R <- 
-  TBF_long %>% 
+gr_subset_R_2 <- 
+  TBF_long[which(TBF_long$consur0_1 == 1),] %>%      ## make sure to subset data to only alive plants
   filter_at(vars(logsize1, s.logsize0, s.TSF,s.sq.TSF, s.TBF, site, s.sq.T_RA,s.T_RA, s.P_RA, s.T_RC, 
                  s.T_RD, s.P_RH), all_vars(!is.na(.)))
 GM_R_gr <- lmer(
