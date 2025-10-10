@@ -1,0 +1,589 @@
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Before running this code, please do the following to data for the current year (see VFT > VFT protocol and instructions > Procedure for making data sheets files and maps VFT.docx):
+
+*  First, for plants that say *new* or *missed* in the comments, add a new ID. Each new or missed plant gets a unique ID, of the form: 18.1. (for the first plant found in 2018), or 19.2. (for the second plant found in 2019). Do not forget the final period. Each new or missed plant ID can be repeated across populations (e.g., CM and CH can both have a 19.1.), but do not repeat IDs within a population (e.g., CM cannot have two 19.1.).   
+
+*  If comment says old tp but missed or something similar (from 2019 onwards), do a search for the plant in previous years to find the correct plant ID. x/y or mark may not necessarily be the same, so search plants both quad/x/y and by mark around the same quad/x/y. If not found, then assign a new ID.   
+
+*  If discontinued and/or no measurements (without a note/comment saying sen, mpd, dead, or disc), then leave blank.  
+
+*  check "__all,xslx" files for errors.   
+    
+    
+## 1. Libraries
+
+```{r Setup, include = FALSE }
+
+library(here)
+library(tidyverse)
+library(readxl)
+library(dplyr)
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+<br> 
+
+## 2. Upload data for 2025
+
+```{r Append all 2025 data }
+
+dat.list <- list()
+
+dat.list[[1]] <- read_xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/VFT Compiled data 2025/B1-25-all.xlsx"  , col_types = rep("text", 16))     # num of cols may vary. Change accordingly
+dat.list[[1]]$site <- "B1"
+  
+dat.list[[2]] <- read_xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/VFT Compiled data 2025/B2-25-all.xlsx", col_types = rep("text", 16))
+dat.list[[2]]$site <- "B2"
+
+dat.list[[3]] <- read_xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/VFT Compiled data 2025/CH-25-all.xlsx", col_types = rep("text", 16))
+dat.list[[3]]$site <- "CH"
+
+dat.list[[4]] <- read_xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/VFT Compiled data 2025/CM-25-all.xlsx", col_types = rep("text", 16))
+dat.list[[4]]$site <- "CM"
+
+dat.list[[5]] <- read_xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/VFT Compiled data 2025/GSP-BI-25-all.xlsx", sheet = 1, col_types = rep("text", 16))
+dat.list[[5]]$site <- "GSP-BI"
+
+dat.list[[6]] <- read_xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/VFT Compiled data 2025/GSP-BI-25-all.xlsx", sheet = 2, col_types = rep("text", 16))
+dat.list[[6]]$site <- "GSP-BI"
+
+dat.list[[7]] <- read_xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/VFT Compiled data 2025/GSP-LI-25-all.xlsx", sheet = 1, col_types = rep("text", 16))
+dat.list[[7]]$site <- "GSP-LI"
+
+dat.list[[8]] <- read_xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/VFT Compiled data 2025/GSP-LI-25-all.xlsx", sheet = 2, col_types = rep("text", 16))
+dat.list[[8]]$site <- "GSP-LI"
+
+
+dat.list[[9]] <- read_xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/VFT Compiled data 2025/IA-25-all.xlsx", col_types = rep("text", 16))
+dat.list[[9]]$site <- "IA"
+
+#Delete dat.list[[10]] <- read_xlsx("ME-24-all.xlsx", col_types = rep("text", 12))
+#dat.list[[10]]$site <- "ME"
+
+
+col_names <- c(
+  "ID", "Quad", "X", "Y", "Mrk", "N24", "L24", "FR24", "FL24", "Note25" ,"Comm24", "N25","L25",
+  "FR25","FL25","Comm25"
+  ,"site"
+)
+
+dat.list <- lapply(dat.list, function(df) {
+  colnames(df) <- col_names
+  return(df)
+})     # re-define col names, eliminate white spaces in col names
+
+
+dat25 <- do.call("rbind", dat.list)
+dat25 <- dat25 %>%
+  filter_at(vars(ID, Quad, X, Y),all_vars(!is.na(.)))  ### delete rows that are empty (if any)
+dat25[is.na(dat25)] <- ""
+
+names25 <- names(dat25)[1:(ncol(dat25)-1)]
+
+fdat25 <- dat25 %>% 
+  dplyr::select(c("site", all_of(setdiff(names25, c("N24", "L24", "FR24", 
+                                                    "FL24", "Comm24"))))) %>%   ### remove cols from previous years
+  rename(quad = Quad, x = X, y = Y, mark = Mrk, FLW25 = FL25)
+
+emptyN25 <- fdat25[which(fdat25$N25 == ""),]
+
+```
+
+
+
+### 1a Data wrangling 
+
+After loading datasets, add a suffix of the two digit year to the N, L, F, Notes, and Comm column in the annual_data file. Replace with current year. Only do, if needed. Note that the code chunk is currently set to not evaluate this code. 
+
+Skip the code chunck below since 2025
+```{r Add "XX" year suffice to columns, eval = F }
+
+##names(fdat25)[which(names(fdat25) %in% c("N", "L", "FR", "FLW", "Notes", "Comm", "Measurer"))] <- ##paste(names(fdat25)[which(names(fdat25) %in% c("N", "L", "FR", "FLW", "Notes", "Comm", "Measurer"))], "24", sep="")  
+
+head(fdat25)
+
+```
+
+
+Next, we need to ensure our designations of dead and alive correspond with previous years' data. For any plants where aliveXX = 0, we need to determine whether it died in XX year or a previous year. If a previous year, then AliveXX needs to be blank and the 0 for dead should be in the appropriate year when it was first detected as dead. 
+
++ starting in 2025, we implement the new rule for dead: if a plant remain 0 lvs for 3 years in a row, we call them deadYR pulled nail. 
+
++ we create a temporary alive index "Alive25_tpry" which treats all plants with 0 under N25
+
+```{r Add Alive24 column }
+
+
+
+
+
+fdat25$Alive25 <- "1"
+
+
+
+### this is the conventional way of assigning dead (prior to 2025)
+#### If mpd or dead has a earlier year, then leave blank for Alive25 column
+
+for(i in 1:nrow(fdat25)){
+  if(fdat25$Note25[i] != "") {
+   if(str_detect(fdat25$Note25[i], "mpd25")   | (str_detect(fdat25$Note25[i], "dead25") & !str_detect(fdat25$Note25[i], "dead25?")  )) {
+    fdat25$Alive25[i] <- "0"  } 
+    if(str_detect(fdat25$Note25[i], "mpd24") | str_detect(fdat25$Note25[i], "dead24")) {
+    fdat25$Alive25[i] <- as.character("")  } 
+    if(str_detect(fdat25$Note25[i], "mpd23") | str_detect(fdat25$Note25[i], "dead23")) {
+    fdat25$Alive25[i] <- as.character("")  } 
+  
+   if(str_detect(fdat25$Note25[i], "mpd22") | str_detect(fdat25$Note25[i], "dead22")) {
+    fdat25$Alive25[i] <- as.character("")  } 
+      
+   if(str_detect(fdat25$Note25[i], "mpd21") | str_detect(fdat25$Note25[i], "dead21")) { # unlikely to exceed 21, but just in case
+    fdat25$Alive25[i] <- as.character("")  }
+    
+   if(str_detect(fdat25$Note25[i], "mpd20") | str_detect(fdat25$Note25[i], "dead20")) { 
+    fdat25$Alive25[i] <- as.character("")  }
+    
+  
+   if(str_detect(fdat25$Note25[i], "disc"))          # disc but not dead
+     if(fdat25$N25[i] == ""){
+    fdat25$Alive25[i] <- as.character("")  } 
+    
+  }   
+  
+  if(str_detect(fdat25$Comm25[i], "not done") | str_detect(fdat25$Comm25[i], "notdone") |
+     str_detect(fdat25$Comm25[i], "not measured")) {
+     if(fdat25$N25[i] == ""){
+    fdat25$Alive25[i] <- as.character("")  }}    
+
+  if(fdat25$N25[i] != "0" & fdat25$N25[i] != "")  { 
+    fdat25$Alive25[i] <- "1"  }
+}
+
+
+
+
+table(fdat25$Alive25) ### 9 dead, 1757  alive. This ratio is biased due to the new rule for dead
+
+
+### temporary AliveYR, plants with 0 leaves that are not sen or new lvs
+fdat25$Alive25_tpry <- "1"
+
+for(i in 1:nrow(fdat25)){
+if(fdat25$N25[i]=="0" & !str_detect(fdat25$Comm25[i], "new lvs" ) & !str_detect(fdat25$Comm25[i], "sen")
+   &!str_detect(fdat25$Comm25[i], "imm")){ fdat25$Alive25_tpry[i] <- "0" }
+   if(str_detect(fdat25$Note25[i], "mpd25") | str_detect(fdat25$Note25[i], "dead25")) {
+    fdat25$Alive25_tpry[i] <- "0"  } 
+ if(str_detect(fdat25$Note25[i], "mpd24") | str_detect(fdat25$Note25[i], "dead24")) {
+    fdat25$Alive25_tpry[i] <- as.character("")  } 
+    if(str_detect(fdat25$Note25[i], "mpd23") | str_detect(fdat25$Note25[i], "dead23")) {
+    fdat25$Alive25_tpry[i] <- as.character("")  }
+   if(str_detect(fdat25$Note25[i], "mpd22") | str_detect(fdat25$Note25[i], "dead22")) {
+    fdat25$Alive25_tpry[i] <- as.character("")  } 
+   if(str_detect(fdat25$Note25[i], "mpd21") | str_detect(fdat25$Note25[i], "dead21")) { # unlikely to exceed 21, but just in case
+    fdat25$Alive25_tpry[i] <- as.character("")  }
+   if(str_detect(fdat25$Note25[i], "mpd20") | str_detect(fdat25$Note25[i], "dead20")) { 
+    fdat25$Alive25_tpry[i] <- as.character("")  }
+   if(str_detect(fdat25$Note25[i], "disc"))          # disc but not dead
+     if(fdat25$N25[i] == ""){
+    fdat25$Alive25_tpry[i] <- as.character("")  }
+   if(fdat25$N25[i] != 0 & fdat25$N25[i] != "")  { 
+    fdat25$Alive25_tpry[i] <- "1"  }
+  if(str_detect(fdat25$Comm25[i], "not done") | str_detect(fdat25$Comm25[i], "notdone") |
+     str_detect(fdat25$Comm25[i], "not measured") |str_detect(fdat25$Comm25[i], "underwater") | 
+     str_detect(fdat25$Comm25[i], "not surveyed")) {    ### starting in 2025 there are plants underwater
+     if(fdat25$N25[i] == ""){
+    fdat25$Alive25_tpry[i] <- as.character("")  }}
+}
+
+N25_0 <- fdat25 [which(fdat25$Alive25_tpry == 0),]
+N25_1 <- fdat25 [which(fdat25$Alive25_tpry == 1),]
+N25_ <- fdat25 [which(fdat25$Alive25_tpry ==  ""),]
+
+table(fdat25$Alive25_tpry)
+table(fdat25$Alive25)
+
+```
+
+
+
+
+
+Add a column labeled SizeXX to annual_data dataset. Replace with current year. 
+
+Here, Size is longest leaf length x number of leaves, summed across rosettes. Size columns in previous years seems to be the product of the two size metrics, rather than ln(N*L). It might be that we take the natural log of this product later. The function below calculates size (somewhat) efficiently, returning an NA if number of leaves is blank, and otherwise, returning size. It uses N (number of leaves) and L (longest leaf length) as arguments. 
+
+Size will be recalculated when making TBF_long (using another script) to better represent the scenarios of compound leaves. For now, it's fine to just run the code below. 
+
+IMPORTANT: starting in 2025, dead plants also have 0 under N25. Need to subset to consur == 1 for future modeling of growth to make sure we're not modeling growth of dead plants (which will start to have 0 under sizeYR starting in 2025)
+
+```{r Add sizeXX }
+
+
+fdat25$size25 <- ""
+for(i in 1:nrow(fdat25)){
+  if(fdat25$N25[i] == "") {
+    fdat25$size25[i] <- "" } else {
+      
+      if(fdat25$N25[i] == "0") {
+        fdat25$size25[i] <- 0 } else {
+  
+      fdat25$size25[i] <- sum(as.numeric(strsplit(fdat25$N25[i], split="[,,]")[[1]])) *
+                           max(as.numeric(strsplit(fdat25$L25[i], split="[,,]")[[1]])) }
+   }}
+
+Size0 <- fdat25[which(fdat25$size25=="0"),]
+
+
+
+
+
+
+
+```
+
+
+### 1b Data checks and export file
+
+Before exporting these files, let's conduct some checks. 
+
+```{r Conduct some checks }
+
+nrow(subset(fdat25, N25 == "0")) # 565 rows with N = 0, many of them are considered "dead" under Alive25_tpry
+table(subset(fdat25, N25 == "0")$L25) # all 0 N25 have NA under L25, good
+
+table(subset(fdat25, N25 == "0")$Comm25) # lots of m25, some new lvs and imm lvs. 
+table(subset(fdat25, grepl("new", Comm25))$Comm25) # all new lvs are correctly labeled (i.e., no "new leaves")
+
+table(subset(fdat25, grepl("new lvs", Comm25))$N25) # all comments with "new lvs" have 0 in N25 column
+table(subset(fdat25, grepl("sen", Comm25))$N25) # all comments with "sen" have 0 in N25 column. 
+
+sen_subset <- subset(fdat25, grepl("sen", Comm25)) # looking fine. sen plants have 0 under N25 and are considered alive
+
+table(subset(fdat25, grepl("dead", Note25))$N25) # again, starting in 2025, dead plants will have 0 lvs (despite them being dead in previous years)
+dead_subset <- subset(fdat25, grepl("dead", Note25)) # no dead plants have leaves, good
+
+
+table(subset(fdat25, grepl("inf", Comm25))$N25) # all comments containing "inf" have leaves, good
+inf_subset <- subset(fdat25, grepl("inf", Comm25))
+
+
+table(subset(fdat25, N25 == "")$Comm25)
+table(subset(fdat25, N25 == "")$Note25)
+blankN25_subset <- subset(fdat25, N25 == "")  ## looking normal
+```
+
+
+```{r Export datafile for current year }
+
+
+write.csv(fdat25, file = "F:/VFT/VFT_github/zyao78VFTcode/data/VFT master data/alldemodata_2025.csv", row.names=FALSE)
+
+
+```
+
+
+## 2. Combine with previous years
+
+
+Next, we need to load the dataset from the most recent survey and the datafrom from previous surveys into R and modify them. To do so,  
+
+* You need to keep all files (rmd, csv, etc) in the same folder when running this code.  
+    + Remember to replace any necessary code with current years (e.g. 2019 -> 2020 etc) 
+* Load the most recent annual dataset into R as a csv file, calling it *annual_data*
+* Load the most recent wide-format dataset into R as a csv, calling it *wide_data*. That wide-format dataset should be stored on the box site, under VFT > VFT clean master data > alldemodata_uptoYYYY (where YYYY is the 4-digit year of the year prior).  
+* All columns should be a vector of characters, since R will substitute NA values for blank cells if its a string of numeric or integer values. 
+
+```{r Upload datasets}
+
+annual_data <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/data/VFT master data/alldemodata_2025.csv", colClasses = "character")
+wide_data <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/data/VFT master data/alldemodata_upto2024.csv", colClasses = "character")
+
+```
+
+
+<br> 
+
+### 2a. Data wrangling 
+
+
+Make a new column in annual_data called UID that includes both the site and the plant ID, for both datasets. This is a unique identifier for individual plants, as ID has duplicates across sites. 
+
+```{r Add site_ID }
+
+annual_data$site_ID <- paste(annual_data$site, annual_data$ID, sep = "_") 
+wide_data$site_ID <- paste(wide_data$site, wide_data$ID, sep = "_") 
+annual_data <- annual_data %>% ## bring site_ID to the front for better visualization
+  select(site_ID, everything())
+wide_data <- wide_data %>%
+  select(site_ID, everything())
+```
+
+
+### 2b. Combine datasets 
+
+To combine the data from the most recent survey with previous years’ data (now called, respectively, annual_data and wide_data): 
+
+* Combine the wide-format dataset with the annual dataset using the R package dplyr
+    + First, combine annual datasets with previous data for existing plants **only**.
+    + Second, combine annual datasets with preious data for all plants, then anti_join with the wide_data to get a full dataset for new plants **only** that have all NAs values in previous years.
+    + Third, replace all NA values in "".
+    + Finally, join those two datasets together.
+    
+We want to have years without data to have just blank cells rather than NA values which represent missing data, hence why this code is longer than just a simple full_join()
+
+```{r Joining datasets across years }
+
+sum(duplicated(wide_data$site_ID))      # check for duplicated site_ID in both (There should be none)
+sum(duplicated(annual_data$site_ID))    ## 3 duplicated, export these and fix those in raw data
+dups <- annual_data[duplicated(annual_data$site_ID) | duplicated(annual_data$site_ID, fromLast = TRUE), ]
+
+
+allexist_data <- full_join(wide_data, annual_data %>% select(-quad), 
+                           by = c("site", "ID", "site_ID"), suffix = c("_annual", "_wide"), keep = FALSE)
+
+
+
+allexist_data <- allexist_data %>%
+  select(x_wide,y_wide, everything())
+
+
+# here annual and wide were labeled in reversed, but the following codes were apparently aware of this
+
+
+# replace x,y and mark with the most recent ones 
+allexist_data$x <- NA
+allexist_data$y <- NA
+allexist_data$mark <- NA
+nrow( allexist_data[which(is.na(allexist_data$y_wide)&is.na(allexist_data$y_annual)),] )   ### make sure all plants have either a current or previous year's coordinate.
+
+for(i in 1:nrow(allexist_data)){
+  
+  #X COORDINATES
+  if(is.na(allexist_data$x_wide[i])) {    #if only occuring in previous years, then x = x_old (labeled as x_annual)
+    allexist_data$x[i] <- allexist_data$x_annual[i] } else{
+      if(is.na(allexist_data$x_annual[i])) {   # if not present in previous years, use present year's coords
+        allexist_data$x[i] <- allexist_data$x_wide[i] } else{
+          
+            if(allexist_data$x_annual[i] == allexist_data$x_wide[i]) { 
+                allexist_data$x[i] <- allexist_data$x_annual[i] } # IF THEY ARE THE SAME
+  
+            if(allexist_data$x_annual[i] != allexist_data$x_wide[i]) {    # if different, use the current year's coords
+              allexist_data$x[i] <- allexist_data$x_wide[i] }  
+        }             
+      } 
+   
+  #Y COORDINATES
+  if(is.na(allexist_data$y_wide[i])) { 
+    allexist_data$y[i] <- allexist_data$y_annual[i] } else{
+      if(is.na(allexist_data$y_annual[i])) {
+        allexist_data$y[i] <- allexist_data$y_wide[i] } else{
+          
+            if(allexist_data$y_annual[i] == allexist_data$y_wide[i]) { 
+                allexist_data$y[i] <- allexist_data$y_annual[i] } # IF THEY ARE THE SAME
+  
+            if(allexist_data$y_annual[i] != allexist_data$y_wide[i]) { 
+              allexist_data$y[i] <- allexist_data$y_wide[i] }
+        }             
+    } 
+  
+  #MARK COORDINATES
+  if(is.na(allexist_data$mark_wide[i])) { 
+    allexist_data$mark[i] <- allexist_data$mark_annual[i] } else{
+      if(is.na(allexist_data$mark_annual[i])) {
+        allexist_data$mark[i] <- allexist_data$mark_wide[i] } else{
+          
+            if(allexist_data$mark_annual[i] == allexist_data$mark_wide[i]) { 
+                allexist_data$mark[i] <- allexist_data$mark_annual[i] } # IF THEY ARE THE SAME
+  
+            if(allexist_data$mark_annual[i] != allexist_data$mark_wide[i]) { 
+              allexist_data$mark[i] <- allexist_data$mark_wide[i] }
+        }             
+      } 
+  
+  } 
+
+all_data <- allexist_data %>% dplyr::select(-x_annual, -y_annual, -mark_annual,
+                                            -x_wide, -y_wide, -mark_wide) # remove these columns
+
+
+all_data <- all_data %>%
+  select(site_ID,site,ID,quad,mark,x,y, everything())
+
+colnames(all_data)
+any(is.na(all_data$x))
+any(is.na(all_data$y))
+  
+```
+
+
+
+<br> 
+
+## 3. Final corrections 
+
+#### 3a. Change alive/dead status for resurrected plants 
+
+In 2025, we disabled the use of libsurYR_YR2 and ConsurYR_YR2. Instead, we just have one column called SurYR_YR2 made out of AliveYR2. The code chunck below does this modification. There's no need to rerun this code in next years integration. 
+
+1. For 2015-2018, we did not have an “alive” column, because our notes and comments that we took during the census were not standardized . Louthan made columns alive15, 16, 17, and 18 in excel using her best judgement about what notes & comments mean. We add those columns here so the code can use previous years’ alive values to determine whether a plant came back from dormancy. 
+```{r}
+Alive15_18 <- X15_18alive_47_
+Alive15_18$site_ID <- paste(Alive15_18$site, Alive15_18$ID, sep = "_") 
+any(duplicated(Alive15_18$site_ID))   ### make sure site_ID is unique
+
+### join this to all_data
+
+all_data2 <- all_data %>%
+  left_join(Alive15_18, by = "site_ID") 
+all_data2 <- all_data2 %>%
+  select(-site.y, -ID.y, -quad.y, -mark.y, -x.y, -y.y)
+colnames(all_data2)
+```
+
+
+2. 
+
+```{r}
+
+
+all_data3 <- all_data2 %>%
+  rename(Alive15=alive15,Alive16=alive16,Alive17=alive17,Alive18=alive18,Alive19 =libsur18_19, Alive20=libsur19_20, Alive21=libsur20_21
+         , Alive22=libsur21_22, Alive23=libsur22_23, Alive24=libsur23_24)
+years <- 15:25
+unique_plant_ids <- unique(all_data3$site_ID)
+for ( i in 1: dim(all_data3)[1]){ # cycles through all the individual plants of that particular species
+  alive_columns <- paste("Alive", years, sep="")
+  alive_sequence <- all_data3[i, alive_columns]
+  
+  if (sum(as.numeric(alive_sequence), na.rm= TRUE) != 0){ # if a plant was only measured once, as dead, this will stop the code below and we need not do any replacing
+    zeros <- which(alive_sequence== 0 & !is.na(alive_sequence))
+    NAs <- which(is.na(alive_sequence))
+    ones <- which(alive_sequence== 1 & !is.na(alive_sequence))
+    # two rules-- these will work even if you have many years of data:
+    # for any NA's or 0's with indices greater than the index of the first 1, but less than the index of the last 1, change the NA or zero to 1.
+    replace_with_ones <- NAs[data.table::between(NAs, min(ones), max(ones))]
+    replace_with_ones <- c(replace_with_ones, 
+                           zeros[data.table::between(zeros, min(ones), max(ones))])
+    # for the first zero index, if that is less than any 1 index, change all intervening indices to 1 (including the zero)
+    replace_with_ones <- c(replace_with_ones, zeros[which(zeros< min(ones))])
+    # then, making the actual changes in the dataset, adding rows if necessary...
+     if (length(replace_with_ones)>0){
+       for (ii in 1: length(replace_with_ones)){
+      if((ii %in% replace_with_ones) & # if you are supposed to replace the first entry (i.e. of the first year)
+         (nrow(all_data3[all_data3$site_ID == unique_plant_ids[i], ]) > 0) # and the plantID was present in that year
+      ){all_data3[which(all_data3$plant_id== unique_plant_ids[i] ), alive_columns[ii]] <- 1} # then replace it
+ 
+      }
+    }}
+}
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+<br> 
+
+
+
+```{r If previous year had "0", then assign current year as "" }
+
+table(all_data3$Alive25) # 9 = 0, 1604 = 1
+table(all_data3$Alive25_tpry) # 342 = 0, 1250 = 1
+
+all_data4 <- data.frame(lapply(all_data3, as.character), stringsAsFactors = FALSE)
+all_data4[is.na(all_data4)] <- ""
+
+wrong <-  all_data4 %>% 
+  filter(Alive25 != "") %>% 
+  filter( libsur15_16 =="0" |  libsur16_17 =="0" |  libsur17_18 =="0" |  libsur18_19 =="0" |
+      libsur19_20 =="0" |
+      libsur20_21 =="0" |
+      libsur21_22 =="0"|
+      libsur22_23 =="0" |  libsur23_24 =="0") 
+wrong_tpry <-  all_data4 %>% 
+  filter(Alive25_tpry != "") %>% 
+  filter( libsur15_16_tpry =="0" |  libsur16_17_tpry =="0" |  libsur17_18_tpry =="0" |  libsur18_19_tpry =="0" |
+      libsur19_20_tpry =="0" |
+      libsur20_21_tpry =="0" |
+      libsur21_22_tpry =="0"|
+      libsur22_23_tpry =="0" |  libsur23_24_tpry =="0")                      
+
+
+
+for(i in 1:nrow(all_data4)){
+  if(all_data4$libsur15_16_tpry[i] =="0" | all_data4$libsur16_17_tpry[i] =="0" | all_data4$libsur17_18_tpry[i] =="0" | all_data4$libsur18_19_tpry[i] =="0" |
+     all_data4$libsur19_20_tpry[i] =="0" |
+     all_data4$libsur20_21_tpry[i] =="0" |
+     all_data4$libsur21_22_tpry[i] =="0"|
+     all_data4$libsur22_23_tpry[i] =="0" | all_data4$libsur23_24_tpry[i] =="0") { all_data4$Alive25_tpry[i] <- ""  }
+  
+}
+for(i in 1:nrow(all_data4)){
+  if(all_data4$libsur15_16[i] =="0" | all_data4$libsur16_17[i] =="0" | all_data4$libsur17_18[i] =="0" | all_data4$libsur18_19[i] =="0" |
+     all_data4$libsur19_20[i] =="0" |
+     all_data4$libsur20_21[i] =="0" |
+     all_data4$libsur21_22[i] =="0"|
+     all_data4$libsur22_23[i] =="0" | all_data4$libsur23_24[i] =="0") { all_data4$Alive25[i] <- ""  }
+  
+}
+
+
+
+
+table(all_data4$Alive25) # 
+table(all_data4$Alive25_tpry) # 342 = 0, 1250 = 1
+
+```
+
+
+
+```{r Final check for duplicates }
+
+
+
+emptyID_subset <- all_data4[is.na(all_data4$ID) | all_data4$ID == "", ] # delete empty IDs (blank rows from the site_25_all.xlsx)
+all_data4 <- all_data4[!(is.na(all_data4$ID) | all_data4$ID == ""), ]
+test <- all_data4 %>% group_by(site, ID) %>% dplyr::summarise(n = n())
+table(test$n)
+
+any(is.na(all_data4$quad)) 
+
+
+
+
+
+```
+
+
+## 5. Export final datasets
+
+Finally, you can export the data file as both csv and rds (R object) files. Please change the year to the current year. 
+
+
+```{r Export files }
+
+all_data4 <- all_data4 %>% rename(libsur24_25 = Alive25)
+all_data4 <- all_data4 %>% rename(libsur24_25_tpry = Alive25_tpry)
+colnames(all_data4)
+
+write.csv(all_data4, file = "F:/VFT/VFT_github/zyao78VFTcode/data/VFT master data/alldemodata_upto2025.csv", row.names = FALSE)
+#saveRDS(all_data1, file = "alldemodata_upto2023.rds") # if R object is preferred
+
+```
