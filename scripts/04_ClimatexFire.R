@@ -474,6 +474,10 @@ summary(lm_localT_log)
 plot(lm_localT_log)
 hist(lm_localT_log$residuals)  ### model fit has improved substantially, keep localT_log, don't proceed further
 
+#### some high unusual soil T are in F, convert those (32°F − 32) × 5/9 = 0°C
+
+
+
 ### try removing the possible fire induced soilT peaks, this is not recommended
 hist(Combined$local_T)
 Combined$local_T_rm_ex <- NA

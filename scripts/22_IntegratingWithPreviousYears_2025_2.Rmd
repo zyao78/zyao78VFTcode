@@ -108,7 +108,7 @@ Skip the code chunck below since 2025
 
 ##names(fdat25)[which(names(fdat25) %in% c("N", "L", "FR", "FLW", "Notes", "Comm", "Measurer"))] <- ##paste(names(fdat25)[which(names(fdat25) %in% c("N", "L", "FR", "FLW", "Notes", "Comm", "Measurer"))], "24", sep="")  
 
-head(fdat25)
+#head(fdat25)
 
 ```
 
@@ -155,15 +155,20 @@ for(i in 1:nrow(fdat25)){
      if(fdat25$N25[i] == ""){
     fdat25$Alive25[i] <- as.character("")  } 
     
+    if(str_detect(fdat25$Comm25[i], "not surveyed25"))          # not surveyed
+     {fdat25$Alive25[i] <- as.character("")  } 
+    
   }   
   
   if(str_detect(fdat25$Comm25[i], "not done") | str_detect(fdat25$Comm25[i], "notdone") |
-     str_detect(fdat25$Comm25[i], "not measured")) {
+     str_detect(fdat25$Comm25[i], "not measured") | str_detect(fdat25$Comm25[i], "not surveyed")) {
      if(fdat25$N25[i] == ""){
     fdat25$Alive25[i] <- as.character("")  }}    
 
   if(fdat25$N25[i] != "0" & fdat25$N25[i] != "")  { 
     fdat25$Alive25[i] <- "1"  }
+  if(str_detect(fdat25$Comm25[i], "underwater") & !str_detect(fdat25$Comm25[i], "survived") )  { 
+   fdat25$Alive25[i] <- as.character("")  }
 }
 
 
@@ -200,6 +205,7 @@ if(fdat25$N25[i]=="0" & !str_detect(fdat25$Comm25[i], "new lvs" ) & !str_detect(
      str_detect(fdat25$Comm25[i], "not surveyed")) {    ### starting in 2025 there are plants underwater
      if(fdat25$N25[i] == ""){
     fdat25$Alive25_tpry[i] <- as.character("")  }}
+  if(str_detect(fdat25$Comm25[i], "survived")){fdat25$Alive25_tpry[i] <- "1"}
 }
 
 N25_0 <- fdat25 [which(fdat25$Alive25_tpry == 0),]
@@ -434,17 +440,20 @@ In 2025, we disabled the use of libsurYR_YR2 and ConsurYR_YR2. Instead, we just 
 
 1. For 2015-2018, we did not have an “alive” column, because our notes and comments that we took during the census were not standardized . Louthan made columns alive15, 16, 17, and 18 in excel using her best judgement about what notes & comments mean. We add those columns here so the code can use previous years’ alive values to determine whether a plant came back from dormancy. 
 ```{r}
-Alive15_18 <- X15_18alive_47_
-Alive15_18$site_ID <- paste(Alive15_18$site, Alive15_18$ID, sep = "_") 
+Alive15_18 <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/raw-data/15-18alive[47].csv")
+Alive15_18$site[Alive15_18$site == "GSP-B"] <- "GSP-BI"
+Alive15_18$site[Alive15_18$site == "GSP-L"] <- "GSP-LI"
+Alive15_18$site_ID <- paste(Alive15_18$site, Alive15_18$ID, sep = "_")
 any(duplicated(Alive15_18$site_ID))   ### make sure site_ID is unique
-
+Alive15_18 <- Alive15_18 %>%
+  select(site_ID, c("alive15","alive16","alive17","alive18"))
+wrongSID <- Alive15_18[ !(Alive15_18$site_ID %in% all_data$site_ID), ] ## no site_ID mismatch, good
 ### join this to all_data
-
 all_data2 <- all_data %>%
-  left_join(Alive15_18, by = "site_ID") 
-all_data2 <- all_data2 %>%
-  select(-site.y, -ID.y, -quad.y, -mark.y, -x.y, -y.y)
+left_join(Alive15_18, by = "site_ID")
 colnames(all_data2)
+knitr::opts_chunk$set(echo = TRUE)
+any(is.na(all_data2$ID))
 ```
 
 
@@ -454,46 +463,121 @@ colnames(all_data2)
 
 
 all_data3 <- all_data2 %>%
-  rename(Alive15=alive15,Alive16=alive16,Alive17=alive17,Alive18=alive18,Alive19 =libsur18_19, Alive20=libsur19_20, Alive21=libsur20_21
-         , Alive22=libsur21_22, Alive23=libsur22_23, Alive24=libsur23_24)
+  rename(
+    Alive15 = alive15, Alive16 = alive16, Alive17 = alive17, Alive18 = alive18,
+    Alive19 = libsur18_19, Alive20 = libsur19_20, Alive21 = libsur20_21,
+    Alive22 = libsur21_22, Alive23 = libsur22_23, Alive24 = libsur23_24
+  )
+
+all_data3 <- all_data3 %>%
+  mutate(
+    Alive15_tpry = Alive15, Alive16_tpry = Alive16, Alive17_tpry = Alive17, Alive18_tpry = Alive18,
+    Alive19_tpry = Alive19, Alive20_tpry = Alive20, Alive21_tpry = Alive21, Alive22_tpry = Alive22,
+    Alive23_tpry = Alive23, Alive24_tpry = Alive24
+  )
+
+Sur_cols <- paste0("sur_", 15:24, "_", 16:25)
 years <- 15:25
+all_data3[Sur_cols] <- NA
+alive_columns <- paste("Alive", years, sep = "")
+
+all_data3 <- all_data3 %>%
+  select(all_of(c(alive_columns, Sur_cols)), everything())
+
+colnames(all_data3)
+
 unique_plant_ids <- unique(all_data3$site_ID)
-for ( i in 1: dim(all_data3)[1]){ # cycles through all the individual plants of that particular species
-  alive_columns <- paste("Alive", years, sep="")
+
+for (i in 1:dim(all_data3)[1]) {  # cycles through all the individual plants of that particular species
+  alive_columns <- paste("Alive", years, sep = "")
   alive_sequence <- all_data3[i, alive_columns]
-  
-  if (sum(as.numeric(alive_sequence), na.rm= TRUE) != 0){ # if a plant was only measured once, as dead, this will stop the code below and we need not do any replacing
-    zeros <- which(alive_sequence== 0 & !is.na(alive_sequence))
-    NAs <- which(is.na(alive_sequence))
-    ones <- which(alive_sequence== 1 & !is.na(alive_sequence))
-    # two rules-- these will work even if you have many years of data:
-    # for any NA's or 0's with indices greater than the index of the first 1, but less than the index of the last 1, change the NA or zero to 1.
+
+  if (sum(as.numeric(alive_sequence), na.rm = TRUE) != 0) {  # if a plant was only measured once, as dead...
+    zeros <- which(alive_sequence == 0 & !is.na(alive_sequence))
+    NAs   <- which(is.na(alive_sequence))
+    ones  <- which(alive_sequence == 1 & !is.na(alive_sequence))
+
+    # indices to set to 1
     replace_with_ones <- NAs[data.table::between(NAs, min(ones), max(ones))]
-    replace_with_ones <- c(replace_with_ones, 
+    replace_with_ones <- c(replace_with_ones,
                            zeros[data.table::between(zeros, min(ones), max(ones))])
-    # for the first zero index, if that is less than any 1 index, change all intervening indices to 1 (including the zero)
-    replace_with_ones <- c(replace_with_ones, zeros[which(zeros< min(ones))])
-    # then, making the actual changes in the dataset, adding rows if necessary...
-     if (length(replace_with_ones)>0){
-       for (ii in 1: length(replace_with_ones)){
-      if((ii %in% replace_with_ones) & # if you are supposed to replace the first entry (i.e. of the first year)
-         (nrow(all_data3[all_data3$site_ID == unique_plant_ids[i], ]) > 0) # and the plantID was present in that year
-      ){all_data3[which(all_data3$plant_id== unique_plant_ids[i] ), alive_columns[ii]] <- 1} # then replace it
- 
+    replace_with_ones <- c(replace_with_ones, zeros[which(zeros < min(ones))])
+
+    if (length(replace_with_ones) > 0) {
+      for (ii in 1:length(alive_sequence)) {
+        if (ii %in% replace_with_ones) {
+          all_data3[which(all_data3$site_ID == unique_plant_ids[i]), alive_columns[ii]] <- 1
+        }
       }
-    }}
+    }
+  }
 }
 
+years <- 15:25
+unique_plant_ids <- unique(all_data3$site_ID)
 
 
 
+for (i in 1:dim(all_data3)[1]) {  # cycles through all the individual plants of that particular species
+  alive_columns_tpry <- c(
+    "Alive15_tpry","Alive16_tpry","Alive17_tpry","Alive18_tpry","Alive19_tpry",
+    "Alive20_tpry","Alive21_tpry","Alive22_tpry","Alive23_tpry","Alive24_tpry","Alive25_tpry"
+  )
+  alive_sequence_tpry <- all_data3[i, alive_columns_tpry]
 
+  if (sum(as.numeric(alive_sequence_tpry), na.rm = TRUE) != 0) {
+    zeros_t <- which(alive_sequence_tpry == 0 & !is.na(alive_sequence_tpry))
+    NAs_t   <- which(is.na(alive_sequence_tpry))
+    ones_t  <- which(alive_sequence_tpry == 1 & !is.na(alive_sequence_tpry))
 
+    # indices to switch to 1
+    replace_with_ones_t <- NAs_t[data.table::between(NAs_t, min(ones_t), max(ones_t))]
+    replace_with_ones_t <- c(replace_with_ones_t,
+                             zeros_t[data.table::between(zeros_t, min(ones_t), max(ones_t))])
+    replace_with_ones_t <- c(replace_with_ones_t, zeros_t[which(zeros_t < min(ones_t))])
 
+    if (length(replace_with_ones_t) > 0) {
+      for (ii in 1:length(alive_sequence_tpry)) {
+        if (ii %in% replace_with_ones_t) {
+          all_data3[which(all_data3$site_ID == unique_plant_ids[i]), alive_columns_tpry[ii]] <- 1
+        }
+      }
+    }
+  }
+}
 
+all_data4 <- all_data3
+```
+```{r}
+### loop through AliveYR to assign Sur_YR_YR2
+for (i in 1:nrow(all_data4)) {
+  for (j in 1:(length(alive_columns) - 1)) {
+    aliveyear_1 <- all_data4[i, alive_columns[j]]
+    aliveyear_2 <- all_data4[i, alive_columns[j + 1]]
 
+    all_data4[i, Sur_cols[j]] <-
+      ifelse(is.na(aliveyear_1) || is.na(aliveyear_2), NA,
+      ifelse(aliveyear_1 == 1 && aliveyear_2 == 1, 1,
+      ifelse(aliveyear_1 == 1 && aliveyear_2 == 0, 0, NA)))
+  }
+}
 
+Sur_cols_t <- paste0("sur_", 15:24, "_", 16:25, "_", "tpry")
 
+for (i in 1:nrow(all_data4)) {
+  for (j in 1:(length(alive_columns_tpry) - 1)) {
+    aliveyear_1_t <- all_data4[i, alive_columns_tpry[j]]
+    aliveyear_2_t <- all_data4[i, alive_columns_tpry[j + 1]]
+
+    all_data4[i, Sur_cols_t[j]] <-
+      ifelse(is.na(aliveyear_1_t) || is.na(aliveyear_2_t), NA,
+      ifelse(aliveyear_1_t == 1 && aliveyear_2_t == 1, 1,
+      ifelse(aliveyear_1_t == 1 && aliveyear_2_t == 0, 0, NA)))
+  }
+}
+
+all_data4 <- all_data4 %>%
+  select(all_of(c(alive_columns, Sur_cols, alive_columns_tpry, Sur_cols_t)), everything())
 ```
 
 
@@ -503,52 +587,28 @@ for ( i in 1: dim(all_data3)[1]){ # cycles through all the individual plants of 
 
 
 ```{r If previous year had "0", then assign current year as "" }
+wrong <- all_data4 %>%
+  filter(!is.na(sur_24_25)) %>%
+  filter(if_any(c(all_of(Sur_cols), -all_of("sur_24_25")), ~ . == 0))   # returns 0, good
 
-table(all_data3$Alive25) # 9 = 0, 1604 = 1
-table(all_data3$Alive25_tpry) # 342 = 0, 1250 = 1
+wrong <- all_data4 %>%
+  filter(!is.na(sur_24_25_tpry)) %>%
+  filter(if_any(c(all_of(Sur_cols_t), -all_of("sur_24_25_tpry")), ~ . == 0))
 
-all_data4 <- data.frame(lapply(all_data3, as.character), stringsAsFactors = FALSE)
-all_data4[is.na(all_data4)] <- ""
+emptyID_subset <- all_data4[is.na(all_data4$ID) | all_data4$ID == "", ]  # delete empty IDs
 
-wrong <-  all_data4 %>% 
-  filter(Alive25 != "") %>% 
-  filter( libsur15_16 =="0" |  libsur16_17 =="0" |  libsur17_18 =="0" |  libsur18_19 =="0" |
-      libsur19_20 =="0" |
-      libsur20_21 =="0" |
-      libsur21_22 =="0"|
-      libsur22_23 =="0" |  libsur23_24 =="0") 
-wrong_tpry <-  all_data4 %>% 
-  filter(Alive25_tpry != "") %>% 
-  filter( libsur15_16_tpry =="0" |  libsur16_17_tpry =="0" |  libsur17_18_tpry =="0" |  libsur18_19_tpry =="0" |
-      libsur19_20_tpry =="0" |
-      libsur20_21_tpry =="0" |
-      libsur21_22_tpry =="0"|
-      libsur22_23_tpry =="0" |  libsur23_24_tpry =="0")                      
+any(is.na(all_data4$quad))
+empty_quad <- all_data4[is.na(all_data4$quad), ]
+View(empty_quad)
 
 
 
-for(i in 1:nrow(all_data4)){
-  if(all_data4$libsur15_16_tpry[i] =="0" | all_data4$libsur16_17_tpry[i] =="0" | all_data4$libsur17_18_tpry[i] =="0" | all_data4$libsur18_19_tpry[i] =="0" |
-     all_data4$libsur19_20_tpry[i] =="0" |
-     all_data4$libsur20_21_tpry[i] =="0" |
-     all_data4$libsur21_22_tpry[i] =="0"|
-     all_data4$libsur22_23_tpry[i] =="0" | all_data4$libsur23_24_tpry[i] =="0") { all_data4$Alive25_tpry[i] <- ""  }
-  
-}
-for(i in 1:nrow(all_data4)){
-  if(all_data4$libsur15_16[i] =="0" | all_data4$libsur16_17[i] =="0" | all_data4$libsur17_18[i] =="0" | all_data4$libsur18_19[i] =="0" |
-     all_data4$libsur19_20[i] =="0" |
-     all_data4$libsur20_21[i] =="0" |
-     all_data4$libsur21_22[i] =="0"|
-     all_data4$libsur22_23[i] =="0" | all_data4$libsur23_24[i] =="0") { all_data4$Alive25[i] <- ""  }
-  
-}
+all_data5 <- all_data4 %>%
+  select(everything(), all_of(c(alive_columns, Sur_cols, alive_columns_tpry, Sur_cols_t)))
 
 
 
 
-table(all_data4$Alive25) # 
-table(all_data4$Alive25_tpry) # 342 = 0, 1250 = 1
 
 ```
 
