@@ -566,6 +566,52 @@ save(sur_mod_G, file = "data/TBFxClimate/sur_mod_G.Rdata")
 
 stopCluster(cluster)
 
+#### prep
+prep_term_L <- attr(terms(prep_mod_L), "term.labels")
+prep_term_R <- attr(terms(prep_mod_R), "term.labels")
+terms_vec <- union(prep_term_L, prep_term_R)
+int_terms <- grep(":", terms_vec, value = TRUE)
+int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
+main_terms <- terms_vec[!grepl(":", terms_vec)]
+prep_all_terms <- union(main_terms, int_terms_broken)
+
+f_fix <- reformulate(terms_vec, response = "prep1")
+f_fix    ### don't refer to this, copy and paste to change site into a random effect
+
+prep_subset_G <- 
+  TBF_long %>% 
+  filter_at(vars(prep1,prep_all_terms), all_vars(!is.na(.)))
+
+GM_G_prep <- glm(
+  prep1 ~ s.logsize0 + s.P_LA + s.P_LH + s.sq.P_LA + s.sq.TSF + 
+    s.T_LA + s.T_LC + s.T_LH + s.TBF + s.TSF + s.P_LA:s.T_LA + 
+    s.P_LH:s.T_LH + s.TBF:s.TSF + s.P_RA + s.P_RH + s.sq.P_RA + 
+    s.sq.T_RA + s.T_RA + s.T_RC + s.T_RH + s.P_RA:s.T_RA + s.P_RH:s.T_RH +site,
+  data = prep_subset_G,
+  family = "binomial", 
+  na.action = "na.fail"
+)
+
+summary(GM_G_prep)
+n_cores <- detectCores()
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("prep_subset_G"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+prep_dredge_G <- MuMIn::dredge(
+  GM_G_prep,
+  cluster = cluster,
+  trace   = 2
+)
+sur_mod_G <- get.models(sur_dredge_G, 1)[[1]]
+summary(sur_mod_G)   
+save(sur_mod_G, file = "data/TBFxClimate/sur_mod_G.Rdata")
+
+stopCluster(cluster)
+
+
+
 ## save env
 save(list = ls(), file = "env_snapshot.RData")
 save(gr_mod_L, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/gr_mod_L.Rdata")
