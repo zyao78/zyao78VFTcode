@@ -1,4 +1,4 @@
-
+Sys.setenv(LANG = "en")
 install.packages("popbio")
 install.packages("parallel")
 install.packages("doParallel")
@@ -592,7 +592,6 @@ GM_G_prep <- glm(
   na.action = "na.fail"
 )
 
-summary(GM_G_prep)
 n_cores <- detectCores()
 cluster <- makeCluster(n_cores - 1)
 registerDoParallel(cluster)
@@ -604,13 +603,99 @@ prep_dredge_G <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
-sur_mod_G <- get.models(sur_dredge_G, 1)[[1]]
-summary(sur_mod_G)   
+prep_mod_G <- get.models(prep_dredge_G, 1)[[1]]
+summary(prep_mod_G)   
+
 save(sur_mod_G, file = "data/TBFxClimate/sur_mod_G.Rdata")
 
 stopCluster(cluster)
 
 
+### growth
+
+
+gr_term_L <- attr(terms(gr_mod_L), "term.labels")
+gr_term_R <- attr(terms(gr_mod_R), "term.labels")
+terms_vec <- union(gr_term_L, gr_term_R)
+int_terms <- grep(":", terms_vec, value = TRUE)
+int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
+main_terms <- terms_vec[!grepl(":", terms_vec)]
+gr_all_terms <- union(main_terms, int_terms_broken)
+
+f_fix <- reformulate(terms_vec, response = "logsize1 ")
+f_fix    ### don't refer to this, copy and paste to change site into a random effect
+
+gr_subset_G <- 
+  TBF_long %>% 
+  filter_at(vars(logsize1 ,gr_all_terms), all_vars(!is.na(.)))
+
+GM_G_gr <- lmer(
+  logsize1 ~ s.logsize0 + s.P_LA + s.P_LH + s.sq.T_LA + s.sq.TSF + 
+    s.T_LA + s.T_LD + s.TBF + s.TSF + s.P_LA:s.T_LA + s.TBF:s.TSF + 
+    s.P_RA + s.sq.T_RA + s.T_RA + s.T_RC + s.T_RD + s.P_RA:s.T_RA+ (1 | site),
+  data = gr_subset_G,
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("gr_subset_G"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+gr_dredge_G <- MuMIn::dredge(
+  GM_G_gr,
+  cluster = cluster,
+  trace   = 2
+)
+gr_mod_G <- get.models(gr_dredge_G, 1)[[1]]
+summary(gr_mod_G)   
+
+save(gr_mod_G, file = "data/TBFxClimate/gr_mod_G.Rdata")
+
+stopCluster(cluster)
+
+### number of fruit
+
+crep_term_L <- attr(terms(crep_mod_L), "term.labels")
+crep_term_R <- attr(terms(crep_mod_R), "term.labels")
+terms_vec <- union(crep_term_L, crep_term_R)
+int_terms <- grep(":", terms_vec, value = TRUE)
+int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
+main_terms <- terms_vec[!grepl(":", terms_vec)]
+crep_all_terms <- union(main_terms, int_terms_broken)
+
+f_fix <- reformulate(terms_vec, response = "logcrep1  ")
+f_fix    ### don't refer to this, copy and paste to change site into a random effect
+
+crep_subset_G <- 
+  TBF_long %>% 
+  filter_at(vars(logcrep1  ,crep_all_terms), all_vars(!is.na(.)))
+
+GM_G_crep <- lmer(
+  logcrep1 ~ s.sq.TSF + s.T_LA + s.T_LH + TBF + s.logsize0 + s.T_RA + 
+    s.T_RH+ (1 | site),
+  data = crep_subset_G,
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("crep_subset_G"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+crep_dredge_G <- MuMIn::dredge(
+  GM_G_crep,
+  cluster = cluster,
+  trace   = 2
+)
+crep_mod_G <- get.models(crep_dredge_G, 1)[[1]]
+summary(crep_mod_G)   
+
+save(crep_mod_G, file = "data/TBFxClimate/crep_mod_G.Rdata")
+
+stopCluster(cluster)
 
 ## save env
 save(list = ls(), file = "env_snapshot.RData")
