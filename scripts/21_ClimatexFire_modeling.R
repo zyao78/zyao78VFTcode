@@ -562,7 +562,7 @@ sur_dredge_G <- MuMIn::dredge(
 )
 sur_mod_G <- get.models(sur_dredge_G, 1)[[1]]
 summary(sur_mod_G)   
-save(sur_mod_G, file = "data/TBFxClimate/sur_mod_G.csv")
+save(sur_mod_G, file = "data/TBFxClimate/sur_mod_G.Rdata")
 
 stopCluster(cluster)
 
@@ -571,7 +571,9 @@ save(list = ls(), file = "env_snapshot.RData")
 save(gr_mod_L, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/gr_mod_L.Rdata")
 save(prep_mod_R_2, file = "prep_mod_R_2.Rdata")
 write.csv(TBF_long,"data/TBFxClimate/TBF_long_10232025.csv") 
-
+install.packages(c("usethis","gitcreds"))  # if not already installed
+usethis::create_github_token()
+gitcreds::gitcreds_set()   # paste the token when prompted
 ### plotting 
 ggplot(P_RA, aes(x = factor(startyear), y = prec, fill = site)) +
   geom_bar(stat = "identity", position = "dodge") +

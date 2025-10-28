@@ -166,7 +166,12 @@ TBF_data_long1$predgrowth <- NA    # see predicted values
 TBF_data_long1$predgrowth[which(!is.na(TBF_data_long1$s.logsize0) & 
                                   !is.na(TBF_data_long1$logsize1) & !is.na(TBF_data_long1$site) &
                                   !is.na(TBF_data_long1$TBF)& 
-                                  !is.na(TBF_data_long1$TSF))] <- predict(growth_mod, newdata=TBF_data_long1[which(!is.na(TBF_data_long1$s.logsize0) & !is.na(TBF_data_long1$logsize1) & !is.na(TBF_data_long1$site) & !is.na(TBF_data_long1$TBF)& !is.na(TBF_data_long1$TSF)),])
+                                  !is.na(TBF_data_long1$TSF))] <- predict(growth_mod, 
+                                                                          newdata=TBF_data_long1[which(!is.na(TBF_data_long1$s.logsize0) & 
+                                                                                                         !is.na(TBF_data_long1$logsize1) & 
+                                                                                                         !is.na(TBF_data_long1$site) & 
+                                                                                                         !is.na(TBF_data_long1$TBF)& 
+                                                                                                         !is.na(TBF_data_long1$TSF)),])
 
 
 TBF_data_long1$vargrowth[which(!is.na(TBF_data_long1$s.logsize0) & 
