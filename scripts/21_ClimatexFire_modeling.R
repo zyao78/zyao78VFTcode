@@ -548,6 +548,7 @@ GM_G_sur <- glmer(
   family = "binomial", 
   na.action = "na.fail"
 )
+summary(GM_G_sur)
 n_cores <- detectCores()
 cluster <- makeCluster(n_cores - 1)
 registerDoParallel(cluster)
@@ -559,9 +560,11 @@ sur_dredge_G <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
-sur_mod_L_2 <- get.models(sur_dredge_L_2, 1)[[1]]
-summary(sur_mod_L_2)   
+sur_mod_G <- get.models(sur_dredge_G, 1)[[1]]
+summary(sur_mod_G)   
+save(sur_mod_G, file = "data/TBFxClimate/sur_mod_G.csv")
 
+stopCluster(cluster)
 
 ## save env
 save(list = ls(), file = "env_snapshot.RData")
