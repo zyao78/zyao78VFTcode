@@ -605,10 +605,14 @@ prep_dredge_G <- MuMIn::dredge(
 )
 prep_mod_G <- get.models(prep_dredge_G, 1)[[1]]
 summary(prep_mod_G)   
+prep_mod_G
 
-save(sur_mod_G, file = "data/TBFxClimate/sur_mod_G.Rdata")
-
-stopCluster(cluster)
+## complete separation was suggested. Need to confirm before proceeding with the model
+install.packages("detectseparation")
+library("detectseparation")
+plot(inf_check <- check_infinite_estimates(prep_mod_G))  # check for the occurence of infinite estimates
+## no evidence for infinite estimates
+update(prep_mod_G, method = "detect_separation")   # separation:FALSE, no issue of complete separation
 
 
 ### growth
