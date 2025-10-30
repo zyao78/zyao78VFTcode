@@ -23,7 +23,7 @@ r_pear <- residuals(crep_mod_G, type = "pearson")
 r_dev <- residuals(crep_mod_G, type = "deviance")
 hist(r_pear)
 
-
+summary(crep_mod_G)
 
 
 #### check for outlier effect

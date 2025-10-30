@@ -726,14 +726,27 @@ TBF_long$vargrowth <-
 TBF_long$og_predgrowth <- exp(TBF_long$predgrowth)
 TBF_long$og_logsize1 <- exp(TBF_long$logsize1)
 
-TBF_long$vargrowth_og <-
-  (TBF_long$og_predgrowth - # variance is equivalent to (predicted-expected)^2
-     TBF_long$og_logsize1)^2
+vargrowth_subset <- 
+  TBF_long %>% 
+  dplyr::filter(across(c(logsize1, s.logsize0, site, s.TSF,s.sq.TSF, s.TBF, s.T_RA, s.T_LA,
+                         s.P_RA,s.P_LA, s.sq.P_RA, s.sq.P_LA, s.T_LC, s.T_RC, s.T_LD,s.T_RD,
+                         s.P_LD, s.P_RD, s.P_LW, s.P_RW
+                         ,vargrowth ), ~ !is.na(.))) %>% 
+  mutate(exp_vargrowth = exp(vargrowth)) #***** to prevent negative numbers later
 
-look <- TBF_long[,c("vargrowth", "predgrowth", "logsize1", "og_predgrowth","og_logsize1", "vargrowth_og")]
-plot(TBF_long$vargrowth, TBF_long$vargrowth_og)
+GM_vargrowth <- lmer(vargrowth ~ s.logsize0 + s.T_RA+ s.T_LA +
+                       s.P_RA + s.P_LA + s.sq.P_LA + s.sq.P_RA +s.T_LC + s.T_RC + s.T_LD + s.T_RD +
+                       s.P_LD + s.P_RD +s.P_LW + s.P_RW
+                       + (1|site), #  
+                        data = vargrowth_subset, na.action = "na.fail") 
 
+n_cores <- detectCores()
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("vargrowth_subset"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
+summary(vargrowth_mod_g)
 
 
 
