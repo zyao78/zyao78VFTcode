@@ -612,7 +612,10 @@ install.packages("detectseparation")
 library("detectseparation")
 plot(inf_check <- check_infinite_estimates(prep_mod_G))  # check for the occurence of infinite estimates
 ## no evidence for infinite estimates
-update(prep_mod_G, method = "detect_separation")   # separation:FALSE, no issue of complete separation
+update(prep_mod_G, method = "detect_separation")   # separation:FALSE, no issue of complete separation, okay to proceed
+
+save(prep_mod_G, file = "data/TBFxClimate/prep_mod_G.Rdata")
+
 
 
 ### growth
@@ -701,11 +704,45 @@ save(crep_mod_G, file = "data/TBFxClimate/crep_mod_G.Rdata")
 
 stopCluster(cluster)
 
+################################################   
+#######   variance in growth ###################
+TBF_long <- read.csv("data/TBFxClimate/TBF_long_10232025.csv")
+TBF_long$vargrowth <- NA
+TBF_long$predgrowth <- NA    # see predicted values
+growth_terms <- attr(terms(gr_mod_G), "term.labels")
+int_terms <- grep(":", growth_terms, value = TRUE)
+int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
+main_terms <- growth_terms[!grepl(":", growth_terms)]
+logsize1 <- c("logsize1")
+gr_all_terms <- unique(c(main_terms, int_terms_broken, logsize1))
+ok <- complete.cases(TBF_long[, gr_all_terms, drop = FALSE])    ### return logical vector (T/F) indicating no missing values
+idx <- which(ok)                                      # indices if you need them
+
+TBF_long$predgrowth[idx] <- predict(gr_mod_G,newdata=TBF_long[idx,])
+
+TBF_long$vargrowth <-
+  (TBF_long$predgrowth - # variance is equivalent to (predicted-expected)^2
+     TBF_long$logsize1)^2
+TBF_long$og_predgrowth <- exp(TBF_long$predgrowth)
+TBF_long$og_logsize1 <- exp(TBF_long$logsize1)
+
+TBF_long$vargrowth_og <-
+  (TBF_long$og_predgrowth - # variance is equivalent to (predicted-expected)^2
+     TBF_long$og_logsize1)^2
+
+look <- TBF_long[,c("vargrowth", "predgrowth", "logsize1", "og_predgrowth","og_logsize1", "vargrowth_og")]
+plot(TBF_long$vargrowth, TBF_long$vargrowth_og)
+
+
+
+
+
+
 ## save env
 save(list = ls(), file = "env_snapshot.RData")
 save(gr_mod_L, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/gr_mod_L.Rdata")
 save(prep_mod_R_2, file = "prep_mod_R_2.Rdata")
-write.csv(TBF_long,"data/TBFxClimate/TBF_long_10232025.csv") 
+write.csv(TBF_long,"data/TBFxClimate/TBF_long_10302025_with_Var.csv") 
 install.packages(c("usethis","gitcreds"))  # if not already installed
 usethis::create_github_token()
 gitcreds::gitcreds_set()   # paste the token when prompted
@@ -718,3 +755,12 @@ ggplot(P_RA, aes(x = factor(startyear), y = prec, fill = site)) +
 
 
 r.squaredGLMM(gr_mod_R)
+
+
+
+
+
+
+TBF_long %>%
+  filter(if_any(all_of(gr_all_terms), ~ !is.na(.))) %>%
+  pull(predgrowth)
