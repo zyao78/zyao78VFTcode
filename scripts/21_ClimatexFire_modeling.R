@@ -753,7 +753,7 @@ summary(vargrowth_mod_g)
 
 ## save env
 save(list = ls(), file = "env_snapshot.RData")
-save(gr_mod_L, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/gr_mod_L.Rdata")
+save(infl, file = "data/TBFxClimate/infl.Rdata")
 save(prep_mod_R_2, file = "prep_mod_R_2.Rdata")
 write.csv(TBF_long,"data/TBFxClimate/TBF_long_10302025_with_Var.csv") 
 install.packages(c("usethis","gitcreds"))  # if not already installed

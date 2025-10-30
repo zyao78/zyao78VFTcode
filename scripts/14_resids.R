@@ -31,8 +31,7 @@ summary(crep_mod_G)
 install.packages("influence.ME")
 library(influence.ME)
 
-dat_used <- model.frame(gr_mod_G)                 # reconstruct data used to fit
-infl <- influence(gr_mod_G, obs = TRUE, data=dat_used)
-
-
+gr_subset_G <- model.frame(gr_mod_G)                 # reconstruct data used to fit
+infl <- influence(gr_mod_G, obs = TRUE)
+plot(infl, which = "cook")
 
