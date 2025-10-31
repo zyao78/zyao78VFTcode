@@ -703,6 +703,13 @@ summary(crep_mod_G)
 save(crep_mod_G, file = "data/TBFxClimate/crep_mod_G.Rdata")
 
 stopCluster(cluster)
+###
+sur_mod_G <-sur_mod_R_2
+gr_mod_G <-gr_mod_L
+prep_mod_G<-prep_mod_R
+crep_mod_G<-crep_mod_R
+save(crep_mod_G, file = "data/TBFxClimate/.Rdata")
+
 
 ################################################   
 #######   variance in growth ###################
@@ -734,11 +741,16 @@ vargrowth_subset <-
                          ,vargrowth ), ~ !is.na(.))) %>% 
   mutate(exp_vargrowth = exp(vargrowth)) #***** to prevent negative numbers later
 
-GM_vargrowth <- lmer(vargrowth ~ s.logsize0 + s.T_RA+ s.T_LA +
-                       s.P_RA + s.P_LA + s.sq.P_LA + s.sq.P_RA +s.T_LC + s.T_RC + s.T_LD + s.T_RD +
-                       s.P_LD + s.P_RD +s.P_LW + s.P_RW
+GM_vargrowth_R <- lmer(vargrowth ~ s.logsize0 + s.T_RA+ 
+                       s.P_RA  + s.sq.P_RA  + s.T_RC +s.T_RD +
+                      s.P_RD + s.P_RW
                        + (1|site), #  
                         data = vargrowth_subset, na.action = "na.fail") 
+GM_vargrowth_L <- lmer(vargrowth ~ s.logsize0 + s.T_LA+ 
+                         s.P_LA  + s.sq.P_LA  + s.T_LC +s.T_LD +
+                         s.P_LD + s.P_LW
+                       + (1|site), #  
+                       data = vargrowth_subset, na.action = "na.fail") 
 
 n_cores <- detectCores()
 cluster <- makeCluster(n_cores - 1)
@@ -748,7 +760,24 @@ clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
 summary(vargrowth_mod_g)
 
+vargrowth_dredge_L <- MuMIn::dredge(
+  GM_vargrowth_L,
+  cluster = cluster,
+  trace   = 2
+)
+vargrowth_mod_L <- get.models(vargrowth_dredge_L, 1)[[1]]
 
+vargrowth_dredge_R <- MuMIn::dredge(
+  GM_vargrowth_R,
+  cluster = cluster,
+  trace   = 2
+)
+vargrowth_mod_R<- get.models(vargrowth_dredge_R, 1)[[1]]
+
+
+### get AIC
+AIC(vargrowth_mod_R)
+AIC(vargrowth_mod_L)
 
 
 ## save env
@@ -770,7 +799,7 @@ ggplot(P_RA, aes(x = factor(startyear), y = prec, fill = site)) +
 r.squaredGLMM(gr_mod_R)
 
 
-
+summary(gr_mod_L)
 
 
 

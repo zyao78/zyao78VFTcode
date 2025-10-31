@@ -75,11 +75,11 @@ r_seedling_mult <- 2
 #### survival ####
 # subset data to those observations that have no NAs for objects in global model
  sur_subset <- 
-  TBF_data_long1 %>% 
+  TBF_long %>% 
   dplyr::filter(across(c(consur0_1, s.logsize0, TSF, TBF,site), ~ !is.na(.)))
 
 # global model
-sur <- glmer(consur0_1 ~ s.logsize0 + TSF *TBF   + (1|site), data= TBF_data_long1, family= "binomial", na.action = "na.omit")
+sur <- glmer(consur0_1 ~ s.logsize0 + TSF *TBF   + (1|site), data= TBF_long, family= "binomial", na.action = "na.omit")
 
 
 sur_noNA <- glmer(consur0_1 ~ s.logsize0 + TSF *TBF   + (1|site), data= sur_subset, family= "binomial", na.action= "na.fail") # exclude NA by specifying the function to stop when it hits NAs
@@ -101,7 +101,7 @@ print(paste("Best fit model weight for survival:", round(sur_dredge$weight[1], 3
 #### binary fruits ####
 # subset 
 bifrt_subset <- 
-  TBF_data_long1 %>% 
+  TBF_long %>% 
   dplyr::filter(across(c(prep1, consur0_1, s.logsize0, site, TSF, TBF), ~ !is.na(.)))
 bifrt_subset <- bifrt_subset[which(bifrt_subset$consur0_1== 1),]
 
@@ -124,7 +124,7 @@ print(paste("Best fit model weight for binary_fruiting:", round(bifrt_dredge$wei
 
 # subset 
 frt_subset <- 
-  TBF_data_long1 %>% 
+  TBF_long %>% 
   dplyr::filter(across(c(logcrep1, consur0_1, s.logsize0, site, TSF, TBF), ~ !is.na(.)))
 frt_subset <- frt_subset[which(frt_subset$consur0_1== 1),]
 
@@ -145,7 +145,7 @@ print(paste("Best fit model weight for #fruits:", round(frt_dredge$weight[1], 3)
 #### growth ####
 # subset 
 growth_subset <- 
-  TBF_data_long1 %>% 
+  TBF_long %>% 
   dplyr::filter(across(c( logsize1, s.logsize0, site, TSF, TBF), ~ !is.na(.)))
 #global
 growth_mod_g <- lmer(logsize1 ~ s.logsize0 + TSF*TBF + (1|site),
@@ -161,28 +161,28 @@ growth_mod_vcov <- vcov(growth_mod) # get variance-covariance matric
 print(paste("Best fit model weight for growth:", round(growth_dredge$weight[1], 3))) # model weight
 
 #### variance in growth ####
-TBF_data_long1$vargrowth <- NA
-TBF_data_long1$predgrowth <- NA    # see predicted values
-TBF_data_long1$predgrowth[which(!is.na(TBF_data_long1$s.logsize0) & 
-                                  !is.na(TBF_data_long1$logsize1) & !is.na(TBF_data_long1$site) &
-                                  !is.na(TBF_data_long1$TBF)& 
-                                  !is.na(TBF_data_long1$TSF))] <- predict(growth_mod, 
-                                                                          newdata=TBF_data_long1[which(!is.na(TBF_data_long1$s.logsize0) & 
-                                                                                                         !is.na(TBF_data_long1$logsize1) & 
-                                                                                                         !is.na(TBF_data_long1$site) & 
-                                                                                                         !is.na(TBF_data_long1$TBF)& 
-                                                                                                         !is.na(TBF_data_long1$TSF)),])
+TBF_long$vargrowth <- NA
+TBF_long$predgrowth <- NA    # see predicted values
+TBF_long$predgrowth[which(!is.na(TBF_long$s.logsize0) & 
+                                  !is.na(TBF_long$logsize1) & !is.na(TBF_long$site) &
+                                  !is.na(TBF_long$TBF)& 
+                                  !is.na(TBF_long$TSF))] <- predict(growth_mod, 
+                                                                          newdata=TBF_long[which(!is.na(TBF_long$s.logsize0) & 
+                                                                                                         !is.na(TBF_long$logsize1) & 
+                                                                                                         !is.na(TBF_long$site) & 
+                                                                                                         !is.na(TBF_long$TBF)& 
+                                                                                                         !is.na(TBF_long$TSF)),])
 
 
-TBF_data_long1$vargrowth[which(!is.na(TBF_data_long1$s.logsize0) & 
-                                 !is.na(TBF_data_long1$logsize1) & !is.na(TBF_data_long1$site) &
-                                 !is.na(TBF_data_long1$TBF)& 
-                                 !is.na(TBF_data_long1$TSF))] <-
+TBF_long$vargrowth[which(!is.na(TBF_long$s.logsize0) & 
+                                 !is.na(TBF_long$logsize1) & !is.na(TBF_long$site) &
+                                 !is.na(TBF_long$TBF)& 
+                                 !is.na(TBF_long$TSF))] <-
   (predict(growth_mod) - # variance is equivalent to (predicted-expected)^2
-     TBF_data_long1$logsize1[which(!is.na(TBF_data_long1$s.logsize0) & 
-                                     !is.na(TBF_data_long1$logsize1) & !is.na(TBF_data_long1$site) &
-                                     !is.na(TBF_data_long1$TBF)& 
-                                     !is.na(TBF_data_long1$TSF))])^2
+     TBF_long$logsize1[which(!is.na(TBF_long$s.logsize0) & 
+                                     !is.na(TBF_long$logsize1) & !is.na(TBF_long$site) &
+                                     !is.na(TBF_long$TBF)& 
+                                     !is.na(TBF_long$TSF))])^2
 
 
 
@@ -190,7 +190,7 @@ TBF_data_long1$vargrowth[which(!is.na(TBF_data_long1$s.logsize0) &
 
 # subset 
 vargrowth_subset <- 
-  TBF_data_long1 %>% 
+  TBF_long %>% 
   dplyr::filter(across(c(logsize1, s.logsize0, site, TSF, TBF,vargrowth ), ~ !is.na(.))) %>% 
   mutate(exp_vargrowth = exp(vargrowth)) #***** to prevent negative numbers later
 
@@ -212,11 +212,13 @@ print(paste("Best fit model weight for var. in growth:", round(vargrowth_dredge$
 
 # ####### Make IPM ############## --------------------------------------------
 # make sure nothing is weird
-str(TBF_data_long1)
+TBF_long <- read.csv("data/TBFxClimate/TBF_long_10302025_with_Var.csv")
+
+str(TBF_long)
 
 #make bounds for matrices and # of bins
-maxsize <- max(c(TBF_data_long1$logsize0, TBF_data_long1$logsize1), na.rm=TRUE)
-minsize <- min(c(TBF_data_long1$logsize0, TBF_data_long1$logsize1), na.rm=TRUE)
+maxsize <- max(c(TBF_long$logsize0, TBF_long$logsize1), na.rm=TRUE)   ### do we want to reverse log??
+minsize <- min(c(TBF_long$logsize0, TBF_long$logsize1), na.rm=TRUE)
 
 binno <- 100 # this is arbitrary
 binedges <- seq(minsize, maxsize, length.out= binno+1)
@@ -224,14 +226,18 @@ binmidpoints <- (binedges[1:(length(binedges)-1)] + binedges[2:length(binedges)]
 
 #size dist of plants recruiting into the pop
 
-new_plants <- TBF_data_long1[grepl("\\bnew", TBF_data_long1$comm1), ]
+new_plants <- TBF_long[grepl("\\bnew", TBF_long$comm1), ]
 new_plants <- new_plants[!grepl("no new", new_plants$comm1), ]     # identify and extract recruit from each year
+new_plants <- new_plants[!grepl("new lvs", new_plants$comm1), ]     # identify and extract recruit from each year
+new_plants <- new_plants[!grepl("not possible to see new plants", new_plants$comm1), ]     # identify and extract recruit from each year
+new_plants <- new_plants[!grepl("No news", new_plants$comm1), ]     # identify and extract recruit from each year
 
 mean_recruit_logsize <- mean(new_plants$logsize1, na.rm = TRUE)
   
 var_recruit_logsize <- var(new_plants$logsize1, na.rm = TRUE)
 
 recruitcdf <- pnorm(binedges,mean_recruit_logsize,sqrt(var_recruit_logsize))
+recruitpdf <- dnorm(binedges,mean_recruit_logsize,sqrt(var_recruit_logsize))
 
 
 # given the above cdf, how much probability falls within that bin?   or cdf_2 - cdf_1
@@ -245,8 +251,8 @@ smallplants_sizedistribution <- recruitcdf[2:length(binedges)]-recruitcdf[1:(len
 
 
 
-TBF <- unique(TBF_data_long1$TBF)
-TSF <- unique(TBF_data_long1$TSF)
+TBF <- unique(TBF_long$TBF)
+TSF <- unique(TBF_long$TSF)
 
 
 
@@ -311,10 +317,10 @@ flag = "lowered" # in case of an error
       #   pull(seedlings_per_fruit)
       
       
-      if (trmts[j] == "R") {smallplantsperfruit <- smallplantsperfruit * r_seedling_mult} # add multiplier (specified above) to removal trmt if needed:
-      pred_array[, 'plantsperfruit', i, j, z] <- smallplantsperfruit
+     pred_array[, 'plantsperfruit', i, j, z] <- smallplantsperfruit
       
       #predict values
+     mynewdata$s.logsize <- 
       sur_vals <- predict(sur_mod, mynewdata, type= "response")
       pred_array[,'sur_vals', i, j] <- sur_vals
       
