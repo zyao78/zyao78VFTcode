@@ -190,6 +190,7 @@ prep_dredge_R <- MuMIn::dredge(
 )
 prep_mod_R <- get.models(prep_dredge_R, 1)[[1]]
 summary(prep_mod_R)   ## large eiigenvalue ratio value, rescale 
+stopCluster(cluster)
 
 save(prep_mod_R, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/prep_mod_R.Rdata")
 
@@ -778,6 +779,7 @@ vargrowth_mod_R<- get.models(vargrowth_dredge_R, 1)[[1]]
 ### get AIC
 AIC(vargrowth_mod_R)
 AIC(vargrowth_mod_L)
+save(vargrowth_mod_L, file = "data/TBFxClimate/vargrowth_mod_G.Rdata")
 
 
 ## save env

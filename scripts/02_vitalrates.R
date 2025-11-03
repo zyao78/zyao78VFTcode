@@ -37,7 +37,8 @@ car::Anova(prep, type = 3)
 car::Anova(crep1, type = 3)
 
 
-
+TBF_long$prep2 <- 0
+TBF_long$prep2[which(TBF_long$rep1>0 & !is.na(TBF_long$rep1))] <- 1
 
 
 
