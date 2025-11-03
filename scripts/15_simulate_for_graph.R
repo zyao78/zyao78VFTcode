@@ -108,7 +108,9 @@ data_new1$s.T_LA <- rep(mean(TBF_long$s.T_LA, na.rm=TRUE), 17*2)
 data_new1$s.T_LA <- as.matrix(data_new1$s.T_LA)
 data_new1$s.T_LD <- rep(mean(TBF_long$s.T_LD, na.rm=TRUE), 17*2)
 data_new1$s.T_LD <- as.matrix(data_new1$s.T_LD)
-
+data_new1$s.sq.P_LA <- rep(mean(TBF_long$s.sq.P_LA, na.rm=TRUE), 17*2)
+data_new1$s.T_LH <- rep(mean(TBF_long$s.T_LH, na.rm=TRUE), 17*2)
+data_new1$s.sq.P_LA <- rep(mean(TBF_long$s.sq.P_LA, na.rm=TRUE), 17*2)
 
 
 ################## sur (GLM) #################################
@@ -156,6 +158,13 @@ data_new1$prep_fit <- NA
 data_new1$prep_se  <-NA
 data_new1$prep_lwr <-  NA
 data_new1$prep_upr <-NA
+
+data_new1$s.P_LH <- as.numeric(data_new1$s.P_LH)
+data_new1$s.sq.T_LA <- as.numeric(data_new1$s.sq.T_LA)
+data_new1$s.sq.TSF <- as.numeric(data_new1$s.sq.TSF)
+data_new1$s.T_LA <- as.numeric(data_new1$s.T_LA)
+data_new1$s.TBF <- as.numeric(data_new1$s.TBF)
+data_new1$s.TSF <- as.numeric(data_new1$s.TSF)
 
 prep_pred <- predict.glm(prep_mod_G, data_new1, type = "response", se.fit = TRUE)
 data_new1$prep_fit <- prep_pred$fit
