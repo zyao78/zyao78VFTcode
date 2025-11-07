@@ -814,10 +814,35 @@ ggplot(P_RA, aes(x = factor(startyear), y = prec, fill = site)) +
 r.squaredGLMM(gr_mod_R)
 
 
-summary(gr_mod_L)
+##############################################################################################
+##############################################################################################
+##############################################################################################
+##############################################################################################
+################################   recruit ###################################################
+##############################################################################################
+##############################################################################################
+
+recruit <- read.csv("data/TBFxClimate/recruit_df_11_7_2025.csv")
+colnames(recruit)
+recruit$mean_logsize0 <- scale(log(recruit$mean_size0))
+recruit$sdl_per_fr <- NA
+recruit$sdl_per_fr <- recruit$num_news / recruit$num_fr
+
+hist(recruit$sdl_per_fr)
+
+########### try poisson first #############
+ggplot(recruit,aes(x=num_fr,y=num_news,col=site)) + 
+  geom_jitter() + 
+  geom_boxplot(alpha=0.2)
+
+mod.poisson <- glmer(num_news ~  num_fr + s.TSF * s.TBF + s.sq.TSF + s.T_LA + s.sq.T_LA + 
+                       s.P_LA + s.T_LA:s.P_LA +
+                       s.T_LC + s.T_LD + s.P_LH +
+                       (1 | site),  data= recruit, na.action= "na.fail",family= "poisson")
 
 
 
-TBF_long %>%
-  filter(if_any(all_of(gr_all_terms), ~ !is.na(.))) %>%
-  pull(predgrowth)
+
+
+
+

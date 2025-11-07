@@ -63,7 +63,7 @@ write.csv(SoilT, "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/SoilT_upto202
 #####
 Climvar<- read.csv("data/TBFxClimate/Climvar_combined_interpolated.csv")
 colnames(Climvar)
-TBF_long<- read.csv("data/TBFxClimate/TBF_long.csv")
+TBF_long<- read.csv("data/TBFxClimate/TBF_long_lm.csv")
 colnames(TBF_long)
 
 ## summarise by startyear
@@ -86,7 +86,6 @@ TBF_long$P_LA <- NA
 for (i in 1:nrow(TBF_long)) {
   match_LT <- TP_LA$T_LA[TP_LA$site == TBF_long$site[i] & TP_LA$startyear == TBF_long$startyear[i]]
   match_LP <- TP_LA$P_LA[TP_LA$site == TBF_long$site[i] & TP_LA$startyear == TBF_long$startyear[i]]
-  
   if (length(match_LT) >= 1) {  
     TBF_long$T_LA[i] <- match_LT}
   if (length(match_LP) >= 1) {
@@ -191,23 +190,21 @@ head(TBF_long)
 ####
 ###
 
-MonthlyRegPrec <- Reg_clim_upto2024 %>%   
+MonthlyRegPrec <- Climvar %>%   
   group_by(newMonth, startyear, site) %>%    # for startyear of 2021 for example, months 6-12 were in 2021 and 1-5 were in 2015.
-  summarize(cumP = sum(prec,na.rm = TRUE))
-MonthlyRegTemp <- Reg_clim_upto2024 %>%   
+  summarize(cumP = sum(regional_P,na.rm = TRUE))
+MonthlyRegTemp <- Climvar %>%   
   group_by(newMonth, startyear, site) %>%   
-  summarize(meanT = mean(Temp,na.rm = TRUE))
+  summarize(meanT = mean(regional_T,na.rm = TRUE))
 
 ###regional P 
 
-Reg_clim_upto2024$site[Reg_clim_upto2024$site == "GSP_BI"] <- "GSP-BI"
-Reg_clim_upto2024$site[Reg_clim_upto2024$site == "GSP_LI"] <- "GSP-LI"
 
 ### cum mean precipitation 
 
-P_RA<- Reg_clim_upto2024 %>%
+P_RA<- Climvar %>%
   group_by(startyear, site) %>%    # for startyear of 2021 for example, months 6-12 were in 2021 and 1-5 were in 2022.
-  summarize(prec = sum(prec,na.rm = TRUE))
+  summarize(prec = sum(regional_P,na.rm = TRUE))
 
 TBF_long$P_RA <- NA
 
@@ -219,7 +216,7 @@ for (i in 1:nrow(TBF_long)) {
     
   }
 }
-
+head(TBF_long)
 ### wettest month prec (cum)
 
 P_RW <- MonthlyRegPrec [MonthlyRegPrec$newMonth == 8, ]
@@ -270,9 +267,9 @@ for (i in 1:nrow(TBF_long)) {
 ####
 ####
 ### regional annual mean T
-T_RA<- Reg_clim_upto2024 %>%
+T_RA<- Climvar %>%
   group_by(startyear, site) %>%    # for startyear of 2021 for example, months 6-12 were in 2021 and 1-5 were in 2022.
-  summarize(meanT = mean(Temp,na.rm = TRUE))
+  summarize(meanT = mean(regional_T,na.rm = TRUE))
 
 TBF_long$T_RA <- NA
 
@@ -288,9 +285,9 @@ for (i in 1:nrow(TBF_long)) {
 ### coldest month min daily T
 
 T_RC <- MonthlyRegTemp [MonthlyRegTemp$newMonth == 1,] 
-minT <- Reg_clim_upto2024 %>%
+minT <- Climvar %>%
   group_by(newMonth, startyear, site) %>%
-  summarize(minT = min(Temp, na.rm = TRUE), .groups = "drop")
+  summarize(minT = min(regional_T, na.rm = TRUE), .groups = "drop")
 T_RC <- T_RC %>%
   left_join(minT, by = c("newMonth", "startyear", "site"))
 
@@ -306,9 +303,9 @@ for (i in 1:nrow(TBF_long)) {
 ### hottest month T 
 
 T_RH <- MonthlyRegTemp [MonthlyRegTemp$newMonth == 7,] 
-maxT <- Reg_clim_upto2024 %>%
+maxT <- Climvar %>%
   group_by(newMonth, startyear, site) %>%
-  summarize(maxT = max(Temp, na.rm = TRUE), .groups = "drop")
+  summarize(maxT = max(regional_T, na.rm = TRUE), .groups = "drop")
 T_RH <- T_RH %>%
   left_join(maxT, by = c("newMonth", "startyear", "site"))
 
@@ -347,9 +344,9 @@ for (i in 1:nrow(TBF_long)) {
   }
 }
 
-
+head(TBF_long)
 ### 
-write.csv(TBF_long,"F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/TBF_long_10232025.csv" )
+write.csv(TBF_long,"F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/TBF_long_lm.csv" )
 ###
 
 
