@@ -60,7 +60,10 @@ TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF)
 TBF_long$s.TBF <- scale(TBF_long$TBF)
 
 ##
-TBF_long <- read.csv("data/TBFxClimate/TBF_long_10232025.csv") 
+TBF_long <- read.csv("data/TBFxClimate/TBF_long_10232025.csv")
+TBF_long$rep1[which(is.na(TBF_long$rep1) & TBF_long$consur0_1 == 1)] <- 0 
+look <- TBF_long %>% 
+  filter(is.na(rep1))
 colnames(TBF_long)
 
 
@@ -165,6 +168,16 @@ prep_subset_R <-
   TBF_long %>% 
   filter_at(vars(prep1, s.logsize0, s.TSF, s.TBF,s.sq.TSF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
                  s.P_RH, ), all_vars(!is.na(.)))
+
+GM_R_prep <- glmer(
+  prep1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+    s.T_RA + s.sq.T_RA +s.P_RA+ s.sq.P_RA + s.T_RA:s.P_RA+
+    s.T_RH + s.P_RH + s.T_RH:s.P_RH + s.T_RC +
+    (1|site),
+  data = prep_subset_R,
+  family = "binomial", 
+  na.action = "na.fail"
+)
 
 GM_R_prep <- glm(
   prep1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
