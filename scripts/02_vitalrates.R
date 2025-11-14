@@ -4,28 +4,28 @@ library("lmerTest")
 library("car")
 
 
-TBF_data_long1$s.logsize0 <- scale(log(TBF_data_long1$size0+0.1)) 
-TBF_data_long1$logsize1 <- (log(TBF_data_long1$size1+0.1))
-TBF_data_long1$logsize0 <- (log(TBF_data_long1$size0+0.1))
+TBF_long$s.logsize0 <- scale(log(TBF_long$size0+0.1)) 
+TBF_long$logsize1 <- (log(TBF_long$size1+0.1))
+TBF_long$logsize0 <- (log(TBF_long$size0+0.1))
 
 
   # survival
-sur <- glmer(consur0_1 ~ s.logsize0 +TSF *TBF    + (1|site), data= TBF_data_long1, family= "binomial", na.action = na.omit)
+sur <- glmer(consur0_1 ~ s.logsize0 +TSF *TBF    + (1|site), data= TBF_long, family= "binomial", na.action = na.omit)
 table(sur@frame$site) # for coredata table in vft ltreb # extracting num of observation for each site
-gr <- lmer(logsize1 ~ s.logsize0 + TSF* TBF  + (1|site), data= TBF_data_long1[which(TBF_data_long1$consur0_1== 1),])
+gr <- lmer(logsize1 ~ s.logsize0 + TSF* TBF  + (1|site), data= TBF_long[which(TBF_long$consur0_1== 1),])
 summary(sur) #TBF is sig; negative effect
 anova(gr)#TBF is not sig
 
-TBF_data_long1$prep1 <- NA
-TBF_data_long1$prep1[which(TBF_data_long1$rep1==0 & !is.na(TBF_data_long1$rep1))] <- 0 # make sure no values assigned to NA
-TBF_data_long1$prep1[which(TBF_data_long1$rep1>0 & !is.na(TBF_data_long1$rep1))] <- 1
-TBF_data_long1$logcrep1 <- NA
+TBF_long$prep1 <- NA
+TBF_long$prep1[which(TBF_long$rep1==0 & !is.na(TBF_long$rep1))] <- 0 # make sure no values assigned to NA
+TBF_long$prep1[which(TBF_long$rep1>0 & !is.na(TBF_long$rep1))] <- 1
+TBF_long$logcrep1 <- NA
 TBF_long$crep1 <- NA
-TBF_data_long1$logcrep1[which(TBF_data_long1$prep1== 1)] <- log(TBF_data_long1$rep1[which(TBF_data_long1$prep1== 1)]) #number of fruit
+TBF_long$logcrep1[which(TBF_long$prep1== 1)] <- log(TBF_long$rep1[which(TBF_long$prep1== 1)]) #number of fruit
 TBF_long$crep1[which(TBF_long$prep1== 1)] <- TBF_long$rep1[which(TBF_long$prep1== 1)] #number of fruit
 
-prep <- glmer(prep1 ~ s.logsize0+ TSF*TBF  + (1|site), data= TBF_data_long1[which(TBF_data_long1$consur0_1== 1),], family= "binomial")
-crep1 <- lmer(logcrep1 ~ s.logsize0 +TSF*TBF+ (1|site), data= TBF_data_long1[which(TBF_data_long1$consur0_1== 1),])
+prep <- glmer(prep1 ~ s.logsize0+ TSF*TBF  + (1|site), data= TBF_long[which(TBF_long$consur0_1== 1),], family= "binomial")
+crep1 <- lmer(logcrep1 ~ s.logsize0 +TSF*TBF+ (1|site), data= TBF_long[which(TBF_long$consur0_1== 1),])
 summary(prep)#TBF is not sig
 anova(crep)#TBF is sig; negative effect
 
@@ -59,7 +59,7 @@ TBF_long$prep2[which(TBF_long$rep1>0 & !is.na(TBF_long$rep1))] <- 1
 
 # subset data to those observations that have no NAs for objects in global model
 sur_subset0 <- 
-  TBF_data_long1 %>% 
+  TBF_long %>% 
   dplyr::filter(across(c(consur0_1, logsize0, TSF, TBF,site), ~ !is.na(.)))
 # build global model
 sur <- glmer(consur0_1 ~ logsize0 + TSF *TBF   + (1|site), data= sur_subset0, family= "binomial", na.action= "na.fail") # exclude NA by specifying the function to stop when it hits NAs

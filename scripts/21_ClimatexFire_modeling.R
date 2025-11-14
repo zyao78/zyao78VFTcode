@@ -23,6 +23,22 @@ library(car)
 ###
 ###
 
+##################################################################################
+#   change data set here using different sources of fire histories              ##
+TBF_long <- read.csv("data/TBFxClimate/TBF_long_lm.csv")                        ##                                                       
+##################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -59,11 +75,14 @@ TBF_long$s.TSF <- scale(TBF_long$TSF)
 TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF)
 TBF_long$s.TBF <- scale(TBF_long$TBF)
 
-##
-TBF_long <- read.csv("data/TBFxClimate/TBF_long_10232025.csv")
+TBF_long$s.logsize0 <- scale(log(TBF_long$size0+0.1))
+############################ re-calculate consur ###############################
+
 TBF_long$rep1[which(is.na(TBF_long$rep1) & TBF_long$consur0_1 == 1)] <- 0 
 look <- TBF_long %>% 
-  filter(is.na(rep1))
+  filter(is.na(prep1))%>%
+  dplyr::select(prep1, consur0_1, startyear, site_ID,rep1, size1, size0)
+  
 colnames(TBF_long)
 
 
@@ -93,6 +112,7 @@ GM_R_sur <- glmer(
   family = "binomial", 
   na.action = "na.fail"
 )
+summary(GM_R_sur)
 ## treating site as fixed effect
 GM_R_sur_2 <- glm(
   consur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
@@ -113,14 +133,14 @@ registerDoParallel(cluster)
 clusterExport(cluster, c("sur_subset_R"))   ### replace with different subset (different global models)
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
-sur_dredge_R_2 <- MuMIn::dredge(
+sur_dredge_R <- MuMIn::dredge(
   GM_R_sur_2,
   cluster = cluster,
   trace   = 2
 )
-sur_mod_R_2 <- get.models(sur_dredge_R_2, 1)[[1]]
-summary(sur_mod_R_2)   
-save(sur_mod_R_2, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/sur_mod_R.Rdata")
+sur_mod_R_lm <- get.models(sur_dredge_R, 1)[[1]]
+summary(sur_mod_R_lm)   
+save(sur_mod_R_lm, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/sur_mod_R_lm.Rdata")
 
 
 
@@ -160,7 +180,7 @@ gr_mod_R <- get.models(gr_dredge_R, 1)[[1]]
 summary(gr_mod_R)
 car::Anova(gr_mod_R, type = 3)
 stopCluster(cluster)
-save(gr_mod_R, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/gr_mod_R.Rdata")
+save(gr_mod_R, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/gr_mod_R_lm.Rdata")
 
 ## prob fruiting
 
@@ -177,7 +197,7 @@ GM_R_prep <- glmer(
   data = prep_subset_R,
   family = "binomial", 
   na.action = "na.fail"
-)
+)   ### this likely won't work due to convergence failure
 
 GM_R_prep <- glm(
   prep1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
@@ -203,9 +223,8 @@ prep_dredge_R <- MuMIn::dredge(
 )
 prep_mod_R <- get.models(prep_dredge_R, 1)[[1]]
 summary(prep_mod_R)   ## large eiigenvalue ratio value, rescale 
-stopCluster(cluster)
 
-save(prep_mod_R, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/prep_mod_R.Rdata")
+save(prep_mod_R, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/prep_mod_R_lm.Rdata")
 
 stopCluster(cluster)
 
@@ -238,7 +257,7 @@ crep_mod_R <- get.models(crep_dredge_R, 1)[[1]]
 summary(crep_mod_R)
 car::Anova(crep_mod_R, type = 3)
 stopCluster(cluster)
-save(crep_mod_R, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/crep_mod_R.Rdata")
+save(crep_mod_R, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/crep_mod_R_lm.Rdata")
 
 ## 
 ### integrated measure of fruiting 
@@ -379,8 +398,9 @@ GM_L_sur <- glmer(
   na.action = "na.fail"
 )
 
+summary(GM_L_sur)
 ## treating site as fixed effect
-GM_L_sur_2 <- glm(
+GM_L_sur <- glm(
   consur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
     s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_LH +
     s.P_LH:s.T_LH + s.P_LD + 
@@ -399,21 +419,15 @@ registerDoParallel(cluster)
 clusterExport(cluster, c("sur_subset_L"))   ### replace with different subset (different global models)
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
-sur_dredge_L_2 <- MuMIn::dredge(
-  GM_L_sur_2,
+sur_dredge_L <- MuMIn::dredge(
+  GM_L_sur,
   cluster = cluster,
   trace   = 2
 )
-sur_mod_L_2 <- get.models(sur_dredge_L_2, 1)[[1]]
-summary(sur_mod_L_2)   
+sur_mod_L <- get.models(sur_dredge_L, 1)[[1]]
+summary(sur_mod_L)   
 
-dfs <- sur_subset_R
-dfs[,17:ncol(dfs)] <- scale(dfs[,17:ncol(dfs)]) ## scale num variables (not including consur_0_1)
-sur_mod_R_s <- update(sur_mod_R,data=dfs)
-summary(sur_mod_R_s)
 
-cc <- check_collinearity(sur_mod_L_2)
-cc
 
 
 stopCluster(cluster)
@@ -489,7 +503,7 @@ prep_dredge_L <- MuMIn::dredge(
 )
 prep_mod_L <- get.models(prep_dredge_L, 1)[[1]]
 summary(prep_mod_L)
-save(prep_mod_L, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/prep_mod_L.Rdata")
+save(prep_mod_L, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/prep_mod_L_lm.Rdata")
 stopCluster(cluster)
 
 ### number of fruit
@@ -522,12 +536,12 @@ crep_mod_L <- get.models(crep_dredge_L, 1)[[1]]
 summary(crep_mod_L)
 car::Anova(crep_mod_L, type = 3)
 stopCluster(cluster)
-save(crep_mod_L, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/crep_mod_L.Rdata")
+save(crep_mod_L, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/crep_mod_L_lm.Rdata")
 
 
 #########################################################################################################
 #########################################################################################################
-#########################################################################################################
+##################################   disabled    ########################################################
 #########################################################################################################
 ######################     dredge on local and regional models combined #################################
 #########################################################################################################
@@ -824,7 +838,7 @@ r.squaredGLMM(gr_mod_R)
 
 recruit <- read.csv("data/TBFxClimate/recruit_df_11_7_2025.csv")
 colnames(recruit)
-recruit$mean_logsize0 <- scale(log(recruit$mean_size0))
+recruit$mean_logsize0 <- scale(log(recruit$mean_size0+0.1))
 recruit$sdl_per_fr <- NA
 recruit$sdl_per_fr <- recruit$num_news / recruit$num_fr
 
