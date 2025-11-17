@@ -11,6 +11,7 @@ rm(list = ls())
 fire_dates_manager <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "manager", startRow=2,detectDates=TRUE)
 fire_dates_field_notes <- openxlsx::read.xlsx( "F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "field_notes", startRow=2,detectDates=TRUE)
 fire_dates_landsat <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "landsat", startRow=2,detectDates=TRUE)
+fire_dates_landscape <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "landscape", startRow=2,detectDates=TRUE)
 
 # reading in the last updated date to make sure you don't accidently say taht a fire was absent, just becuase the dates file hadn't been updated
 end_date_manager <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "manager", rows=1,colNames= FALSE) %>% stringr::str_remove("FILE CURRENT AS OF ") %>% as.Date("%m/%d/%y")
@@ -20,10 +21,11 @@ end_date_landsat <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-dat
 end_date_manager <- end_date_landsat
 
 sites <- c("B1", "B2", "CM", "CH", "IA", "ME", "GSP-LI", "GSP-BI")
-record_types <- c("manager", "field_notes", "landsat")
+record_types <- c("manager", "field_notes", "landsat", "landscape")
 June15DOY <- cropgrowdays::day_of_year(as.Date("2020-06-15"))
 
 fire_histories <- tidyr::expand_grid(record_type = record_types, site = sites, startyear = 1986:2025, TSF = NA, TBF = NA)
+fire_histories <- tidyr::expand_grid(record_type = "landscape", site = sites, startyear = 1986:2025, TSF = NA, TBF = NA)
 
 for (j in 1:3){ 
   if (j== 1) {fire_dates_j <- fire_dates_manager
@@ -62,4 +64,31 @@ for (i in 1:length(sites)){
 }
 }
 
-write.csv(fire_histories, "F:/VFT/VFT_github/zyao78VFTcode/processed-data/fire_histories_8_27_2025.csv")
+############################################
+i=1
+
+for (i in 1:length(sites)){  
+  fire_dates_j_i <- fire_dates_landscape[which(fire_dates_landscape$site == sites[i]), ]
+  first_fire_year <- min(fire_dates_j_i$startyear)
+  
+  #NB that if a fire occurs in startyear 2008, that means that a fire occurred over the 2008-2009 interval. 
+  TSF <- NA
+  end_startyear <- 2024
+  for (ii in first_fire_year:end_startyear){
+    if (ii %in% fire_dates_j_i$startyear) {TBF <- TSF # if a fire happens, TSF becomes TBF
+    TSF <- 0 # a TSF of zero indicates that a fire burned over the startyear to startyear+ 1 interval
+    
+    } else {TSF <- TSF +1
+    }
+    fire_histories$TSF[which(fire_histories$ startyear == ii & fire_histories$site == sites[i] )] <- TSF
+    fire_histories$TBF[which(fire_histories$ startyear == ii & fire_histories$site == sites[i])] <- TBF
+    #NB that if a fire occurs in startyear 2008, that means that a fire occurred over the 2008-2009 interval.  
+  }
+  
+  
+}
+
+
+
+
+write.csv(fire_histories, "F:/VFT/VFT_github/zyao78VFTcode/processed-data/fire_histories_landscape.csv")

@@ -5,15 +5,17 @@ Numextract <- function(string){
 }
 
 
-data <- read_csv("data/VFT master data/alldemodata_upto2024.csv")
+data <- read.csv("data/VFT master data/alldemodata_upto2025.csv",colClasses = "character")  ## ensure that the column types don't change (otherwise there will be ridiculous N,L)
+
+Sur_cols <- paste0("sur_", 15:24, "_", 16:25)
 
 warning("you must keep this na.strings argument in the line above in so that the Numextract function works!")
 
 data$size15 <- data$size16 <- data$size17 <- data$size18 <- data$size19 <- 
-  data$size20 <- data$size21 <- data$size22 <- data$size23 <- data$size24 <-
+  data$size20 <- data$size21 <- data$size22 <- data$size23 <- data$size24 <-data$size25 <- as.numeric(NA)
 
 data$rep15 <- data$rep16 <- data$rep17 <- 
-  data$rep18 <- data$rep19 <- data$rep20 <- data$rep21 <- data$rep22 <- data$rep23 <- data$rep24<- as.numeric(NA)
+  data$rep18 <- data$rep19 <- data$rep20 <- data$rep21 <- data$rep22 <- data$rep23 <-data$rep24 <- data$rep25<- as.numeric(NA)
 
 # there are commas in sizes for 2015-2018; the below loop fixes those
 for (i in 1:dim(data)[1]){
@@ -27,6 +29,7 @@ for (i in 1:dim(data)[1]){
   data$size22[i] <-  sum(Numextract(data$N22[i]) *Numextract(data$L22[i]))
   data$size23[i] <-  sum(Numextract(data$N23[i]) *Numextract(data$L23[i]))
   data$size24[i] <-  sum(Numextract(data$N24[i]) *Numextract(data$L24[i]))
+  data$size25[i] <-  sum(Numextract(data$N25[i]) *Numextract(data$L25[i]))
   
   data$rep15[i] <-  sum(Numextract(data$FR15[i]))
   data$rep16[i] <-  sum(Numextract(data$FR16[i]))
@@ -37,11 +40,14 @@ for (i in 1:dim(data)[1]){
   data$rep21[i] <-  sum(Numextract(data$FLW21[i]))
   data$rep22[i] <-  sum(Numextract(data$FLW22[i]))
   data$rep23[i] <-  sum(Numextract(data$FLW23[i]))
-  data$rep24[i] <- sum(Numextract(data$FLW24[i])) + sum(Numextract(data$FR24[i]))  }       # NB, REP HERE IS FLOWERS AND FRUITS
+  data$rep24[i] <- sum(Numextract(data$FLW24[i])) + sum(Numextract(data$FR24[i])) 
+  data$rep25[i] <- sum(Numextract(data$FLW25[i])) + sum(Numextract(data$FR25[i])) 
+  
+  }       # NB, REP HERE IS FLOWERS AND FRUITS
 
+## note that starting in 2025, we enforced the new rule for assigning "dead". The following codes reflect this difference
 
-data15_16 <- cbind.data.frame(
-                  data[,c("site","ID", "quad", "size15", "rep15", "libsur15_16", "consur15_16", "size16", "N16", "L16","rep16", "Comm16")],  rep(2015, dim(data)[1]))
+data15_16 <- cbind.data.frame(data[,c("site","ID", "quad", "size15", "rep15", "libsur15_16", "consur15_16", "size16", "N16", "L16","rep16", "Comm16")],  rep(2015, dim(data)[1]))
 data16_17 <- cbind.data.frame(data[,c("site","ID", "quad", "size16", "rep16", "libsur16_17", "consur16_17", "size17","N17", "L17", "rep17",  "Comm17")], rep(2016, dim(data)[1]))                              
 data17_18 <- cbind.data.frame(data[,c("site","ID", "quad", "size17", "rep17", "libsur17_18", "consur17_18", "size18","N18", "L18", "rep18", "Comm18")], rep(2017, dim(data)[1]))                               
 data18_19 <- cbind.data.frame(data[,c("site","ID", "quad", "size18", "rep18", "libsur18_19", "libsur18_19", "size19","N19", "L19", "rep19", "Comm19")], rep(2018, dim(data)[1]))                               
@@ -50,6 +56,8 @@ data20_21 <- cbind.data.frame(data[,c("site","ID", "quad", "size20", "rep20", "l
 data21_22 <- cbind.data.frame(data[,c("site","ID", "quad", "size21", "rep21", "libsur21_22","libsur21_22", "size22", "N22", "L22", "rep22", "Comm22")], rep(2021, dim(data)[1]))                                
 data22_23 <- cbind.data.frame(data[,c("site","ID", "quad", "size22", "rep22", "libsur22_23","libsur22_23","size23", "N23", "L23", "rep23", "Comm23")], rep(2022, dim(data)[1]))                                
 data23_24 <- cbind.data.frame(data[,c("site","ID", "quad", "size23", "rep23", "libsur23_24","libsur23_24","size24", "N24", "L24", "rep24", "Comm24")], rep(2023, dim(data)[1]))                                
+data24_25 <- cbind.data.frame(data[,c("site","ID", "quad", "size24", "rep24", "libsur24_25","libsur24_25","size25", "N25", "L25", "rep25", "Comm25")], rep(2024, dim(data)[1]))                                
+
 
 names(data15_16) <-  names(data16_17) <-  names(data17_18) <-  names(data18_19) <-  names(data19_20) <-  names(data20_21) <-  names(data21_22) <- names(data22_23) <- names(data23_24) <-
   c("site", "ID", "quad", "size0", "rep0", "libsur0_1", "consur0_1","size1", "N1", "L1",  "rep1","comm1", "startyear")

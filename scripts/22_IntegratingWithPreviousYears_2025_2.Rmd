@@ -93,7 +93,6 @@ fdat25 <- dat25 %>%
                                                     "FL24", "Comm24"))))) %>%   ### remove cols from previous years
   rename(quad = Quad, x = X, y = Y, mark = Mrk, FLW25 = FL25)
 
-emptyN25 <- fdat25[which(fdat25$N25 == ""),]
 
 ```
 
