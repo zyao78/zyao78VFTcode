@@ -16,7 +16,7 @@ library(lme4)
 library(tidyverse)
 library(MuMIn)
 library(glue)
-library(performance)
+library("performance")
 library(car)
 ###
 ###               make sure to enable parallel computing for faster model building
@@ -115,7 +115,7 @@ GM_R_sur <- glmer(
 summary(GM_R_sur)
 ## treating site as fixed effect
 GM_R_sur_2 <- glm(
-  consur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+  sur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
     s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
     s.P_RH:s.T_RH + s.P_RD + 
     site,
@@ -138,22 +138,15 @@ sur_dredge_R <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
-sur_mod_R_lm <- get.models(sur_dredge_R, 1)[[1]]
-summary(sur_mod_R_lm)   
-save(sur_mod_R_lm, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/sur_mod_R_lm.Rdata")
-
-
-
-cc <- check_collinearity(sur_mod_R)
-cc
-
-
+sur_mod_R_ls <- get.models(sur_dredge_R, 1)[[1]]
+summary(sur_mod_R_ls)   
+save(sur_mod_R_ls, file = "data/TBFxClimate/sur_mod_R_ls.Rdata")
 stopCluster(cluster)
 
 ### growth
 
 gr_subset_R_2 <- 
-  TBF_long[which(TBF_long$consur0_1 == 1),] %>%      ## make sure to subset data to only alive plants
+  TBF_long[which(TBF_long$sur0_1 == 1),] %>%      ## make sure to subset data to only alive plants
   filter_at(vars(logsize1, s.logsize0, s.TSF,s.sq.TSF, s.TBF, site, s.sq.T_RA,s.T_RA, s.P_RA, s.T_RC, 
                  s.T_RD, s.P_RH), all_vars(!is.na(.)))
 GM_R_gr <- lmer(
@@ -180,7 +173,7 @@ gr_mod_R <- get.models(gr_dredge_R, 1)[[1]]
 summary(gr_mod_R)
 car::Anova(gr_mod_R, type = 3)
 stopCluster(cluster)
-save(gr_mod_R, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/gr_mod_R_lm.Rdata")
+save(gr_mod_R, file = "data/TBFxClimate/gr_mod_R_ls.Rdata")
 
 ## prob fruiting
 
@@ -224,7 +217,7 @@ prep_dredge_R <- MuMIn::dredge(
 prep_mod_R <- get.models(prep_dredge_R, 1)[[1]]
 summary(prep_mod_R)   ## large eiigenvalue ratio value, rescale 
 
-save(prep_mod_R, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/prep_mod_R_lm.Rdata")
+save(prep_mod_R, file = "data/TBFxClimate/prep_mod_R_ls.Rdata")
 
 stopCluster(cluster)
 
@@ -257,7 +250,7 @@ crep_mod_R <- get.models(crep_dredge_R, 1)[[1]]
 summary(crep_mod_R)
 car::Anova(crep_mod_R, type = 3)
 stopCluster(cluster)
-save(crep_mod_R, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/crep_mod_R_lm.Rdata")
+save(crep_mod_R, file = "data/TBFxClimate/crep_mod_R_ls.Rdata")
 
 ## 
 ### integrated measure of fruiting 
@@ -385,11 +378,11 @@ TBF_long$s.TBF <- scale(TBF_long$TBF)
 ### Survival
 sur_subset_L <- 
   TBF_long %>% 
-  filter_at(vars(consur0_1, s.logsize0, s.TSF,s.TBF, s.sq.TSF, site, s.T_LA,s.T_LH,s.T_LD,s.sq.T_LH,
+  filter_at(vars(sur0_1, s.logsize0, s.TSF,s.TBF, s.sq.TSF, site, s.T_LA,s.T_LH,s.T_LD,s.sq.T_LH,
                  s.P_LH, s.P_LD), all_vars(!is.na(.)))
 
 GM_L_sur <- glmer(
-  consur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+  sur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
     s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_LH +
     s.P_LH:s.T_LH + s.P_LD + 
     (1 | site),
@@ -401,7 +394,7 @@ GM_L_sur <- glmer(
 summary(GM_L_sur)
 ## treating site as fixed effect
 GM_L_sur <- glm(
-  consur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+  sur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
     s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_LH +
     s.P_LH:s.T_LH + s.P_LD + 
     site,
@@ -428,6 +421,7 @@ sur_mod_L <- get.models(sur_dredge_L, 1)[[1]]
 summary(sur_mod_L)   
 
 
+save(sur_mod_L, file = "data/TBFxClimate/sur_mod_L_ls.Rdata")
 
 
 stopCluster(cluster)
@@ -435,7 +429,7 @@ stopCluster(cluster)
 ### growth
 
 gr_subset_L_2 <- 
-  TBF_long[which(TBF_long$consur0_1 == 1),] %>%      ## make sure to subset data to only alive plants
+  TBF_long[which(TBF_long$sur0_1 == 1),] %>%      ## make sure to subset data to only alive plants
   filter_at(vars(logsize1, s.logsize0, s.TSF,s.sq.TSF, s.TBF, site, s.sq.T_LA,s.T_LA, s.P_LA, s.T_LC, 
                  s.T_LD, s.P_LH), all_vars(!is.na(.)))
 GM_L_gr <- lmer(
@@ -462,6 +456,7 @@ gr_mod_L <- get.models(gr_dredge_L, 1)[[1]]
 summary(gr_mod_L)
 car::Anova(gr_mod_L, type = 3)
 stopCluster(cluster)
+save(gr_mod_L, file = "data/TBFxClimate/gr_mod_L_ls.Rdata")
 
 ## prob fruiting
 
@@ -503,7 +498,7 @@ prep_dredge_L <- MuMIn::dredge(
 )
 prep_mod_L <- get.models(prep_dredge_L, 1)[[1]]
 summary(prep_mod_L)
-save(prep_mod_L, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/prep_mod_L_lm.Rdata")
+save(prep_mod_L, file = "data/TBFxClimate/prep_mod_L_ls.Rdata")
 stopCluster(cluster)
 
 ### number of fruit
@@ -536,7 +531,7 @@ crep_mod_L <- get.models(crep_dredge_L, 1)[[1]]
 summary(crep_mod_L)
 car::Anova(crep_mod_L, type = 3)
 stopCluster(cluster)
-save(crep_mod_L, file = "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/crep_mod_L_lm.Rdata")
+save(crep_mod_L, file = "data/TBFxClimate/crep_mod_L_ls.Rdata")
 
 
 #########################################################################################################
@@ -560,15 +555,15 @@ int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
 main_terms <- terms_vec[!grepl(":", terms_vec)]
 Sur_all_terms <- union(main_terms, int_terms_broken)
 
-f_fix <- reformulate(terms_vec, response = "consur0_1")
+f_fix <- reformulate(terms_vec, response = "sur0_1")
 f_fix    ### don't refer to this, copy and paste to change site into a random effect
 
 Sur_subset_G <- 
   TBF_long %>% 
-  filter_at(vars(consur0_1,Sur_all_terms), all_vars(!is.na(.)))
+  filter_at(vars(sur0_1,Sur_all_terms), all_vars(!is.na(.)))
 
 GM_G_sur <- glmer(
-  consur0_1 ~ s.logsize0 + s.P_LH + s.sq.T_LH + s.sq.TSF + s.T_LA + 
+  sur0_1 ~ s.logsize0 + s.P_LH + s.sq.T_LH + s.sq.TSF + s.T_LA + 
     s.T_LD + s.T_LH + s.TBF + s.TSF + s.P_LH:s.T_LH + 
     s.TBF:s.TSF + s.P_RD + s.P_RH + s.sq.T_RH + s.T_RA + s.T_RD + 
     s.T_RH + s.P_RH:s.T_RH + (1|site),
