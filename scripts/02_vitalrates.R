@@ -2,19 +2,15 @@ install.packages("future")
 library("lme4")
 library("lmerTest")
 library("car")
+library("dplyr")
 
-
+################
+TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape.csv") 
+################
 TBF_long$s.logsize0 <- scale(log(TBF_long$size0+0.1)) 
 TBF_long$logsize1 <- (log(TBF_long$size1+0.1))
 TBF_long$logsize0 <- (log(TBF_long$size0+0.1))
 
-
-  # survival
-sur <- glmer(consur0_1 ~ s.logsize0 +TSF *TBF    + (1|site), data= TBF_long, family= "binomial", na.action = na.omit)
-table(sur@frame$site) # for coredata table in vft ltreb # extracting num of observation for each site
-gr <- lmer(logsize1 ~ s.logsize0 + TSF* TBF  + (1|site), data= TBF_long[which(TBF_long$consur0_1== 1),])
-summary(sur) #TBF is sig; negative effect
-anova(gr)#TBF is not sig
 
 TBF_long$prep1 <- NA
 TBF_long$prep1[which(TBF_long$rep1==0 & !is.na(TBF_long$rep1))] <- 0 # make sure no values assigned to NA
@@ -23,6 +19,32 @@ TBF_long$logcrep1 <- NA
 TBF_long$crep1 <- NA
 TBF_long$logcrep1[which(TBF_long$prep1== 1)] <- log(TBF_long$rep1[which(TBF_long$prep1== 1)]) #number of fruit
 TBF_long$crep1[which(TBF_long$prep1== 1)] <- TBF_long$rep1[which(TBF_long$prep1== 1)] #number of fruit
+
+
+
+
+
+################## make sure that prep1 was assigned correctly ############
+
+look <- TBF_long %>%
+  filter(is.na(rep1)) #### any living plant should have either 1 or 0 (no NA) under rep1
+
+TBF_long$rep1[which(is.na(TBF_long$rep1) & TBF_long$sur0_1 == 1)] <- 0 
+
+look <- TBF_long %>%
+  filter(is.na(rep1)) %>% 
+  filter(!is.na(size1) | !is.na(N1) |!is.na(L1))  ### these are all newly added plant (new or missed) which had no logsize0, so these are fine.
+
+
+
+#########################################################
+####### export if updated ###############################
+#########################################################
+
+write.csv(TBF_long ,"data/TBFxClimate/TBF_long_landscape.csv") 
+
+#########################################################
+
 
 prep <- glmer(prep1 ~ s.logsize0+ TSF*TBF  + (1|site), data= TBF_long[which(TBF_long$consur0_1== 1),], family= "binomial")
 crep1 <- lmer(logcrep1 ~ s.logsize0 +TSF*TBF+ (1|site), data= TBF_long[which(TBF_long$consur0_1== 1),])

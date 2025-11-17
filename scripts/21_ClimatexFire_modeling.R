@@ -25,7 +25,8 @@ library(car)
 
 ##################################################################################
 #   change data set here using different sources of fire histories              ##
-TBF_long <- read.csv("data/TBFxClimate/TBF_long_lm.csv")                        ##                                                       
+TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape_2024.csv")            ##
+TBF_long$site_ID <- paste(TBF_long$site, TBF_long$ID, sep = "_")                ##
 ##################################################################################
 
 
@@ -78,10 +79,9 @@ TBF_long$s.TBF <- scale(TBF_long$TBF)
 TBF_long$s.logsize0 <- scale(log(TBF_long$size0+0.1))
 ############################ re-calculate consur ###############################
 
-TBF_long$rep1[which(is.na(TBF_long$rep1) & TBF_long$consur0_1 == 1)] <- 0 
 look <- TBF_long %>% 
   filter(is.na(prep1))%>%
-  dplyr::select(prep1, consur0_1, startyear, site_ID,rep1, size1, size0)
+  dplyr::select(prep1, sur0_1, startyear, site_ID,rep1, size1, size0)
   
 colnames(TBF_long)
 
@@ -100,11 +100,11 @@ colnames(TBF_long)
 ### Survival
 sur_subset_R <- 
   TBF_long %>% 
-  filter_at(vars(consur0_1, s.logsize0, s.TSF,s.TBF, s.sq.TSF, site, s.T_RA,s.T_RH,s.T_RD,s.sq.T_RH,
+  filter_at(vars(sur0_1, s.logsize0, s.TSF,s.TBF, s.sq.TSF, site, s.T_RA,s.T_RH,s.T_RD,s.sq.T_RH,
                  s.P_RH, s.P_RD), all_vars(!is.na(.)))
 
 GM_R_sur <- glmer(
-  consur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+  sur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
     s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
     s.P_RH:s.T_RH + s.P_RD + 
     (1 | site),

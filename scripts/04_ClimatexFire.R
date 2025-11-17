@@ -63,7 +63,7 @@ write.csv(SoilT, "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/SoilT_upto202
 #####
 Climvar<- read.csv("data/TBFxClimate/Climvar_combined_interpolated.csv")
 colnames(Climvar)
-TBF_long<- read.csv("data/TBFxClimate/TBF_long_lm.csv")
+TBF_long<- read.csv("data/TBFxClimate/TBF_long_landscape.csv")
 colnames(TBF_long)
 
 ## summarise by startyear
@@ -139,6 +139,8 @@ for (i in 1:nrow(TBF_long)) {
   }
 }
 head(TBF_long)
+
+any(is.na(TBF_long$T_LH))
 
 ### wettest month T
 
@@ -230,6 +232,7 @@ for (i in 1:nrow(TBF_long)) {
     
   }
 }
+head(TBF_long)
 
 
 ### driest month prec (cum)
@@ -245,6 +248,7 @@ for (i in 1:nrow(TBF_long)) {
     
   }
 }
+head(TBF_long)
 
 ### Hottest month prec (cum)
 P_RH <- MonthlyRegPrec [MonthlyRegPrec$newMonth == 7, ]
@@ -346,11 +350,10 @@ for (i in 1:nrow(TBF_long)) {
 
 head(TBF_long)
 ### 
-write.csv(TBF_long,"F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/TBF_long_lm.csv" )
-###
 
-
-
+TBF_long <- TBF_long %>%
+  filter(startyear != 2024)
+write.csv(TBF_long,"F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/TBF_long_landscape_2024.csv" )
 
 
 
