@@ -21,7 +21,8 @@ TBF_long$logcrep1[which(TBF_long$prep1== 1)] <- log(TBF_long$rep1[which(TBF_long
 TBF_long$crep1[which(TBF_long$prep1== 1)] <- TBF_long$rep1[which(TBF_long$prep1== 1)] #number of fruit
 
 
-
+look <- TBF_long %>%
+  filter(prep1 == 1)
 
 
 ################## make sure that prep1 was assigned correctly ############

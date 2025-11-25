@@ -12,7 +12,7 @@ save(crep_mod_R, file = "data/TBFxClimate/crep_mod_G_lm.Rdata")
 #################################simulate graphs########################
 ########################################################################
 
-TBF_long <- read.csv("data/TBFxClimate/TBF_long_10302025_with_Var.csv")
+TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape_2024.csv")
 
 
 ########################################################################

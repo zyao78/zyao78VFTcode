@@ -736,10 +736,10 @@ save(crep_mod_G, file = "data/TBFxClimate/.Rdata")
 
 ################################################   
 #######   variance in growth ###################
-TBF_long <- read.csv("data/TBFxClimate/TBF_long_10232025.csv")
+TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape_2024.csv")
 TBF_long$vargrowth <- NA
 TBF_long$predgrowth <- NA    # see predicted values
-growth_terms <- attr(terms(gr_mod_G), "term.labels")
+growth_terms <- attr(terms(gr_mod_L), "term.labels")
 int_terms <- grep(":", growth_terms, value = TRUE)
 int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
 main_terms <- growth_terms[!grepl(":", growth_terms)]
@@ -748,7 +748,7 @@ gr_all_terms <- unique(c(main_terms, int_terms_broken, logsize1))
 ok <- complete.cases(TBF_long[, gr_all_terms, drop = FALSE])    ### return logical vector (T/F) indicating no missing values
 idx <- which(ok)                                      # indices if you need them
 
-TBF_long$predgrowth[idx] <- predict(gr_mod_G,newdata=TBF_long[idx,])
+TBF_long$predgrowth[idx] <- predict(gr_mod_L,newdata=TBF_long[idx,])
 
 TBF_long$vargrowth <-
   (TBF_long$predgrowth - # variance is equivalent to (predicted-expected)^2
@@ -781,7 +781,6 @@ registerDoParallel(cluster)
 clusterExport(cluster, c("vargrowth_subset"))   ### replace with different subset (different global models)
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
-summary(vargrowth_mod_g)
 
 vargrowth_dredge_L <- MuMIn::dredge(
   GM_vargrowth_L,
@@ -799,9 +798,13 @@ vargrowth_mod_R<- get.models(vargrowth_dredge_R, 1)[[1]]
 
 
 ### get AIC
-AIC(vargrowth_mod_R)
-AIC(vargrowth_mod_L)
-save(vargrowth_mod_L, file = "data/TBFxClimate/vargrowth_mod_G.Rdata")
+AICc(vargrowth_mod_R)
+AICc(vargrowth_mod_L)
+save(vargrowth_mod_R, file = "data/TBFxClimate/vargrowth_mod_G_ls.Rdata")
+
+
+summary(vargrowth_mod_L)
+
 
 
 ## save env
