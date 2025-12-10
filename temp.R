@@ -54,10 +54,12 @@ TBF_long$s.sq.T_LC <- scale((TBF_long$s.T_LC)^2)
 TBF_long$s.sq.P_LW <- scale((TBF_long$s.P_LW)^2)
 TBF_long$s.sq.P_LD <- scale((TBF_long$s.P_LD)^2)
 
-colnames(TBF_long_landscape_2024)
+colnames(TBF_long)
+
+TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape_2024.csv")
 
 TBF_long_export <- TBF_long %>%
-  select(ID, site_ID, site, quad, size0, rep0, size1, startyear, comm1, TSF, TBF, s.TSF, s.TBF, s.sq.TSF,
+  select(ID, site_ID, site, quad, size0, rep0, size1,sur0_1, startyear, comm1, TSF, TBF, s.TSF, s.TBF, s.sq.TSF,
          s.logsize0, logsize1,prep1,crep1,logcrep1,predgrowth ,vargrowth,
          s.T_RA,s.P_RA, s.sq.T_RA, s.sq.P_RA , 
            s.T_RC,s.sq.T_RC, 
@@ -77,7 +79,7 @@ colnames(TBF_long_export)
 save(survival_mod,growth_mod,prep_mod,recruit_mod,crep_mod,
      variance_mod,file = "data/model_export_11_24_25.Rdata")
 
-summary(crep_mod_R)
+summary(survival_mod)
 
 
 AICc(gr_mod_L)
@@ -96,9 +98,13 @@ variance_mod <- vargrowth_mod_R
 
 
 
+TBF_long %>%
+  group_by(site,startyear) %>%
+  summarize(p_survival = mean(sur0_1, na.rm = TRUE))
 
-
-
+TBF_long %>%
+  group_by(startyear) %>%
+  summarize(growth = mean(size1 - size0, na.rm = TRUE))
 
 
 

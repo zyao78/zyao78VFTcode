@@ -16,7 +16,7 @@ TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape_2024.csv")
 
 
 ########################################################################
-######## extract original values of the scaled variables ###############
+######## TSFxTBF response for each vital rate            ###############
 ########################################################################
 
 #### TSF
@@ -300,9 +300,77 @@ ggpubr::ggarrange(plt1, plt2,plt3,plt4)
 
 
 
+###################################################################################
+###################################################################################
+###################################################################################
+##############################  Annual climate interaction ########################
+###################################################################################
+###################################################################################
+###################################################################################
 
 
+data_new1 <- read.csv("data/TBFxClimate/data_new1_2024.csv")
 
+TBF <- sort(unique(original_vector), na.last = TRUE)
+s.TBF <- max(sort(unique(TBF_long$s.TBF), na.last = TRUE))
+s.TSF <- max(sort(unique(TBF_long$s.TSF), na.last = TRUE))
+s.sq.TSF <- max(sort(unique(TBF_long$s.sq.TSF), na.last = TRUE))
+nrow <- length(c(0:max(TBF_long$TSF)))
+data_new1$s.TSF <- s.TSF
+data_new1$s.TBF <- s.TBF
+data_new1$s.sq.TSF <- s.sq.TSF
+
+TLA <- quantile(TBF_long$s.T_LA, probs = seq(0, 1, length.out = 11), na.rm = TRUE)
+TLA_sq <- quantile(TBF_long$s.sq.T_LA, probs = seq(0, 1, length.out = 11), na.rm = TRUE)
+
+PLA <- quantile(TBF_long$s.P_LA, probs = c(0.10, 0.90), na.rm = TRUE)
+PLA_sq <- quantile(TBF_long$s.sq.P_LA, probs = c(0.10, 0.90), na.rm = TRUE)
+
+TRA <- quantile(TBF_long$s.T_RA, probs = seq(0, 1, length.out = 11), na.rm = TRUE)
+TRA_sq <- quantile(TBF_long$s.sq.T_RA, probs = seq(0, 1, length.out = 11), na.rm = TRUE)
+
+PRA <- quantile(TBF_long$s.P_RA, probs = c(0.10, 0.90), na.rm = TRUE)
+PRA_sq <- quantile(TBF_long$s.sq.P_RA, probs = c(0.10, 0.90), na.rm = TRUE)
+
+
+data_new1$s.P_LA <- c(rep(min(PLA), nrow), rep(max(PLA), nrow))
+data_new1$s.sq.P_LA <- c(rep(min(PLA_sq), nrow), rep(max(PLA_sq), nrow))
+data_new1$s.T_LA <- c(TLA,TLA)
+data_new1$s.sq.T_LA <-c(TLA_sq,TLA_sq)
+
+data_new1$s.P_RA <- c(rep(min(PRA), nrow), rep(max(PLA), nrow))
+data_new1$s.sq.P_RA <- c(rep(min(PRA_sq), nrow), rep(max(PRA_sq), nrow))
+data_new1$s.T_RA <- c(TRA,TRA)
+data_new1$s.sq.T_RA <-c(TRA_sq,TRA_sq)
+
+data_new1$precip[which(data_new1$s.P_LA== min(PLA))] <- "low annual precip"
+data_new1$precip[which(data_new1$s.P_LA== max(PLA))] <- "high annual precip"
+
+data_new1$gr <- merTools::predictInterval(growth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
+
+
+ggplot(data= data_new1, aes(x= s.T_LA, y= gr$fit)) +
+  geom_line(aes(color= precip))+ 
+  geom_ribbon(aes(ymin = data_new1$gr$lwr, ymax = data_new1$gr$upr, fill= precip), alpha = 0.1) + 
+  labs(y= "Growth", x = "annual temperature") + 
+  theme_bw() +  theme(text = element_text(size = 20)) 
+
+
+prep_pred <- predict.glm(prep_mod, data_new1, type = "response", se.fit = TRUE)
+data_new1$prep_fit <- prep_pred$fit
+data_new1$prep_se <- prep_pred$se.fit
+
+data_new1$prep_lwr <- prep_pred$fit - qnorm(0.975) * prep_pred$se.fit
+data_new1$prep_upr <- prep_pred$fit + qnorm(0.975) * prep_pred$se.fit
+
+ggplot(data= data_new1, aes(x= s.T_RA, y= prep_fit)) +
+  geom_line(aes(color= precip)) + 
+  geom_ribbon(aes(ymin = data_new1$prep_lwr, ymax = data_new1$prep_upr, fill= precip), alpha = 0.1) + 
+  #ylim(0,1) +
+  labs(y= "prep", x = "annual temperature") +
+  theme_bw() 
+  theme(legend.position = "right") +
+  theme(text = element_text(size = 20)) 
 
 
 
@@ -313,9 +381,7 @@ ggpubr::ggarrange(plt1, plt2,plt3,plt4)
 
 data_new1 <- as.data.frame((rep(mean(recruit_df_5_14_2025$num_fr, na.rm=TRUE), nrow*2)))
 names(data_new1) <- "num_fr"
-data_new1$TSF <- rep(seq(0, 16), 2)
-data_new1 $TBF <- c(rep(1, 17), rep(15, 17))
-data_new1$site <- "GSP-LI "
+
 data_new1$num_recruit <- merTools::predictInterval(recruit_mod_g, data_new1, which= "fixed", type= "probability", 
                                            level= 0.95,n.sims= 10000)
 

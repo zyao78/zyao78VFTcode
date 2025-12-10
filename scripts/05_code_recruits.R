@@ -242,7 +242,7 @@ mean(recruit_df$num_news)
 mod.poisson <- glm(num_news ~  num_fr + TSF*TBF,  data= recruit_df, na.action= "na.fail",family= "poisson")
 mod.nb <- glm.nb(num_news ~  num_fr + TSF*TBF, data = recruit_df, na.action = "na.fail")
 
-overdisp_fun <- function(model) {
+==overdisp_fun <- function(model) {
   rdf <- df.residual(model)
   rp <- residuals(model,type="pearson")
   Pearson.chisq <- sum(rp^2)

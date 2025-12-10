@@ -25,7 +25,7 @@ library(car)
 
 ##################################################################################
 #   change data set here using different sources of fire histories              ##
-TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape_2024.csv")            ##
+TBF_long <- read_csv("data/TBFxClimate/TBF_long_landscape_2024.csv")            ##
 TBF_long$site_ID <- paste(TBF_long$site, TBF_long$ID, sep = "_")                ##
 ##################################################################################
 
