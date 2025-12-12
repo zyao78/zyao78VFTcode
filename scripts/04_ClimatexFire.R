@@ -529,33 +529,78 @@ summary(lm(local_P ~ s.logregional_P, data=Combined_2))
 plot(Monthly_Local_P$local_P_M ~ Monthly_Local_P$s.logregional_P_M)
 plot(Combined_2$local_P ~ Combined_2$s.logregional_P)
 
-
-#### plotting some large scale climate trend
-
-monthly_LP <- Climvar %>%
-  group_by(newMonth, site) %>%
-  summarise(meanSM = mean(local_P, na.rm = TRUE), .groups = "drop") #, .groups = "drop"
-Monthly_Local_P_averaged <- Monthly_Local_P %>%
-  group_by(site, newMonth) %>%
-  summarise(local_P_M = mean(local_P_M, na.rm = TRUE), .groups = "drop") %>%
-  arrange(site, newMonth)
-
-ggplot(Monthly_Local_P_averaged,
-       aes(x = factor(newMonth), y = local_P_M, color = site, group = site)) +
-  geom_line(size = 1,na.rm = TRUE) +
-  geom_point(size = 1.6, na.rm = TRUE) +
-  labs (x= "month", y="mean soil moisture")
+###########################################################################################
+###########################################################################################
+##################### scale necessary climate variables ###################################
+###########################################################################################
+###########################################################################################
 
 
-B1_climate <- Climvar[which(Climvar$site == "B1"),]
-B1_climate_monthly <- B1_climate %>%
-  group_by(newMonth, startyear) %>%
-  summarise(B1_climate_monthly = mean(local_P, na.rm=T), .groups = "drop")
+TBF_long$s.T_RA <- NA
+TBF_long$s.T_RA <- scale(TBF_long$T_RA) 
+TBF_long$s.P_RA <- NA
+TBF_long$s.P_RA <- scale(TBF_long$P_RA) 
+TBF_long$s.P_RW <- NA
+TBF_long$s.P_RW <- scale(TBF_long$P_RW) 
+TBF_long$s.P_RD <- NA
+TBF_long$s.P_RD <- scale(TBF_long$P_RD) 
+TBF_long$s.P_RH <- NA
+TBF_long$s.P_RH <- scale(TBF_long$P_RH) 
+TBF_long$s.T_RH<- NA
+TBF_long$s.T_RD<- NA
+TBF_long$s.T_RW<- NA
+TBF_long$s.T_RC<- NA
+TBF_long$s.T_RH <- scale(TBF_long$T_RH) 
+TBF_long$s.T_RC <- scale(TBF_long$T_RC) 
+TBF_long$s.T_RD <- scale(TBF_long$T_RD) 
+TBF_long$s.T_RW <- scale(TBF_long$T_RW) 
+TBF_long$s.T_RW <- scale(TBF_long$T_RW) 
 
-ggplot(B1_climate_monthly,
-       aes(x = factor(newMonth), y = B1_climate_monthly)) +
-  geom_line(size = 1) +
-  geom_point(size = 1.6, na.rm = TRUE) +
-  labs (x= "month", y="mean soil moisture")
+
+TBF_long$sq.P_RA <- (TBF_long$P_RA)^2
+TBF_long$sq.T_RA <- (TBF_long$T_RA)^2
+TBF_long$sq.T_RH <- (TBF_long$T_RH)^2
+TBF_long$s.sq.T_RH <- scale(TBF_long$sq.T_RH)
+TBF_long$sq.TSF <- (TBF_long$TSF)^2
+TBF_long$s.sq.P_RA <- scale(TBF_long$sq.P_RA)
+TBF_long$s.sq.T_RA <- scale(TBF_long$sq.T_RA)
+TBF_long$s.TSF <- scale(TBF_long$TSF)
+TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF)
+TBF_long$s.TBF <- scale(TBF_long$TBF)
+
+
+TBF_long$s.T_LA <- NA
+TBF_long$s.T_LA <- scale(TBF_long$T_LA) 
+TBF_long$s.P_LA <- NA
+TBF_long$s.P_LA <- scale(TBF_long$P_LA) 
+TBF_long$s.P_LW <- NA
+TBF_long$s.P_LW <- scale(TBF_long$P_LW) 
+TBF_long$s.P_LD <- NA
+TBF_long$s.P_LD <- scale(TBF_long$P_LD) 
+TBF_long$s.P_LH <- NA
+TBF_long$s.P_LH <- scale(TBF_long$P_LH) 
+TBF_long$s.T_LH<- NA
+TBF_long$s.T_LD<- NA
+TBF_long$s.T_LW<- NA
+TBF_long$s.T_LC<- NA
+TBF_long$s.T_LH <- scale(TBF_long$T_LH) 
+TBF_long$s.T_LC <- scale(TBF_long$T_LC) 
+TBF_long$s.T_LD <- scale(TBF_long$T_LD) 
+TBF_long$s.T_LW <- scale(TBF_long$T_LW) 
+
+TBF_long$sq.P_LA <- (TBF_long$P_LA)^2
+TBF_long$sq.T_LA <- (TBF_long$T_LA)^2
+TBF_long$sq.T_LH <- (TBF_long$T_LH)^2
+TBF_long$s.sq.T_LH <- scale(TBF_long$sq.T_LH)
+TBF_long$s.sq.P_LA <- scale(TBF_long$sq.P_LA)
+TBF_long$s.sq.T_LA <- scale(TBF_long$sq.T_LA)
+TBF_long$sq.TSF <- (TBF_long$TSF)^2
+TBF_long$s.TSF <- scale(TBF_long$TSF)
+TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF)
+TBF_long$s.TBF <- scale(TBF_long$TBF)
+
+save(TBF_long, file = "data/TBF_long_landscape_with_attr.Rdata")
+
+
 
   

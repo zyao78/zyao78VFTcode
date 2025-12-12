@@ -13,7 +13,8 @@ save(crep_mod_R, file = "data/TBFxClimate/crep_mod_G_lm.Rdata")
 ########################################################################
 
 TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape_2024.csv")
-
+data_new_clim <- data_new1
+data_new1 <- read.csv("data/TBFxClimate/data_new1_2024.csv")
 
 ########################################################################
 ######## TSFxTBF response for each vital rate            ###############
@@ -160,21 +161,22 @@ plt1 <- ggplot(data= data_new1, aes(x= TSF, y= sur_fit)) +
   geom_line(aes(color= newTBF)) + 
   geom_ribbon(aes(ymin = data_new1$sur_lwr, ymax = data_new1$sur_upr, fill= newTBF), alpha = 0.1) + 
   #ylim(0,1) +
-  xlim(c(0, 16)) +
+  #xlim(c(0, 12)) +
   labs(y= "Survival", x = "Time since fire", tag= "A") +
   theme_bw() + theme(legend.position='none') +
   theme(legend.position = "right") +
+  scale_x_continuous(breaks = 0:10) +
   theme(text = element_text(size = 20)) 
 plt1
 save(plt1, file = "figures/VFT_climate/sur_graph_TBF.Rdata")
 
 ################## gr  #################################
 
-data_new1$gr <- merTools::predictInterval(gr_mod_G, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
+data_new1$gr <- merTools::predictInterval(growth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
 plt2 <- ggplot(data= data_new1, aes(x= TSF, y= gr$fit)) +
   geom_line(aes(color= newTBF))+ 
   geom_ribbon(aes(ymin = data_new1$gr$lwr, ymax = data_new1$gr$upr, fill= newTBF), alpha = 0.1) + 
-  xlim(c(0, 16.5)) +
+  scale_x_continuous(breaks = 0:10) +
   labs(y= "Growth", x = "Time since fire", tag= "B") + 
   theme_bw() + theme(legend.position='none') + theme(text = element_text(size = 20)) 
 plt2
@@ -230,21 +232,21 @@ plt3 <- ggplot(data= data_new1, aes(x= TSF, y= prep_fit)) +
   geom_line(aes(color= newTBF)) + 
   geom_ribbon(aes(ymin = data_new1$prep_lwr, ymax = data_new1$prep_upr, fill= newTBF), alpha = 0.1) + 
   #ylim(0,1) +
-  xlim(c(0, 16)) +
-  labs(y= "prep", x = "Time since fire", tag= "C") +
+  labs(y= "probability of reproduction", x = "Time since fire", tag= "C") +
   theme_bw() + theme(legend.position='none') +
   theme(legend.position = "right") +
+  scale_x_continuous(breaks = 0:10) +
   theme(text = element_text(size = 20)) 
 plt3
 save(plt3, file = "figures/VFT_climate/prep_graph_TBF.Rdata")
 
 ######## crep ############
-data_new1$crep <- merTools::predictInterval(crep_mod_G, data_new1, which= "fixed",level= 0.95,n.sims= 1000)
+data_new1$crep <- merTools::predictInterval(crep_mod, data_new1, which= "fixed",level= 0.95,n.sims= 1000)
 plt4 <- ggplot(data= data_new1, aes(x= TSF, y= crep$fit)) +
   geom_line(aes(color= newTBF))+ 
   geom_ribbon(aes(ymin = data_new1$crep$lwr, ymax = data_new1$crep$upr, fill= newTBF), alpha = 0.1) + 
-  xlim(c(0, 16.5)) +
-  labs(y= "crep", x = "Time since fire", tag= "D") + 
+  scale_x_continuous(breaks = 0:10) +
+  labs(y= "number of fruit", x = "Time since fire", tag= "D") + 
   theme_bw() + theme(legend.position='none') + theme(text = element_text(size = 20)) 
 plt4
 save(plt4, file = "figures/VFT_climate/crep_graph_TBF.Rdata")
@@ -256,6 +258,39 @@ save(plt4, file = "figures/VFT_climate/crep_graph_TBF.Rdata")
 #################################################################
 
 library(ggplot2)
+
+plt1 <- ggplot(data= data_new1, aes(x= TSF, y= sur_fit)) +
+  geom_line(aes(color= newTBF)) + 
+  geom_ribbon(aes(ymin = data_new1$sur_lwr, ymax = data_new1$sur_upr, fill= newTBF), alpha = 0.1) + 
+  #ylim(0,1) +
+  #xlim(c(0, 12)) +
+  labs(y= "Survival", x = "Time since fire", tag= "A",color = NULL, fill = NULL) +
+  theme_bw() + theme(legend.position='none') +
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = 0:10) +
+  theme(text = element_text(size = 16)) 
+plt2 <- ggplot(data= data_new1, aes(x= TSF, y= gr$fit)) +
+  geom_line(aes(color= newTBF))+ 
+  geom_ribbon(aes(ymin = data_new1$gr$lwr, ymax = data_new1$gr$upr, fill= newTBF), alpha = 0.1) + 
+  scale_x_continuous(breaks = 0:10) +
+  labs(y= "Growth", x = "Time since fire", tag= "B",color = NULL, fill = NULL) + 
+  theme_bw() + theme(legend.position='none') + theme(text = element_text(size = 16)) 
+plt3 <- ggplot(data= data_new1, aes(x= TSF, y= prep_fit)) +
+  geom_line(aes(color= newTBF)) + 
+  geom_ribbon(aes(ymin = data_new1$prep_lwr, ymax = data_new1$prep_upr, fill= newTBF), alpha = 0.1) + 
+  #ylim(0,1) +
+  labs(y= "probability of reproduction", x = "Time since fire", tag= "C",color = NULL, fill = NULL) +
+  theme_bw()  +
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = 0:10) +
+  theme(text = element_text(size = 16)) 
+plt4 <- ggplot(data= data_new1, aes(x= TSF, y= crep$fit)) +
+  geom_line(aes(color= newTBF))+ 
+  geom_ribbon(aes(ymin = data_new1$crep$lwr, ymax = data_new1$crep$upr, fill= newTBF), alpha = 0.1) + 
+  scale_x_continuous(breaks = 0:10) +
+  labs(y= "number of fruit", x = "Time since fire", tag= "D",color = NULL, fill = NULL) + 
+  theme_bw() + theme(legend.position='none') + theme(text = element_text(size = 16)) 
+
 ggpubr::ggarrange(plt1, plt2, plt3, plt4,
                   ncol = 2, nrow = 2,
                   common.legend = TRUE,
