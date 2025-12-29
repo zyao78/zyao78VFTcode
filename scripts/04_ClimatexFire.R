@@ -599,7 +599,7 @@ TBF_long$s.TSF <- scale(TBF_long$TSF)
 TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF)
 TBF_long$s.TBF <- scale(TBF_long$TBF)
 
-save(TBF_long, file = "data/TBF_long_landscape_with_attr.Rdata")
+save.image("data/TBF_long_landscape_with_attr.Rdata")
 
 
 

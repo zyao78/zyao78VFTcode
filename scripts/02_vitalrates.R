@@ -7,9 +7,9 @@ library("dplyr")
 ################
 TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape.csv") 
 ################
-TBF_long$s.logsize0 <- scale(log(TBF_long$size0+0.1)) 
 TBF_long$logsize1 <- (log(TBF_long$size1+0.1))
 TBF_long$logsize0 <- (log(TBF_long$size0+0.1))
+TBF_long$s.logsize0 <- scale(TBF_long$logsize0) 
 
 
 TBF_long$prep1 <- NA

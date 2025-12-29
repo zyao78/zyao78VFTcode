@@ -109,5 +109,66 @@ TBF_long %>%
 
 
 
+recruit_df$s.T_RA <- NA
+recruit_df$s.T_RA <- scale(recruit_df$T_RA) 
+recruit_df$s.P_RA <- NA
+recruit_df$s.P_RA <- scale(recruit_df$P_RA) 
+recruit_df$s.P_RW <- NA
+recruit_df$s.P_RW <- scale(recruit_df$P_RW) 
+recruit_df$s.P_RD <- NA
+recruit_df$s.P_RD <- scale(recruit_df$P_RD) 
+recruit_df$s.P_RH <- NA
+recruit_df$s.P_RH <- scale(recruit_df$P_RH) 
+recruit_df$s.T_RH<- NA
+recruit_df$s.T_RD<- NA
+recruit_df$s.T_RW<- NA
+recruit_df$s.T_RC<- NA
+recruit_df$s.T_RH <- scale(recruit_df$T_RH) 
+recruit_df$s.T_RC <- scale(recruit_df$T_RC) 
+recruit_df$s.T_RD <- scale(recruit_df$T_RD) 
+recruit_df$s.T_RW <- scale(recruit_df$T_RW) 
+recruit_df$s.T_RW <- scale(recruit_df$T_RW) 
 
+
+recruit_df$sq.P_RA <- (recruit_df$P_RA)^2
+recruit_df$sq.T_RA <- (recruit_df$T_RA)^2
+recruit_df$sq.T_RH <- (recruit_df$T_RH)^2
+recruit_df$s.sq.T_RH <- scale(recruit_df$sq.T_RH)
+recruit_df$sq.TSF <- (recruit_df$TSF)^2
+recruit_df$s.sq.P_RA <- scale(recruit_df$sq.P_RA)
+recruit_df$s.sq.T_RA <- scale(recruit_df$sq.T_RA)
+recruit_df$s.TSF <- scale(recruit_df$TSF)
+recruit_df$s.sq.TSF <- scale(recruit_df$sq.TSF)
+recruit_df$s.TBF <- scale(recruit_df$TBF)
+
+
+recruit_df$s.T_LA <- NA
+recruit_df$s.T_LA <- scale(recruit_df$T_LA) 
+recruit_df$s.P_LA <- NA
+recruit_df$s.P_LA <- scale(recruit_df$P_LA) 
+recruit_df$s.P_LW <- NA
+recruit_df$s.P_LW <- scale(recruit_df$P_LW) 
+recruit_df$s.P_LD <- NA
+recruit_df$s.P_LD <- scale(recruit_df$P_LD) 
+recruit_df$s.P_LH <- NA
+recruit_df$s.P_LH <- scale(recruit_df$P_LH) 
+recruit_df$s.T_LH<- NA
+recruit_df$s.T_LD<- NA
+recruit_df$s.T_LW<- NA
+recruit_df$s.T_LC<- NA
+recruit_df$s.T_LH <- scale(recruit_df$T_LH) 
+recruit_df$s.T_LC <- scale(recruit_df$T_LC) 
+recruit_df$s.T_LD <- scale(recruit_df$T_LD) 
+recruit_df$s.T_LW <- scale(recruit_df$T_LW) 
+
+recruit_df$sq.P_LA <- (recruit_df$P_LA)^2
+recruit_df$sq.T_LA <- (recruit_df$T_LA)^2
+recruit_df$sq.T_LH <- (recruit_df$T_LH)^2
+recruit_df$s.sq.T_LH <- scale(recruit_df$sq.T_LH)
+recruit_df$s.sq.P_LA <- scale(recruit_df$sq.P_LA)
+recruit_df$s.sq.T_LA <- scale(recruit_df$sq.T_LA)
+recruit_df$sq.TSF <- (recruit_df$TSF)^2
+recruit_df$s.TSF <- scale(recruit_df$TSF)
+recruit_df$s.sq.TSF <- scale(recruit_df$sq.TSF)
+recruit_df$s.TBF <- scale(recruit_df$TBF)
 

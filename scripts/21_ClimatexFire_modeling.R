@@ -830,31 +830,16 @@ r.squaredGLMM(gr_mod_R)
 ##############################################################################################
 ##############################################################################################
 ##############################################################################################
-################################   recruit ###################################################
+################################   update ###################################################
 ##############################################################################################
 ##############################################################################################
 
-recruit <- read.csv("data/TBFxClimate/recruit_df_11_7_2025.csv")
-colnames(recruit)
-recruit$mean_logsize0 <- scale(log(recruit$mean_size0+0.1))
-recruit$sdl_per_fr <- NA
-recruit$sdl_per_fr <- recruit$num_news / recruit$num_fr
+TBF_long_no_attr <- read.csv("data/TBF_long_export_11_24_25.csv")
+str(TBF_long_no_attr)
 
-hist(recruit$sdl_per_fr)
-
-########### try poisson first #############
-ggplot(recruit,aes(x=num_fr,y=num_news,col=site)) + 
-  geom_jitter() + 
-  geom_boxplot(alpha=0.2)
-
-mod.poisson <- glmer(num_news ~  num_fr + s.TSF * s.TBF + s.sq.TSF + s.T_LA + s.sq.T_LA + 
-                       s.P_LA + s.T_LA:s.P_LA +
-                       s.T_LC + s.T_LD + s.P_LH +
-                       (1 | site),  data= recruit, na.action= "na.fail",family= "poisson")
-
-
-
-
-
+update(survival_mod,data=TBF_long_no_attr %>% 
+         filter_at(vars(sur0_1, s.logsize0, s.TSF,s.TBF, s.sq.TSF, site, s.T_LA,s.T_LH,s.T_LD,s.sq.T_LH,
+                        s.P_LH, s.P_LD), all_vars(!is.na(.)))
+         )
 
 
