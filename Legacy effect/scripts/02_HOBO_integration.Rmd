@@ -213,14 +213,10 @@ HOBO_upto2024$newMonth <- ifelse(
 
 # export
 ```{r}
-write.csv(HOBO_upto2024, "F:/VFT/VFT_github/zyao78VFTcode/data/TBFxClimate/HOBO_upto2024.csv")
+write.csv(HOBO_upto2024, "F:/VFT/VFT_github/zyao78VFTcode/legacy effect/data/climate data/HOBO_upto2024.csv")
 
 ```
 
 
 
-#Climvar1 <- left_join(Climvar,monthly_wide, by=c("site", "startyear"))
-
-Climvar <- Climvar %>%
-  rows_update(monthly_wide, by = c("site", "startyear"))  # use rows update after initially performing left_join to avoid creating new columns
 

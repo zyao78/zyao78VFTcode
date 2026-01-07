@@ -399,6 +399,6 @@ CM_sub <- SoilT_upto2024 [which(SoilT_upto2024$site == "CM"),]
 ```
 ## export
 ```{r}
-write.csv(SoilT_upto2024, "SoilT_upto2024.csv")
+write.csv(SoilT_upto2024, "legacy effect/climate data/SoilT_upto2024.csv")
 ```
 

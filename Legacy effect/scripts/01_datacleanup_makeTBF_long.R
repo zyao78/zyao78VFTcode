@@ -4,8 +4,8 @@ Numextract <- function(string){
   return(myreturnvalue)
 }
 
-
-data <- read.csv("data/VFT master data/alldemodata_upto2025.csv",colClasses = "character")  ## ensure that the column types don't change (otherwise there will be ridiculous N,L)
+alldemodata_upto2025 <- read.csv("Legacy effect/data/VFT master data/alldemodata_upto2025.csv")
+data <- read.csv("legacy effect/raw-data/VFT master data/alldemodata_upto2025.csv",colClasses = "character")  ## ensure that the column types don't change (otherwise there will be ridiculous N,L)
 
 Sur_cols <- paste0("sur_", 15:24, "_", 16:25)
 
@@ -75,7 +75,7 @@ data_long <- rbind(data15_16, data16_17, data17_18, data18_19, data19_20, data20
 # adding the "fine detailed" fire history from Natalie's FireHistory.rmd file---- 
       
 #load in fire file
-fire_histories <- read.csv("processed-data/fire_histories_landscape.csv") ## load in the most recent fire history fire
+fire_histories <- read.csv("legacy effect/processed-data/fire_histories_landscape.csv") ## load in the most recent fire history fire
       
 data_long$TSF <- NA
 data_long$TBF <- NA
@@ -105,4 +105,4 @@ for (i in 1:nrow(data_long)) {
 
 #################################################################################################
 
-write.csv(data_long, file= "data/TBFxClimate/TBF_long_landscape.csv")
+write.csv(data_long, file= "legacy effect/data/TBFxClimate/TBF_long_landscape.csv")
