@@ -13,7 +13,7 @@ save(crep_mod_R, file = "data/TBFxClimate/crep_mod_G_lm.Rdata")
 ########################################################################
 
 TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape_2024.csv")
-data_new_clim <- data_new1
+
 data_new1 <- read.csv("legacy effect/data/TBFxClimate/data_new1_2024.csv")
 
 ########################################################################
