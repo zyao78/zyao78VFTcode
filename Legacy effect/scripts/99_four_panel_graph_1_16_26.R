@@ -2,8 +2,8 @@
 library(merTools)
 
 ############ remove attributes #####################################################
-load("~/zyao78VFTcode2/Legacy effect/data/TBF_long_landscape_with_attr.Rdata")
-load("~/zyao78VFTcode2/Legacy effect/data/TBFxClimate/VR_mod_linear.Rdata")
+load("Legacy effect/data/TBF_long_landscape_with_attr.Rdata")
+load("Legacy effect/data/TBFxClimate/VR_mod_linear.Rdata")
 
 TBF_long_noattr <- read_csv("Legacy effect/data/TBF_long_export_11_24_25.csv")
 TBF_long_noattr <- TBF_long_noattr %>%
@@ -123,7 +123,7 @@ data_new1$sur_se  <-NA
 data_new1$sur_lwr <-  NA
 data_new1$sur_upr <-NA
 
-sur_pred <- predict(survival_mod, data_new1, type = "response", se.fit = TRUE)
+sur_pred <- predict(L_survival_mod, data_new1, type = "response", se.fit = TRUE)
 data_new1$sur_fit <- sur_pred$fit
 data_new1$sur_se <- sur_pred$se.fit
 
@@ -146,7 +146,7 @@ plt1
 
 ################## gr  #################################
 
-data_new1$gr <- predictInterval(growth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
+data_new1$gr <- predictInterval(L_growth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
 plt2 <- ggplot(data= data_new1, aes(x= TSF, y= gr$fit)) +
   geom_line(aes(color= newTBF))+ 
   geom_ribbon(aes(ymin = data_new1$gr$lwr, ymax = data_new1$gr$upr, fill= newTBF), alpha = 0.1) + 
@@ -161,26 +161,15 @@ data_new1$prep_se  <-NA
 data_new1$prep_lwr <-  NA
 data_new1$prep_upr <-NA
 
-data_new1$s.P_RA <- as.numeric(data_new1$s.P_RA)
-data_new1$s.P_RH <- as.numeric(data_new1$s.P_RH)
-data_new1$s.sq.P_RA <- as.numeric(data_new1$s.sq.P_RA)
-data_new1$s.sq.T_RA <- as.numeric(data_new1$s.sq.T_RA)
-data_new1$s.T_RA <- as.numeric(data_new1$s.T_RA)
-data_new1$s.T_RC <- as.numeric(data_new1$s.T_RC)
-data_new1$s.T_RH <- as.numeric(data_new1$s.T_RH)
-data_new1$s.sq.TSF <- as.numeric(data_new1$s.sq.TSF)
-data_new1$s.TSF <- as.numeric(data_new1$s.TSF)
 
 
 
-prep_pred <- predict(prep_mod, data_new1, type = "response", se.fit = TRUE)
+prep_pred <- predict(L_prep_mod, data_new1, type = "response", se.fit = TRUE)
 data_new1$prep_fit <- prep_pred$fit
 data_new1$prep_se <- prep_pred$se.fit
 
 data_new1$prep_lwr <- prep_pred$fit - qnorm(0.975) * prep_pred$se.fit
 data_new1$prep_upr <- prep_pred$fit + qnorm(0.975) * prep_pred$se.fit
-
-#####
 
 plt3 <- ggplot(data= data_new1, aes(x= TSF, y= prep_fit)) +
   geom_line(aes(color= newTBF)) + 
@@ -194,7 +183,7 @@ plt3 <- ggplot(data= data_new1, aes(x= TSF, y= prep_fit)) +
 plt3
 
 ######## crep ############
-data_new1$crep <- merTools::predictInterval(crep_mod, data_new1, which= "fixed",level= 0.95,n.sims= 1000)
+data_new1$crep <- merTools::predictInterval(L_crep_mod, data_new1, which= "fixed",level= 0.95,n.sims= 1000)
 plt4 <- ggplot(data= data_new1, aes(x= TSF, y= crep$fit)) +
   geom_line(aes(color= newTBF))+ 
   geom_ribbon(aes(ymin = data_new1$crep$lwr, ymax = data_new1$crep$upr, fill= newTBF), alpha = 0.1) + 

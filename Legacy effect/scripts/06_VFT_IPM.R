@@ -5,9 +5,9 @@ library(dplyr)
 library(glue)
 library(zoo)
 library(MASS)
-
-### load data and remove model attr
 load("legacy effect/data/TBF_long_landscape_with_attr.RData") # loads in the VR functions
+
+### load data and remove model attr (if needed, check str of VR models)
 TBF_long_noattr <- read.csv("legacy effect/data/TBF_long_export_11_24_25.csv")
 TBF_long_noattr <- TBF_long_noattr %>%
   mutate(across(c("s.logsize0", "s.sq.TSF", "s.TSF", "s.TBF"), as.numeric))
@@ -298,6 +298,7 @@ plt1 <- ggplot(data= mean_lambda_across_scenarios, aes(x= FRI, y= mean_lambda)) 
   theme(legend.position = "right") +
   scale_x_continuous(breaks = 0:10) +
   theme(text = element_text(size = 16)) 
+plt1
 
 
 
