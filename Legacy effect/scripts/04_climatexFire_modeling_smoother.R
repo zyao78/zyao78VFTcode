@@ -102,7 +102,7 @@ data_new1$prep <- predict(GAM_bestfit, data_new1, type="response", se=TRUE)
 
 plt2 <- ggplot(data= data_new1, aes(x= TSF, y= prep$fit)) +
   geom_line(aes(color= newTBF)) + 
-  #ylim(0,1) +
+  #yli1905m(0,1) +
   #xlim(c(0, 12)) +
   labs(y= "prep", x = "Time since fire", tag= "A") +
   theme_bw() + theme(legend.position='none') +
@@ -211,6 +211,18 @@ plt1
 
 #############
 
+prep_subset_R <- 
+  TBF_long[which(TBF_long$sur0_1 == 1),] %>% 
+  filter_at(vars(prep1, s.logsize0, s.TSF, s.TBF,s.sq.TSF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
+                 s.P_RH, ), all_vars(!is.na(.)))
+prep_subset_R2 <- 
+  TBF_long %>% 
+  filter_at(vars(rep1, s.logsize0, s.TSF, s.TBF,s.sq.TSF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
+                 s.P_RH, ), all_vars(!is.na(.)))
+look <- 
+  TBF_long %>% 
+  filter (prep1 == 1 & !is.na(s.logsize0))
+
 
 sur_prep_prob <- TBF_long %>%
   group_by(startyear, site, TSF, TBF) %>%
@@ -222,11 +234,23 @@ sur_prep_prob <- TBF_long %>%
 
 
 
-ggplot(data= sur_prep_prob, aes(x= TSF, y= sur)) +
+
+
+sur_prep_prob <- TBF_long %>%
+  group_by(startyear, site, TSF, TBF) %>%
+  summarise(
+    sur = mean(sur0_1, na.rm = TRUE),
+    prep = mean(prep1, na.rm = TRUE)
+  )%>%
+  mutate( newTBF=ifelse(TBF<5, "short", "long"))
+
+
+
+ggplot(data= sur_prep_prob, aes(x= TSF, y= prep)) +
   geom_point(aes(color= newTBF)) + 
   #ylim(0,1) +
   #xlim(c(0, 12)) +
-  labs(y= "sur", x = "TSF") +
+  labs(y= "prep", x = "TSF") +
   theme_bw() + theme(legend.position='none') +
   theme(legend.position = "right") +
   scale_x_continuous(breaks = 0:11) +

@@ -193,7 +193,7 @@ data_new1$s.T_LA <- as.numeric(data_new1$s.T_LA)
 data_new1$s.TBF <- as.numeric(data_new1$s.TBF)
 data_new1$s.TSF <- as.numeric(data_new1$s.TSF)
 
-prep_pred <- predict.glm(prep_mod_L, data_new1, type = "response", se.fit = TRUE)
+prep_pred <- predict.glm(prep_mod_R, data_new1, type = "response", se.fit = TRUE)
 data_new1$prep_fit <- prep_pred$fit
 data_new1$prep_se <- prep_pred$se.fit
 

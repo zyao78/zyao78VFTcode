@@ -1,6 +1,9 @@
 
+library(merTools)
+
 ############ remove attributes #####################################################
 load("~/zyao78VFTcode2/Legacy effect/data/TBF_long_landscape_with_attr.Rdata")
+load("~/zyao78VFTcode2/Legacy effect/data/TBFxClimate/VR_mod_linear.Rdata")
 
 TBF_long_noattr <- read_csv("Legacy effect/data/TBF_long_export_11_24_25.csv")
 TBF_long_noattr <- TBF_long_noattr %>%
@@ -19,8 +22,8 @@ prep_mod <- update(prep_mod,data=TBF_long_noattr %>%
 crep_mod <- update(crep_mod,data=TBF_long_noattr %>% 
                      filter_at(vars(logcrep1, s.logsize0, TSF, TBF,s.sq.TSF, site, s.T_RA, s.T_RH), all_vars(!is.na(.))))
 
-
-
+prep_mod
+prep_mod_R
 
 
 ########### make the four_paneled vital rate graphs #####################
@@ -101,6 +104,7 @@ data_new1$s.T_RA <- rep(mean(TBF_long$s.T_RA, na.rm=TRUE), nrow*2)
 data_new1$s.T_RD <- rep(mean(TBF_long$s.T_RD, na.rm=TRUE), nrow*2)
 data_new1$s.T_RH <- rep(mean(TBF_long$s.T_RH, na.rm=TRUE), nrow*2)
 data_new1$s.T_RC <- rep(mean(TBF_long$s.T_RC, na.rm=TRUE), nrow*2)
+data_new1$s.P_LD <- rep(mean(TBF_long$s.P_LD, na.rm=TRUE), nrow*2)
 
 data_new1$s.P_LA <- rep(mean(TBF_long$s.P_LA, na.rm=TRUE), nrow*2)
 data_new1$s.P_LH <- rep(mean(TBF_long$s.P_LH, na.rm=TRUE), nrow*2)
@@ -142,7 +146,7 @@ plt1
 
 ################## gr  #################################
 
-data_new1$gr <- merTools::predictInterval(growth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
+data_new1$gr <- predictInterval(growth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
 plt2 <- ggplot(data= data_new1, aes(x= TSF, y= gr$fit)) +
   geom_line(aes(color= newTBF))+ 
   geom_ribbon(aes(ymin = data_new1$gr$lwr, ymax = data_new1$gr$upr, fill= newTBF), alpha = 0.1) + 
@@ -169,7 +173,7 @@ data_new1$s.TSF <- as.numeric(data_new1$s.TSF)
 
 
 
-prep_pred <- predict.glm(prep_mod, data_new1, type = "response", se.fit = TRUE)
+prep_pred <- predict(prep_mod, data_new1, type = "response", se.fit = TRUE)
 data_new1$prep_fit <- prep_pred$fit
 data_new1$prep_se <- prep_pred$se.fit
 

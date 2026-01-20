@@ -70,7 +70,7 @@ TBF_long$s.logsize0 <- scale(log(TBF_long$size0+0.1))
 look <- TBF_long %>% 
   filter(!is.na(prep1))%>%
   filter(is.na(s.logsize0))%>%
-  dplyr::select(prep1, sur0_1, startyear, site_ID,rep1, size1, size0)
+  dplyr::select(prep1, sur0_1, startyear, site_ID, size1, size0)
 #all prep1 = NA should be either sur0_1=0 or NA
 look <- TBF_long %>% 
   filter(is.na(prep1))%>%
@@ -413,12 +413,12 @@ registerDoParallel(cluster)
 clusterExport(cluster, c("prep_subset_L"))   ### replace with different subset (different global models)
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
-prep_dredge_L <- MuMIn::dredge(
+Q_prep_dredge_L <- MuMIn::dredge(
   GM_L_prep_2,
   cluster = cluster,
   trace   = 2
 )
-prep_mod_L <- get.models(prep_dredge_L, 1)[[1]]
+Q_prep_mod_L <- get.models(Q_prep_dredge_L, 1)[[1]]
 summary(prep_mod_L)
 save(prep_mod_L, file = "data/TBFxClimate/prep_mod_L_ls.Rdata")
 stopCluster(cluster)
