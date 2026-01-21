@@ -11,6 +11,7 @@ load("legacy effect/data/TBF_long_landscape_with_attr.RData") # loads in the VR 
 TBF_long_noattr <- read.csv("legacy effect/data/TBF_long_export_11_24_25.csv")
 TBF_long_noattr <- TBF_long_noattr %>%
   mutate(across(c("s.logsize0", "s.sq.TSF", "s.TSF", "s.TBF"), as.numeric))
+TBF_long$logsize0 <- (log(TBF_long$size0+0.1))
 TBF_long$s.logsize0 <- scale(TBF_long$logsize0) 
 
 survival_mod <- update(survival_mod,data=TBF_long_noattr %>% 

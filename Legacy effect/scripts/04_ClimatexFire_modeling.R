@@ -65,20 +65,22 @@ TBF_long$s.TBF <- scale(TBF_long$TBF)
 
 TBF_long$s.logsize0 <- scale(log(TBF_long$size0+0.1))
 
-############################ re-calculate consur (when first time running this code on a TBF_long) ###############################
+############################ check prep (when first time running this code on a TBF_long) ###############################
+## if size1 = NA, then prep must = NA #####
+## if sur0_1 = NA, prep could still have value (plants that are first surveyed)
+## if size1=0, prep could still have value (senesced) 
+
+
 
 look <- TBF_long %>% 
-  filter(!is.na(prep1))%>%
-  filter(is.na(s.logsize0))%>%
+  filter(is.na(sur0_1))%>%
   dplyr::select(prep1, sur0_1, startyear, site_ID, size1, size0)
+
 #all prep1 = NA should be either sur0_1=0 or NA
 look <- TBF_long %>% 
-  filter(is.na(prep1))%>%
-  dplyr::select(prep1, sur0_1, startyear, site_ID,rep1, size1, size0)
+  filter(size1 == 0)%>%
+  dplyr::select(prep1, sur0_1, startyear, site_ID, size1, size0, crep1)
 
-look <- TBF_long %>% 
-  filter(prep1 ==1)%>%
-  dplyr::select(prep1, sur0_1, startyear, site_ID,rep1, size1, size0)
 
 colnames(TBF_long)
 
@@ -131,11 +133,11 @@ clusterExport(cluster, c("sur_subset_R"))   ### replace with different subset (d
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
 sur_dredge_R <- MuMIn::dredge(
-  GM_R_sur_2,
+  GM_R_sur,
   cluster = cluster,
   trace   = 2
 )
-sur_mod_R_ls <- get.models(sur_dredge_R, 1)[[1]]
+sur_mod_R <- get.models(sur_dredge_R, 1)[[1]]
 summary(sur_mod_R_ls)   
 save(sur_mod_R_ls, file = "data/TBFxClimate/sur_mod_R_ls.Rdata")
 stopCluster(cluster)
