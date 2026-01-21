@@ -346,6 +346,7 @@ vargrowth_dredge_R <- MuMIn::dredge(
 )
 vargrowth_mod_R<- get.models(vargrowth_dredge_R, 1)[[1]]
 
+stopCluster(cluster)
 #### recruit #####################
 
 recruit_df <- read_csv("Legacy effect/data/recruit_df_11_24_2025.csv")
@@ -357,34 +358,23 @@ recruit_subset <-
   recruit_df %>% 
   dplyr::filter(across(c(num_news, log.fr, TSF, TBF,site), ~ !is.na(.)))
 
-recruit_mod_g_R <- glmer.nb(num_news ~num_fr+s.TSF*s.TBF +  
-                            s.T_RA + s.P_RA + s.sq.T_RA + s.sq.P_RA + s.T_RA:s.P_RA +
-                            s.T_RC + s.sq.T_RC + 
-                            s.T_RW +s.P_RW + s.T_RW:s.P_RW + s.sq.P_RW +
-                            s.T_RD + s.P_RD + s.T_RD: s.P_RD + s.sq.P_RD +
-                            s.T_RH + s.P_RH + s.sq.T_RH + s.T_RH:s.P_RH +
-                            (1|site),
-                          data = recruit_subset, na.action = "na.fail") 
+recruit_mod_g_R <- glm.nb(num_news ~log.fr+s.TSF*s.TBF +  
+                              s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
+                              s.P_RH:s.T_RH + s.P_RD + 
+                              site,   data = recruit_subset, na.action = "na.fail") 
 
 
 
-recruit_mod_g_L <- glmer.nb(num_news ~log.fr+s.TSF*s.TBF + 
-                              s.T_LA + s.P_LA + s.sq.T_LA + s.sq.P_LA + s.T_LA:s.P_LA +
-                              s.T_LC + s.sq.T_LC + 
-                              s.T_LW +s.P_LW + s.T_LW:s.P_LW + s.sq.P_LW +
-                              s.T_LD + s.P_LD + s.T_LD: s.P_LD + s.sq.P_LD +
-                              s.T_LH + s.P_LH + s.sq.T_LH + s.T_LH:s.P_LH +
-                              (1|site),
-                            data = recruit_subset, na.action = "na.fail") 
-
-summary(recruit_mod_g)
+recruit_mod_g_L <- glm.nb(num_news ~log.fr+s.TSF*s.TBF + 
+                              s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_LH +
+                              s.P_LH:s.T_LH + s.P_LD +  site,   data = recruit_subset, na.action = "na.fail") 
 
 n_cores <- detectCores()
 n_cores
 cluster <- makeCluster(n_cores - 1)
 registerDoParallel(cluster)
 clusterExport(cluster, c("recruit_subset"))   ### replace with different subset (different global models)
-clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+clusterEvalQ(cluster, {library(MASS); library(MuMIn)})
 
 recruit_dredge_R <- MuMIn::dredge(
   recruit_mod_g_R,
@@ -399,21 +389,20 @@ recruit_dredge_L <- MuMIn::dredge(
   trace   = 2
 )
 recruit_mod_L <- get.models(recruit_dredge_L, 1)[[1]]
-summary(recruit_mod_R)
-summary(recruit_mod_R_2)
+summary(recruit_mod_L)
 
 
 
 ############# compare AICc ###################
 
 AICc_list <- AICc(sur_mod_L, sur_mod_R, gr_mod_L, gr_mod_R, prep_mod_L, prep_mod_R, crep_mod_L, crep_mod_R, 
-                  vargrowth_mod_L,vargrowth_mod_R )
+                  vargrowth_mod_L,vargrowth_mod_R, recruit_mod_L, recruit_mod_R)
 
 L_survival_mod <- if (AICc_list$AICc[1] < AICc_list$AICc[2]) sur_mod_L else sur_mod_R
 L_growth_mod <- if (AICc_list$AICc[3] < AICc_list$AICc[4]) gr_mod_L else gr_mod_R
 L_prep_mod <- if (AICc_list$AICc[5] < AICc_list$AICc[6]) prep_mod_L else prep_mod_R
 L_crep_mod <- if (AICc_list$AICc[7] < AICc_list$AICc[8]) crep_mod_L else crep_mod_R
 L_vargrowth_mod <- if (AICc_list$AICc[9] < AICc_list$AICc[10]) vargrowth_mod_L else vargrowth_mod_R
+L_recruit_mod <- if (AICc_list$AICc[11] < AICc_list$AICc[12]) recruit_mod_L else recruit_mod_R
 
-AICc(prep_mod_L,prep_mod_R)
-save(L_survival_mod, L_growth_mod, L_prep_mod, L_crep_mod,L_vargrowth_mod, TBF_long, file = "Legacy effect/data/TBFxClimate/VR_mod_linear.Rdata")
+save(L_survival_mod, L_growth_mod, L_prep_mod, L_crep_mod,L_vargrowth_mod,L_recruit_mod, TBF_long, file = "Legacy effect/data/TBFxClimate/VR_mod_linear.Rdata")
