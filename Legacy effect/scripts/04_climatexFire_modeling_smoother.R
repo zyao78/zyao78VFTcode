@@ -246,7 +246,7 @@ sur_prep_prob <- prep_subset_L %>%
 
 
 meanPrepxTSF <- sur_prep_prob %>%
-  group_by(TSF) %>%
+  group_by(TSF,site) %>%
   summarise(
     meanPrep = mean(prep, na.rm = TRUE)
   )
