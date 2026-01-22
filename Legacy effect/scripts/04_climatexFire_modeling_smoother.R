@@ -236,7 +236,7 @@ sur_prep_prob <- TBF_long %>%
 
 
 
-sur_prep_prob <- TBF_long %>%
+sur_prep_prob <- prep_subset_L %>%
   group_by(startyear, site, TSF, TBF) %>%
   summarise(
     sur = mean(sur0_1, na.rm = TRUE),
@@ -244,6 +244,15 @@ sur_prep_prob <- TBF_long %>%
   )%>%
   mutate( newTBF=ifelse(TBF<5, "short", "long"))
 
+
+meanPrepxTSF <- sur_prep_prob %>%
+  group_by(TSF) %>%
+  summarise(
+    meanPrep = mean(prep, na.rm = TRUE)
+  )
+
+ggplot(data= meanPrepxTSF, aes(x= TSF, y= meanPrep)) +
+  geom_point()
 
 
 ggplot(data= sur_prep_prob, aes(x= TSF, y= prep)) +

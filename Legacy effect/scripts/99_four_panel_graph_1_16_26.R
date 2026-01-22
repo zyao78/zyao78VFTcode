@@ -117,6 +117,8 @@ data_new1$s.sq.P_LA <- rep(mean(TBF_long$s.sq.P_LA, na.rm=TRUE), nrow*2)
 data_new1$s.T_LC <- rep(mean(TBF_long$s.T_LC, na.rm=TRUE), nrow*2)
 data_new1$s.sq.T_LH <- rep(mean(TBF_long$s.sq.T_LH, na.rm=TRUE), nrow*2)
 
+save(data_new1, file = "Legacy effect/data/TBFxClimate/data_new1_1_21_26.RData")
+
 #################### sur #######################################################
 data_new1$sur_fit <- NA
 data_new1$sur_se  <-NA
@@ -164,7 +166,7 @@ data_new1$prep_upr <-NA
 
 
 
-prep_pred <- predict(L_prep_mod, data_new1, type = "response", se.fit = TRUE)
+prep_pred <- predict(prep_mod, data_new1, type = "response", se.fit = TRUE)
 data_new1$prep_fit <- prep_pred$fit
 data_new1$prep_se <- prep_pred$se.fit
 

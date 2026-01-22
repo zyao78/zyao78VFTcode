@@ -138,7 +138,7 @@ sur_dredge_R <- MuMIn::dredge(
   trace   = 2
 )
 sur_mod_R <- get.models(sur_dredge_R, 1)[[1]]
-summary(sur_mod_R_ls)   
+summary(sur_mod_R)   
 save(sur_mod_R_ls, file = "data/TBFxClimate/sur_mod_R_ls.Rdata")
 stopCluster(cluster)
 
@@ -415,12 +415,12 @@ registerDoParallel(cluster)
 clusterExport(cluster, c("prep_subset_L"))   ### replace with different subset (different global models)
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
-Q_prep_dredge_L <- MuMIn::dredge(
+prep_dredge_L <- MuMIn::dredge(
   GM_L_prep_2,
   cluster = cluster,
   trace   = 2
 )
-Q_prep_mod_L <- get.models(Q_prep_dredge_L, 1)[[1]]
+prep_mod_L <- get.models(prep_dredge_L, 1)[[1]]
 summary(prep_mod_L)
 save(prep_mod_L, file = "data/TBFxClimate/prep_mod_L_ls.Rdata")
 stopCluster(cluster)

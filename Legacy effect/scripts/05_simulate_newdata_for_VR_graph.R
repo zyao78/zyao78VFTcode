@@ -1,18 +1,10 @@
 
-files <- list.files(pattern = "G_lm.Rdata", recursive = TRUE)
-lapply(files,load,.GlobalEnv)
-summary(crep_mod_L)
-AICc(prep_mod_R)
-save(sur_mod_R_lm, file = "data/TBFxClimate/sur_mod_G_lm.Rdata")
-save(gr_mod_L, file = "data/TBFxClimate/gr_mod_G_lm.Rdata")
-save(prep_mod_R, file = "data/TBFxClimate/prep_mod_G_lm.Rdata")
-save(crep_mod_R, file = "data/TBFxClimate/crep_mod_G_lm.Rdata")
 
 ########################################################################
 #################################simulate graphs########################
 ########################################################################
 
-TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape_2024.csv")
+TBF_long <- read.csv("data/TBF_long_export_11_24_25.csv")
 
 data_new1 <- read.csv("legacy effect/data/TBFxClimate/data_new1_2024.csv")
 
@@ -39,7 +31,7 @@ scaled_sim_TSF <- (sim_TSF - mean_val) / sd_val
 #### s.sq.TSF
 ####
 # Original vector
-original_vector <- TBF_long$sq.TSF
+original_vector <- (TBF_long$TSF)^2
 sq.TSF <- sort(unique(original_vector), na.last = TRUE)
 # Scale the vector
 scaled_vector <- TBF_long$s.TSF
@@ -74,13 +66,7 @@ scaled_sim_TBF <- (sim_TBF - mean_val) / sd_val
 ####################### build data.new ###############################################
 ######################################################################################
 ######################################################################################
-files <- list.files(pattern = "G.Rdata", recursive = TRUE)
-lapply(files,load,.GlobalEnv)
 
-attr(terms(crep_mod_G), "term.labels")
-attr(terms(gr_mod_G), "term.labels")
-attr(terms(sur_mod_G), "term.labels")
-attr(terms(prep_mod_L), "term.labels")
 
 data_new1 <- as.data.frame((rep(mean(TBF_long$s.logsize0, na.rm=TRUE), (length(TSF)+1)*2)))
                            #,(rep(mean(TBF_long$s.logsize0, na.rm=TRUE), 17*2)) )
@@ -94,50 +80,36 @@ nrow <- length(c(0:max(TSF)))           #### modify this if needed
 data_new1$TBF <- c(rep(min(TBF), nrow), rep(max(TBF), nrow))    #### change max(TBF) accordingly
 data_new1$s.TSF <- c(scaled_sim_TSF,scaled_sim_TSF)
 data_new1$s.sq.TSF <- c(scaled_sim_s.sq.TSF,scaled_sim_s.sq.TSF)
-data_new1$s.sq.TSF <- as.matrix(data_new1$s.sq.TSF)
+data_new1$s.sq.TSF <- as.numeric(data_new1$s.sq.TSF)
 data_new1$s.TBF <- c(rep(min(scaled_sim_TBF), nrow), rep(max(scaled_sim_TBF), nrow))
 data_new1$newTBF[which(data_new1$s.TBF== min(scaled_sim_TBF))] <- "Short TBF"
 data_new1$newTBF[which(data_new1$s.TBF== max(scaled_sim_TBF))] <- "Long TBF"
 
-data_new1$site <- "GSP-BI"
+data_new1$site <- "GSP-LI"
 data_new1$s.P_RD <- rep(mean(TBF_long$s.P_RD, na.rm=TRUE), nrow*2)
-data_new1$s.P_RD <- as.matrix(data_new1$s.P_RD)
 data_new1$s.P_RH <- rep(mean(TBF_long$s.P_RH, na.rm=TRUE), nrow*2)
-data_new1$s.P_RH <- as.matrix(data_new1$s.P_RH)
 data_new1$s.P_RA <- rep(mean(TBF_long$s.P_RA, na.rm=TRUE), nrow*2)
-data_new1$s.P_RA <- as.matrix(data_new1$s.P_RA)
 data_new1$s.sq.P_RA <- rep(mean(TBF_long$s.sq.P_RA, na.rm=TRUE), nrow*2)
-data_new1$s.sq.P_RA <- as.matrix(data_new1$s.sq.P_RA)
 data_new1$s.sq.T_RH <- rep(mean(TBF_long$s.sq.T_RH, na.rm=TRUE), nrow*2)
-data_new1$s.sq.T_RH <- as.matrix(data_new1$s.sq.T_RH)
 data_new1$s.sq.T_RA <- rep(mean(TBF_long$s.sq.T_RA, na.rm=TRUE), nrow*2)
-data_new1$s.sq.T_RA <- as.matrix(data_new1$s.sq.T_RA)
 data_new1$s.T_RA <- rep(mean(TBF_long$s.T_RA, na.rm=TRUE), nrow*2)
-data_new1$s.T_RA <- as.matrix(data_new1$s.T_RA)
 data_new1$s.T_RD <- rep(mean(TBF_long$s.T_RD, na.rm=TRUE), nrow*2)
-data_new1$s.T_RD <- as.matrix(data_new1$s.T_RD)
 data_new1$s.T_RH <- rep(mean(TBF_long$s.T_RH, na.rm=TRUE), nrow*2)
-data_new1$s.T_RH <- as.matrix(data_new1$s.T_RH)
 data_new1$s.T_RC <- rep(mean(TBF_long$s.T_RC, na.rm=TRUE), nrow*2)
-data_new1$s.T_RC <- as.matrix(data_new1$s.T_RC)
 
 
 
 data_new1$s.P_LA <- rep(mean(TBF_long$s.P_LA, na.rm=TRUE), nrow*2)
-data_new1$s.P_LA <- as.matrix(data_new1$s.P_LA)
 data_new1$s.P_LH <- rep(mean(TBF_long$s.P_LH, na.rm=TRUE), nrow*2)
-data_new1$s.P_LH <- as.matrix(data_new1$s.P_LH)
 data_new1$s.sq.T_LA <- rep(mean(TBF_long$s.sq.T_LA, na.rm=TRUE), nrow*2)
-data_new1$s.sq.T_LA <- as.matrix(data_new1$s.sq.T_LA)
 data_new1$s.T_LA <- rep(mean(TBF_long$s.T_LA, na.rm=TRUE), nrow*2)
-data_new1$s.T_LA <- as.matrix(data_new1$s.T_LA)
 data_new1$s.T_LD <- rep(mean(TBF_long$s.T_LD, na.rm=TRUE), nrow*2)
-data_new1$s.T_LD <- as.matrix(data_new1$s.T_LD)
 data_new1$s.sq.P_LA <- rep(mean(TBF_long$s.sq.P_LA, na.rm=TRUE), nrow*2)
 data_new1$s.T_LH <- rep(mean(TBF_long$s.T_LH, na.rm=TRUE), nrow*2)
 data_new1$s.sq.P_LA <- rep(mean(TBF_long$s.sq.P_LA, na.rm=TRUE), nrow*2)
 data_new1$s.T_LC <- rep(mean(TBF_long$s.T_LC, na.rm=TRUE), nrow*2)
-data_new1$s.T_LC <- as.matrix(data_new1$s.T_LC)
+
+
 
 ################## sur (GLM) #################################
 
@@ -186,44 +158,14 @@ data_new1$prep_se  <-NA
 data_new1$prep_lwr <-  NA
 data_new1$prep_upr <-NA
 
-data_new1$s.P_LH <- as.numeric(data_new1$s.P_LH)
-data_new1$s.sq.T_LA <- as.numeric(data_new1$s.sq.T_LA)
-data_new1$s.sq.TSF <- as.numeric(data_new1$s.sq.TSF)
-data_new1$s.T_LA <- as.numeric(data_new1$s.T_LA)
-data_new1$s.TBF <- as.numeric(data_new1$s.TBF)
-data_new1$s.TSF <- as.numeric(data_new1$s.TSF)
 
-prep_pred <- predict.glm(prep_mod_R, data_new1, type = "response", se.fit = TRUE)
+prep_pred <- predict.glm(prep_mod_L, data_new1, type = "response", se.fit = TRUE)
 data_new1$prep_fit <- prep_pred$fit
 data_new1$prep_se <- prep_pred$se.fit
 
 data_new1$prep_lwr <- prep_pred$fit - qnorm(0.975) * prep_pred$se.fit
 data_new1$prep_upr <- prep_pred$fit + qnorm(0.975) * prep_pred$se.fit
 
-####
-data_new1$prep_fit_2 <- NA
-data_new1$prep_se_2  <-NA
-data_new1$prep_lwr_2 <-  NA
-data_new1$prep_upr_2 <-NA
-
-data_new1$s.P_RA <- as.numeric(data_new1$s.P_RA)
-data_new1$s.P_RH <- as.numeric(data_new1$s.P_RH)
-data_new1$s.sq.P_RA <- as.numeric(data_new1$s.sq.P_RA)
-data_new1$s.sq.T_RA <- as.numeric(data_new1$s.sq.T_RA)
-data_new1$s.sq.TSF <- as.numeric(data_new1$s.sq.TSF)
-data_new1$s.T_RA <- as.numeric(data_new1$s.T_RA)
-data_new1$s.T_RC <- as.numeric(data_new1$s.T_RC)
-data_new1$s.T_RH <- as.numeric(data_new1$s.T_RH)
-data_new1$s.TBF <- as.numeric(data_new1$s.TBF)
-data_new1$s.TSF <- as.numeric(data_new1$s.TSF)
-
-
-prep_pred_2 <- predict.glm(prep_mod_R_2, data_new1, type = "response", se.fit = TRUE)
-data_new1$prep_fit_2 <- prep_pred_2$fit
-data_new1$prep_se_2 <- prep_pred_2$se.fit
-
-data_new1$prep_lwr_2 <- prep_pred_2$fit - qnorm(0.975) * prep_pred_2$se.fit
-data_new1$prep_upr_2 <- prep_pred_2$fit + qnorm(0.975) * prep_pred_2$se.fit
 #####
 
 plt3 <- ggplot(data= data_new1, aes(x= TSF, y= prep_fit)) +
