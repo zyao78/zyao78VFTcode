@@ -4,9 +4,7 @@
 #################################simulate graphs########################
 ########################################################################
 
-TBF_long <- read.csv("data/TBF_long_export_11_24_25.csv")
 
-data_new1 <- read.csv("legacy effect/data/TBFxClimate/data_new1_2024.csv")
 
 ########################################################################
 ######## TSFxTBF response for each vital rate            ###############
@@ -108,17 +106,13 @@ data_new1$s.sq.P_LA <- rep(mean(TBF_long$s.sq.P_LA, na.rm=TRUE), nrow*2)
 data_new1$s.T_LH <- rep(mean(TBF_long$s.T_LH, na.rm=TRUE), nrow*2)
 data_new1$s.sq.P_LA <- rep(mean(TBF_long$s.sq.P_LA, na.rm=TRUE), nrow*2)
 data_new1$s.T_LC <- rep(mean(TBF_long$s.T_LC, na.rm=TRUE), nrow*2)
+data_new1$s.sq.T_LH <- rep(mean(TBF_long$s.sq.T_LH, na.rm=TRUE), nrow*2)
 
 
 
 ################## sur (GLM) #################################
 
-data_new1$gr_fit <- NA
-data_new1$gr_se  <-NA
-data_new1$gr_lwr <-  NA
-data_new1$gr_upr <-NA
-
-sur_pred <- predict(GM_R_sur, data_new1, type = "response", se.fit = TRUE)
+sur_pred <- predict(survival_mod, data_new1, type = "response", se.fit = TRUE)
 data_new1$sur_fit <- sur_pred$fit
 data_new1$sur_se <- sur_pred$se.fit
 
@@ -138,7 +132,6 @@ plt1 <- ggplot(data= data_new1, aes(x= TSF, y= sur_fit)) +
   scale_x_continuous(breaks = 0:10) +
   theme(text = element_text(size = 20)) 
 plt1
-save(plt1, file = "figures/VFT_climate/sur_graph_TBF.Rdata")
 
 ################## gr  #################################
 
@@ -150,7 +143,6 @@ plt2 <- ggplot(data= data_new1, aes(x= TSF, y= gr$fit)) +
   labs(y= "Growth", x = "Time since fire", tag= "B") + 
   theme_bw() + theme(legend.position='none') + theme(text = element_text(size = 20)) 
 plt2
-save(plt2, file = "figures/VFT_climate/gr_graph_TBF.Rdata")
 
 ################## prep (glm)  #################################
 data_new1$prep_fit <- NA
@@ -159,14 +151,12 @@ data_new1$prep_lwr <-  NA
 data_new1$prep_upr <-NA
 
 
-prep_pred <- predict.glm(prep_mod_L, data_new1, type = "response", se.fit = TRUE)
+prep_pred <- predict.glm(prep_mod, data_new1, type = "response", se.fit = TRUE)
 data_new1$prep_fit <- prep_pred$fit
 data_new1$prep_se <- prep_pred$se.fit
 
 data_new1$prep_lwr <- prep_pred$fit - qnorm(0.975) * prep_pred$se.fit
 data_new1$prep_upr <- prep_pred$fit + qnorm(0.975) * prep_pred$se.fit
-
-#####
 
 plt3 <- ggplot(data= data_new1, aes(x= TSF, y= prep_fit)) +
   geom_line(aes(color= newTBF)) + 
@@ -178,7 +168,6 @@ plt3 <- ggplot(data= data_new1, aes(x= TSF, y= prep_fit)) +
   scale_x_continuous(breaks = 0:10) +
   theme(text = element_text(size = 20)) 
 plt3
-save(plt3, file = "figures/VFT_climate/prep_graph_TBF.Rdata")
 
 ######## crep ############
 data_new1$crep <- merTools::predictInterval(crep_mod, data_new1, which= "fixed",level= 0.95,n.sims= 1000)
@@ -189,7 +178,6 @@ plt4 <- ggplot(data= data_new1, aes(x= TSF, y= crep$fit)) +
   labs(y= "number of fruit", x = "Time since fire", tag= "D") + 
   theme_bw() + theme(legend.position='none') + theme(text = element_text(size = 20)) 
 plt4
-save(plt4, file = "figures/VFT_climate/crep_graph_TBF.Rdata")
 
 #################################################################
 #################################################################
@@ -274,6 +262,31 @@ ggpubr::ggarrange(plt1, plt2, plt3, plt4,
 ggpubr::ggarrange(plt1, plt2,plt3,plt4)
 
 
+########### recruit ################### 
+recruit_df <- read_csv("Legacy effect/data/recruit_df_11_24_2025.csv")
+data_new1$log.fr <- rep(mean(recruit_df$log.fr, na.rm=TRUE), nrow*2)
+
+rec_pred <- predict(recruit_mod, data_new1, type = "response", se.fit = TRUE)
+
+data_new1$rec_fit <- rec_pred$fit
+data_new1$rec_se <- rec_pred$se.fit
+
+data_new1$rec_lwr <- rec_pred$fit - qnorm(0.975) * rec_pred$se.fit
+data_new1$rec_upr <- rec_pred$fit + qnorm(0.975) * rec_pred$se.fit
+
+plt5 <- ggplot(data= data_new1, aes(x= TSF, y= rec_fit)) +
+  geom_line(aes(color= newTBF)) + 
+#  ylim(0,1) + 
+#  xlim(c(0, 16.5)) +
+  geom_ribbon(aes(ymin = data_new1$rec_lwr, ymax = data_new1$rec_upr, 
+                  fill= newTBF), alpha = 0.1) + 
+  labs(y= "num recruit", x = "Time since fire",  color= "", fill= "", tag= "C") + 
+  theme_bw()  + 
+  theme(legend.position = "none", legend.spacing.y = unit(-20, "pt")) +
+  theme(text = element_text(size = 20)) 
+plt5
+
+
 
 ###################################################################################
 ###################################################################################
@@ -289,7 +302,7 @@ data_new1 <- read.csv("data/TBFxClimate/data_new1_2024.csv")
 TBF <- sort(unique(original_vector), na.last = TRUE)
 s.TBF <- max(sort(unique(TBF_long$s.TBF), na.last = TRUE))
 s.TSF <- max(sort(unique(TBF_long$s.TSF), na.last = TRUE))
-s.sq.TSF <- max(sort(unique(TBF_long$s.sq.TSF), na.last = TRUE))
+s.sq.TSF <- max(sort(unique(TBF_loRplotng$s.sq.TSF), na.last = TRUE))
 nrow <- length(c(0:max(TBF_long$TSF)))
 data_new1$s.TSF <- s.TSF
 data_new1$s.TBF <- s.TBF

@@ -232,7 +232,7 @@ library(glmmTMB)
 library(MASS)
 
 
-recruit_df <- read.csv("data/TBFxClimate/recruit_df_11_7_2025.csv")
+recruit_df <- read_csv("Legacy effect/data/recruit_df_11_24_2025.csv")
 
 # recruit mod
 
@@ -241,18 +241,15 @@ recruit_subset <-
   recruit_df %>% 
   dplyr::filter(across(c(num_news, log.fr, TSF, TBF,site), ~ !is.na(.)))
 
-recruit_mod_g <- glmer.nb(num_news ~num_fr+s.TSF*s.TBF + s.sq.TSF + 
-                            s.T_RA + s.P_RA + s.sq.T_RA + s.sq.P_RA + s.T_RA:s.P_RA +
-                            s.T_RC + s.sq.T_RC + 
-                            s.T_RW +s.P_RW + s.T_RW:s.P_RW + s.sq.P_RW +
-                            s.T_RD + s.P_RD + s.T_RD: s.P_RD + s.sq.P_RD +
-                            s.T_RH + s.P_RH + s.sq.T_RH + s.T_RH:s.P_RH +
+recruit_mod_R <- glmer.nb(num_news ~log.fr+s.TSF*s.TBF + s.sq.TSF + 
+                            s.T_RA + s.sq.T_RA + s.P_RA + s.sq.P_RA + s.T_RA:s.P_RA +
+                            s.T_RH + s.T_RC +s.P_RH +
                             (1|site),
                            data = recruit_subset, na.action = "na.fail") 
 
 
 
-recruit_mod_g_2 <- glmer.nb(num_news ~log.fr+s.TSF*s.TBF + s.sq.TSF + 
+recruit_mod_L <- glmer.nb(num_news ~log.fr+s.TSF*s.TBF + s.sq.TSF + 
                             s.T_LA + s.sq.T_LA + s.P_LA + s.sq.P_LA + s.T_LA:s.P_LA +
                             s.T_LH + s.T_LC +s.P_LH +
                             (1|site),
@@ -267,15 +264,21 @@ registerDoParallel(cluster)
 clusterExport(cluster, c("recruit_subset"))   ### replace with different subset (different global models)
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
-recruit_dredge_R_2 <- MuMIn::dredge(
-  recruit_mod_g_2,
+recruit_dredge_R <- MuMIn::dredge(
+  recruit_mod_R,
   cluster = cluster,
   trace   = 2
 )
-recruit_mod_R_2 <- get.models(recruit_dredge_R_2, 1)[[1]]
+recruit_dredge_L <- MuMIn::dredge(
+  recruit_mod_L,
+  cluster = cluster,
+  trace   = 2
+)
 
-summary(recruit_mod_R)
-summary(recruit_mod_R_2)
+recruit_mod_R <- get.models(recruit_dredge_R, 1)[[1]]
+recruit_mod_L <- get.models(recruit_dredge_L, 1)[[1]]
+
+
 
 stopCluster(cluster)
 

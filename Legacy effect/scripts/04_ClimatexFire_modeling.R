@@ -111,8 +111,24 @@ GM_R_sur <- glmer(
   family = "binomial", 
   na.action = "na.fail"
 )
-summary(GM_R_sur)
-## treating site as fixed effect
+
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("sur_subset_R"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+sur_dredge_R <- MuMIn::dredge(
+  GM_R_sur,
+  cluster = cluster,
+  trace   = 2
+)
+head(sur_dredge_R) ########### manually check for comparable models
+
+sur_mod_R <- get.models(sur_dredge_R, 3)[[1]]
+
+## treating site as fixed effect (if the best fit glmer failts to converge)
 GM_R_sur_2 <- glm(
   sur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
     s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
@@ -168,11 +184,10 @@ gr_dredge_R <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
+head(gr_dredge_R)
 gr_mod_R <- get.models(gr_dredge_R, 1)[[1]]
-summary(gr_mod_R)
-car::Anova(gr_mod_R, type = 3)
+
 stopCluster(cluster)
-save(gr_mod_R, file = "data/TBFxClimate/gr_mod_R_ls.Rdata")
 
 ## prob fruiting
 
@@ -189,7 +204,8 @@ GM_R_prep <- glmer(
   data = prep_subset_R,
   family = "binomial", 
   na.action = "na.fail"
-)   ### this likely won't work due to convergence failure
+)   ### this likely won't work due to convergence failure, but feel free to try (take a long time to fit)
+
 
 GM_R_prep <- glm(
   prep1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
@@ -213,10 +229,8 @@ prep_dredge_R <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
+head(prep_dredge_R)
 prep_mod_R <- get.models(prep_dredge_R, 1)[[1]]
-summary(prep_mod_R)   ## large eiigenvalue ratio value, rescale 
-
-save(prep_mod_R, file = "data/TBFxClimate/prep_mod_R_ls.Rdata")
 
 stopCluster(cluster)
 
@@ -245,11 +259,10 @@ crep_dredge_R <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
+head(crep_dredge_R)
 crep_mod_R <- get.models(crep_dredge_R, 1)[[1]]
-summary(crep_mod_R)
-car::Anova(crep_mod_R, type = 3)
+
 stopCluster(cluster)
-save(crep_mod_R, file = "data/TBFxClimate/crep_mod_R_ls.Rdata")
 
 
 
@@ -341,12 +354,9 @@ sur_dredge_L <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
-sur_mod_L <- get.models(sur_dredge_L, 1)[[1]]
+head(sur_dredge_L)
+sur_mod_L <- get.models(sur_dredge_L, 3)[[1]]
 summary(sur_mod_L)   
-
-
-save(sur_mod_L, file = "data/TBFxClimate/sur_mod_L_ls.Rdata")
-
 
 stopCluster(cluster)
 
@@ -376,11 +386,10 @@ gr_dredge_L <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
+head(gr_dredge_L)
 gr_mod_L <- get.models(gr_dredge_L, 1)[[1]]
 summary(gr_mod_L)
-car::Anova(gr_mod_L, type = 3)
 stopCluster(cluster)
-save(gr_mod_L, file = "data/TBFxClimate/gr_mod_L_ls.Rdata")
 
 ## prob fruiting
 
@@ -399,7 +408,7 @@ GM_L_prep <- glmer(
   family = "binomial", 
   na.action = "na.fail"
 )
-GM_L_prep_2 <- glm(
+GM_L_prep <- glm(
   prep1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
     s.T_LA + s.sq.T_LA +s.P_LA+ s.sq.P_LA + s.T_LA:s.P_LA+
     s.T_LH + s.P_LH + s.T_LH:s.P_LH + s.T_LC +
@@ -416,13 +425,14 @@ clusterExport(cluster, c("prep_subset_L"))   ### replace with different subset (
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
 prep_dredge_L <- MuMIn::dredge(
-  GM_L_prep_2,
+  GM_L_prep,
   cluster = cluster,
   trace   = 2
 )
-prep_mod_L <- get.models(prep_dredge_L, 1)[[1]]
+head(prep_dredge_L)
+
+prep_mod_L <- get.models(prep_dredge_L, 5)[[1]]
 summary(prep_mod_L)
-save(prep_mod_L, file = "data/TBFxClimate/prep_mod_L_ls.Rdata")
 stopCluster(cluster)
 
 ### number of fruit
@@ -451,258 +461,107 @@ crep_dredge_L <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
+head(crep_dredge_L)
 crep_mod_L <- get.models(crep_dredge_L, 1)[[1]]
 summary(crep_mod_L)
-car::Anova(crep_mod_L, type = 3)
 stopCluster(cluster)
-save(crep_mod_L, file = "data/TBFxClimate/crep_mod_L_ls.Rdata")
+
+#################################################
+########### recruit ############################
+
+recruit_df <- read_csv("Legacy effect/data/recruit_df_11_24_2025.csv")
+library(MASS)
+recruit_subset <- 
+  recruit_df %>% 
+  dplyr::filter(across(c(num_news, log.fr, TSF, TBF,site), ~ !is.na(.)))
+
+recruit_mod_g_R <- glm.nb(num_news ~log.fr+s.TSF*s.TBF +s.sq.TSF +
+                            s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
+                            s.P_RH:s.T_RH + s.P_RD + 
+                            site,   data = recruit_subset, na.action = "na.fail") 
 
 
-#########################################################################################################
-#########################################################################################################
-##################################   disabled    ########################################################
-#########################################################################################################
-######################     dredge on local and regional models combined #################################
-#########################################################################################################
-#########################################################################################################
 
-TBF_long <- read.csv("data/TBFxClimate/TBF_long_10232025.csv")
+recruit_mod_g_L <- glm.nb(num_news ~log.fr+s.TSF*s.TBF + s.sq.TSF +
+                            s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_LH +
+                            s.P_LH:s.T_LH + s.P_LD +  site,   data = recruit_subset, na.action = "na.fail") 
 
-
-### Sur
-
-Sur_term_L <- attr(terms(sur_mod_L_2), "term.labels")
-Sur_term_R <- attr(terms(sur_mod_R_2), "term.labels")
-terms_vec <- union(Sur_term_L, Sur_term_R)
-int_terms <- grep(":", terms_vec, value = TRUE)
-int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
-main_terms <- terms_vec[!grepl(":", terms_vec)]
-Sur_all_terms <- union(main_terms, int_terms_broken)
-
-f_fix <- reformulate(terms_vec, response = "sur0_1")
-f_fix    ### don't refer to this, copy and paste to change site into a random effect
-
-Sur_subset_G <- 
-  TBF_long %>% 
-  filter_at(vars(sur0_1,Sur_all_terms), all_vars(!is.na(.)))
-
-GM_G_sur <- glmer(
-  sur0_1 ~ s.logsize0 + s.P_LH + s.sq.T_LH + s.sq.TSF + s.T_LA + 
-    s.T_LD + s.T_LH + s.TBF + s.TSF + s.P_LH:s.T_LH + 
-    s.TBF:s.TSF + s.P_RD + s.P_RH + s.sq.T_RH + s.T_RA + s.T_RD + 
-    s.T_RH + s.P_RH:s.T_RH + (1|site),
-  data = Sur_subset_G,
-  family = "binomial", 
-  na.action = "na.fail"
-)
-summary(GM_G_sur)
 n_cores <- detectCores()
+n_cores
 cluster <- makeCluster(n_cores - 1)
 registerDoParallel(cluster)
-clusterExport(cluster, c("Sur_subset_G"))   ### replace with different subset (different global models)
-clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+clusterExport(cluster, c("recruit_subset"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(MASS); library(MuMIn)})
 
-sur_dredge_G <- MuMIn::dredge(
-  GM_G_sur,
+recruit_dredge_R <- MuMIn::dredge(
+  recruit_mod_g_R,
   cluster = cluster,
   trace   = 2
 )
-sur_mod_G <- get.models(sur_dredge_G, 1)[[1]]
-summary(sur_mod_G)   
-save(sur_mod_G, file = "data/TBFxClimate/sur_mod_G.Rdata")
+head(recruit_dredge_R)
+recruit_mod_R <- get.models(recruit_dredge_R, 4)[[1]]
 
-stopCluster(cluster)
-
-#### prep
-prep_term_L <- attr(terms(prep_mod_L), "term.labels")
-prep_term_R <- attr(terms(prep_mod_R), "term.labels")
-terms_vec <- union(prep_term_L, prep_term_R)
-int_terms <- grep(":", terms_vec, value = TRUE)
-int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
-main_terms <- terms_vec[!grepl(":", terms_vec)]
-prep_all_terms <- union(main_terms, int_terms_broken)
-
-f_fix <- reformulate(terms_vec, response = "prep1")
-f_fix    ### don't refer to this, copy and paste to change site into a random effect
-
-prep_subset_G <- 
-  TBF_long %>% 
-  filter_at(vars(prep1,prep_all_terms), all_vars(!is.na(.)))
-
-GM_G_prep <- glm(
-  prep1 ~ s.logsize0 + s.P_LA + s.P_LH + s.sq.P_LA + s.sq.TSF + 
-    s.T_LA + s.T_LC + s.T_LH + s.TBF + s.TSF + s.P_LA:s.T_LA + 
-    s.P_LH:s.T_LH + s.TBF:s.TSF + s.P_RA + s.P_RH + s.sq.P_RA + 
-    s.sq.T_RA + s.T_RA + s.T_RC + s.T_RH + s.P_RA:s.T_RA + s.P_RH:s.T_RH +site,
-  data = prep_subset_G,
-  family = "binomial", 
-  na.action = "na.fail"
-)
-
-n_cores <- detectCores()
-cluster <- makeCluster(n_cores - 1)
-registerDoParallel(cluster)
-clusterExport(cluster, c("prep_subset_G"))   ### replace with different subset (different global models)
-clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
-
-prep_dredge_G <- MuMIn::dredge(
-  GM_G_prep,
+recruit_dredge_L <- MuMIn::dredge(
+  recruit_mod_g_L,
   cluster = cluster,
   trace   = 2
 )
-prep_mod_G <- get.models(prep_dredge_G, 1)[[1]]
-summary(prep_mod_G)   
-prep_mod_G
+head(recruit_dredge_L)
+recruit_mod_L <- get.models(recruit_dredge_L, 6)[[1]]
+summary(recruit_mod_L)
 
-## complete separation was suggested. Need to confirm before proceeding with the model
-install.packages("detectseparation")
-library("detectseparation")
-plot(inf_check <- check_infinite_estimates(prep_mod_G))  # check for the occurence of infinite estimates
-## no evidence for infinite estimates
-update(prep_mod_G, method = "detect_separation")   # separation:FALSE, no issue of complete separation, okay to proceed
+##############################################
+AICc_list <- AICc(sur_mod_L, sur_mod_R, gr_mod_L, gr_mod_R, prep_mod_L, prep_mod_R, crep_mod_L, crep_mod_R,  recruit_mod_L, recruit_mod_R)
 
-save(prep_mod_G, file = "data/TBFxClimate/prep_mod_G.Rdata")
-
-
-
-### growth
-
-
-gr_term_L <- attr(terms(gr_mod_L), "term.labels")
-gr_term_R <- attr(terms(gr_mod_R), "term.labels")
-terms_vec <- union(gr_term_L, gr_term_R)
-int_terms <- grep(":", terms_vec, value = TRUE)
-int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
-main_terms <- terms_vec[!grepl(":", terms_vec)]
-gr_all_terms <- union(main_terms, int_terms_broken)
-
-f_fix <- reformulate(terms_vec, response = "logsize1 ")
-f_fix    ### don't refer to this, copy and paste to change site into a random effect
-
-gr_subset_G <- 
-  TBF_long %>% 
-  filter_at(vars(logsize1 ,gr_all_terms), all_vars(!is.na(.)))
-
-GM_G_gr <- lmer(
-  logsize1 ~ s.logsize0 + s.P_LA + s.P_LH + s.sq.T_LA + s.sq.TSF + 
-    s.T_LA + s.T_LD + s.TBF + s.TSF + s.P_LA:s.T_LA + s.TBF:s.TSF + 
-    s.P_RA + s.sq.T_RA + s.T_RA + s.T_RC + s.T_RD + s.P_RA:s.T_RA+ (1 | site),
-  data = gr_subset_G,
-  na.action = "na.fail"
-)
-
-n_cores <- detectCores()
-cluster <- makeCluster(n_cores - 1)
-registerDoParallel(cluster)
-clusterExport(cluster, c("gr_subset_G"))   ### replace with different subset (different global models)
-clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
-
-gr_dredge_G <- MuMIn::dredge(
-  GM_G_gr,
-  cluster = cluster,
-  trace   = 2
-)
-gr_mod_G <- get.models(gr_dredge_G, 1)[[1]]
-summary(gr_mod_G)   
-
-save(gr_mod_G, file = "data/TBFxClimate/gr_mod_G.Rdata")
-
-stopCluster(cluster)
-
-### number of fruit
-
-crep_term_L <- attr(terms(crep_mod_L), "term.labels")
-crep_term_R <- attr(terms(crep_mod_R), "term.labels")
-terms_vec <- union(crep_term_L, crep_term_R)
-int_terms <- grep(":", terms_vec, value = TRUE)
-int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
-main_terms <- terms_vec[!grepl(":", terms_vec)]
-crep_all_terms <- union(main_terms, int_terms_broken)
-
-f_fix <- reformulate(terms_vec, response = "logcrep1  ")
-f_fix    ### don't refer to this, copy and paste to change site into a random effect
-
-crep_subset_G <- 
-  TBF_long %>% 
-  filter_at(vars(logcrep1  ,crep_all_terms), all_vars(!is.na(.)))
-
-GM_G_crep <- lmer(
-  logcrep1 ~ s.sq.TSF + s.T_LA + s.T_LH + TBF + s.logsize0 + s.T_RA + 
-    s.T_RH+ (1 | site),
-  data = crep_subset_G,
-  na.action = "na.fail"
-)
-
-n_cores <- detectCores()
-cluster <- makeCluster(n_cores - 1)
-registerDoParallel(cluster)
-clusterExport(cluster, c("crep_subset_G"))   ### replace with different subset (different global models)
-clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
-
-crep_dredge_G <- MuMIn::dredge(
-  GM_G_crep,
-  cluster = cluster,
-  trace   = 2
-)
-crep_mod_G <- get.models(crep_dredge_G, 1)[[1]]
-summary(crep_mod_G)   
-
-save(crep_mod_G, file = "data/TBFxClimate/crep_mod_G.Rdata")
-
-stopCluster(cluster)
-###
-sur_mod_G <-sur_mod_R_2
-gr_mod_G <-gr_mod_L
-prep_mod_G<-prep_mod_R
-crep_mod_G<-crep_mod_R
-save(crep_mod_G, file = "data/TBFxClimate/.Rdata")
+survival_mod <- if (AICc_list$AICc[1] < AICc_list$AICc[2]) sur_mod_L else sur_mod_R
+growth_mod <- if (AICc_list$AICc[3] < AICc_list$AICc[4]) gr_mod_L else gr_mod_R
+prep_mod <- if (AICc_list$AICc[5] < AICc_list$AICc[6]) prep_mod_L else prep_mod_R
+crep_mod <- if (AICc_list$AICc[7] < AICc_list$AICc[8]) crep_mod_L else crep_mod_R
+recruit_mod <- if (AICc_list$AICc[9] < AICc_list$AICc[10]) recruit_mod_L else recruit_mod_R
 
 
 ################################################   
 #######   variance in growth ###################
-TBF_long <- read.csv("data/TBFxClimate/TBF_long_landscape_2024.csv")
-TBF_long$vargrowth <- NA
-TBF_long$predgrowth <- NA    # see predicted values
-growth_terms <- attr(terms(gr_mod_L), "term.labels")
+growth_terms <- attr(terms(growth_mod), "term.labels")
 int_terms <- grep(":", growth_terms, value = TRUE)
 int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
 main_terms <- growth_terms[!grepl(":", growth_terms)]
 logsize1 <- c("logsize1")
 gr_all_terms <- unique(c(main_terms, int_terms_broken, logsize1))
-ok <- complete.cases(TBF_long[, gr_all_terms, drop = FALSE])    ### return logical vector (T/F) indicating no missing values
-idx <- which(ok)                                      # indices if you need them
 
-TBF_long$predgrowth[idx] <- predict(gr_mod_L,newdata=TBF_long[idx,])
+Vargrowth_subset <- 
+  TBF_long[which(TBF_long$sur0_1 == 1),] %>%      ## make sure to subset data to only alive plants
+  filter(across(all_of(gr_all_terms), ~ !is.na(.)))
 
-TBF_long$vargrowth <-
-  (TBF_long$predgrowth - # variance is equivalent to (predicted-expected)^2
-     TBF_long$logsize1)^2
-TBF_long$og_predgrowth <- exp(TBF_long$predgrowth)
-TBF_long$og_logsize1 <- exp(TBF_long$logsize1)
+Vargrowth_subset$vargrowth <- NA
+Vargrowth_subset$predgrowth <- NA
 
-vargrowth_subset <- 
-  TBF_long %>% 
-  dplyr::filter(across(c(logsize1, s.logsize0, site, s.TSF,s.sq.TSF, s.TBF, s.T_RA, s.T_LA,
-                         s.P_RA,s.P_LA, s.sq.P_RA, s.sq.P_LA, s.T_LC, s.T_RC, s.T_LD,s.T_RD,
-                         s.P_LD, s.P_RD, s.P_LW, s.P_RW
-                         ,vargrowth ), ~ !is.na(.))) %>% 
-  mutate(exp_vargrowth = exp(vargrowth)) #***** to prevent negative numbers later
+Vargrowth_subset$predgrowth <- predict(growth_mod,newdata=Vargrowth_subset)
 
-GM_vargrowth_R <- lmer(vargrowth ~ s.logsize0 +s.sq.TSF+ s.TBF*s.TSF+ s.T_RA+ 
-                       s.P_RA  + s.sq.P_RA  + s.T_RC +s.T_RD +
-                      s.P_RD + s.P_RW
+Vargrowth_subset$vargrowth <-
+  (Vargrowth_subset$predgrowth - # variance is equivalent to (predicted-expected)^2
+     Vargrowth_subset$logsize1)^2
+Vargrowth_subset$og_predgrowth <- exp(Vargrowth_subset$predgrowth)
+Vargrowth_subset$og_logsize1 <- exp(Vargrowth_subset$logsize1)
+
+
+#***** to prevent negative numbers later
+
+GM_vargrowth_R <- lmer(vargrowth ~ s.logsize0 + s.T_RA+ s.TSF * s.TBF + s.sq.TSF +
+                         s.P_RA  + s.sq.P_RA  + s.T_RC +s.T_RD +
+                         s.P_RD + s.P_RW
                        + (1|site), #  
-                        data = vargrowth_subset, na.action = "na.fail") 
-GM_vargrowth_L <- lmer(vargrowth ~ s.logsize0 + s.T_LA+ s.sq.TSF+ s.TBF*s.TSF +
+                       data = Vargrowth_subset, na.action = "na.fail") 
+GM_vargrowth_L <- lmer(vargrowth ~ s.logsize0 + s.T_LA+ s.TSF * s.TBF+  s.sq.TSF +
                          s.P_LA  + s.sq.P_LA  + s.T_LC +s.T_LD +
                          s.P_LD + s.P_LW
                        + (1|site), #  
-                       data = vargrowth_subset, na.action = "na.fail") 
+                       data = Vargrowth_subset, na.action = "na.fail") 
 
 n_cores <- detectCores()
 cluster <- makeCluster(n_cores - 1)
 registerDoParallel(cluster)
-clusterExport(cluster, c("vargrowth_subset"))   ### replace with different subset (different global models)
+clusterExport(cluster, c("Vargrowth_subset"))   ### replace with different subset (different global models)
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
 
@@ -711,6 +570,7 @@ vargrowth_dredge_L <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
+head(vargrowth_dredge_L)
 vargrowth_mod_L <- get.models(vargrowth_dredge_L, 1)[[1]]
 
 vargrowth_dredge_R <- MuMIn::dredge(
@@ -718,100 +578,16 @@ vargrowth_dredge_R <- MuMIn::dredge(
   cluster = cluster,
   trace   = 2
 )
+head(vargrowth_dredge_R)
 vargrowth_mod_R<- get.models(vargrowth_dredge_R, 1)[[1]]
 
+stopCluster(cluster)
 
-### get AIC
-AICc(vargrowth_mod_R)
-AICc(vargrowth_mod_L)
-save(vargrowth_mod_R, file = "data/TBFxClimate/vargrowth_mod_G_ls.Rdata")
+vargrowth_mod <- if (AICc (vargrowth_mod_R) < AICc(vargrowth_mod_L)) vargrowth_mod_R else vargrowth_mod_L
 
-
-summary(vargrowth_mod_L)
-
-########################################################################################
-##################################### recruit ##########################################
-########################################################################################
-recruit_df <- read.csv("data/TBFxClimate/recruit_df_11_7_2025.csv")
-
-# recruit mod
-
-
-recruit_subset <- 
-  recruit_df %>% 
-  dplyr::filter(across(c(num_news, log.fr, TSF, TBF,site), ~ !is.na(.)))
-
-recruit_mod_g <- glmer.nb(num_news ~num_fr+s.TSF*s.TBF + s.sq.TSF + 
-                            s.T_RA + s.P_RA + s.sq.T_RA + s.sq.P_RA + s.T_RA:s.P_RA +
-                            s.T_RC + s.sq.T_RC + 
-                            s.T_RW +s.P_RW + s.T_RW:s.P_RW + s.sq.P_RW +
-                            s.T_RD + s.P_RD + s.T_RD: s.P_RD + s.sq.P_RD +
-                            s.T_RH + s.P_RH + s.sq.T_RH + s.T_RH:s.P_RH +
-                            (1|site),
-                          data = recruit_subset, na.action = "na.fail") 
-
-
-
-recruit_mod_g_2 <- glmer.nb(num_news ~log.fr+s.TSF*s.TBF + s.sq.TSF + 
-                              s.T_LA + s.sq.T_LA + s.P_LA + s.sq.P_LA + s.T_LA:s.P_LA +
-                              s.T_LH + s.T_LC +s.P_LH +
-                              (1|site),
-                            data = recruit_subset, na.action = "na.fail") 
-
-summary(recruit_mod_g)
-
-n_cores <- detectCores()
-n_cores
-cluster <- makeCluster(n_cores - 1)
-registerDoParallel(cluster)
-clusterExport(cluster, c("recruit_subset"))   ### replace with different subset (different global models)
-clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
-
-recruit_dredge_R_2 <- MuMIn::dredge(
-  recruit_mod_g_2,
-  cluster = cluster,
-  trace   = 2
-)
-recruit_mod_R_2 <- get.models(recruit_dredge_R_2, 1)[[1]]
-
-summary(recruit_mod_R)
-summary(recruit_mod_R_2)
-
-
-
-## save env
-save(list = ls(), file = "env_snapshot.RData")
-save(infl, file = "data/TBFxClimate/infl.Rdata")
-save(prep_mod_R_2, file = "prep_mod_R_2.Rdata")
-write.csv(TBF_long,"data/TBFxClimate/TBF_long_10302025_with_Var.csv") 
-install.packages(c("usethis","gitcreds"))  # if not already installed
-usethis::create_github_token()
-gitcreds::gitcreds_set()   # paste the token when prompted
-### plotting 
-ggplot(P_RA, aes(x = factor(startyear), y = prec, fill = site)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
-  labs(x = "startyear", y = "annual cum Prec", fill = "site")+
-  ggtitle("annual reg prec")
-
-
-r.squaredGLMM(gr_mod_R)
-
-
-##############################################################################################
-##############################################################################################
-##############################################################################################
-##############################################################################################
-################################   update ###################################################
-##############################################################################################
-##############################################################################################
-
-TBF_long_no_attr <- read.csv("data/TBF_long_export_11_24_25.csv")
-str(TBF_long_no_attr)
-
-update(survival_mod,data=TBF_long_no_attr %>% 
-         filter_at(vars(sur0_1, s.logsize0, s.TSF,s.TBF, s.sq.TSF, site, s.T_LA,s.T_LH,s.T_LD,s.sq.T_LH,
-                        s.P_LH, s.P_LD), all_vars(!is.na(.)))
-         )
+##############################################################
+#################### save env ################################
+##############################################################
+save(survival_mod, growth_mod, prep_mod, crep_mod,vargrowth_mod,recruit_mod, TBF_long, file = "Legacy effect/data/TBFxClimate/VR_mod_qd_delta AICc.Rdata")
 
 

@@ -4,6 +4,7 @@ library(merTools)
 ############ remove attributes #####################################################
 load("Legacy effect/data/TBF_long_landscape_with_attr.Rdata")
 load("Legacy effect/data/TBFxClimate/VR_mod_linear.Rdata")
+load("Legacy effect/data/TBFxClimate/VR_mod_qd_delta AICc.Rdata")
 
 TBF_long_noattr <- read_csv("Legacy effect/data/TBF_long_export_11_24_25.csv")
 TBF_long_noattr <- TBF_long_noattr %>%
@@ -125,7 +126,7 @@ data_new1$sur_se  <-NA
 data_new1$sur_lwr <-  NA
 data_new1$sur_upr <-NA
 
-sur_pred <- predict(L_survival_mod, data_new1, type = "response", se.fit = TRUE)
+sur_pred <- predict(survival_mod, data_new1, type = "response", se.fit = TRUE)
 data_new1$sur_fit <- sur_pred$fit
 data_new1$sur_se <- sur_pred$se.fit
 
@@ -148,7 +149,7 @@ plt1
 
 ################## gr  #################################
 
-data_new1$gr <- predictInterval(L_growth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
+data_new1$gr <- merTools::predictInterval(growth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
 plt2 <- ggplot(data= data_new1, aes(x= TSF, y= gr$fit)) +
   geom_line(aes(color= newTBF))+ 
   geom_ribbon(aes(ymin = data_new1$gr$lwr, ymax = data_new1$gr$upr, fill= newTBF), alpha = 0.1) + 
@@ -185,7 +186,7 @@ plt3 <- ggplot(data= data_new1, aes(x= TSF, y= prep_fit)) +
 plt3
 
 ######## crep ############
-data_new1$crep <- merTools::predictInterval(L_crep_mod, data_new1, which= "fixed",level= 0.95,n.sims= 1000)
+data_new1$crep <- merTools::predictInterval(crep_mod, data_new1, which= "fixed",level= 0.95,n.sims= 1000)
 plt4 <- ggplot(data= data_new1, aes(x= TSF, y= crep$fit)) +
   geom_line(aes(color= newTBF))+ 
   geom_ribbon(aes(ymin = data_new1$crep$lwr, ymax = data_new1$crep$upr, fill= newTBF), alpha = 0.1) + 
@@ -239,3 +240,4 @@ ggpubr::ggarrange(plt1, plt2, plt3, plt4,
                   common.legend = TRUE,
                   legend = "right")
 
+save.image(file = "my_environment_1_22.RData")

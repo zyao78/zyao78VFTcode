@@ -5,14 +5,14 @@ library(dplyr)
 library(glue)
 library(zoo)
 library(MASS)
-load("legacy effect/data/TBF_long_landscape_with_attr.RData") # loads in the VR functions
+load("Legacy effect/data/TBFxClimate/VR_mod_linear.Rdata") # loads in the VR functions
 
 ### load data and remove model attr (if needed, check str of VR models)
-TBF_long_noattr <- read.csv("legacy effect/data/TBF_long_export_11_24_25.csv")
+TBF_long_noattr <- read_csv("Legacy effect/data/TBF_long_export_11_24_25.csv")
+
 TBF_long_noattr <- TBF_long_noattr %>%
   mutate(across(c("s.logsize0", "s.sq.TSF", "s.TSF", "s.TBF"), as.numeric))
-TBF_long$logsize0 <- (log(TBF_long$size0+0.1))
-TBF_long$s.logsize0 <- scale(TBF_long$logsize0) 
+
 
 survival_mod <- update(survival_mod,data=TBF_long_noattr %>% 
                   filter_at(vars(sur0_1, s.logsize0, s.TSF,s.TBF, s.sq.TSF, site, s.T_LA,s.T_LH,s.T_LD,s.sq.T_LH,
@@ -25,12 +25,18 @@ prep_mod <- update(prep_mod,data=TBF_long_noattr %>%
                                   s.P_RH, ), all_vars(!is.na(.))))
 crep_mod <- update(crep_mod,data=TBF_long_noattr %>% 
                    filter_at(vars(logcrep1, s.logsize0, TSF, TBF,s.sq.TSF, site, s.T_RA, s.T_RH), all_vars(!is.na(.))))
-variance_mod <- update(variance_mod,data=TBF_long_noattr %>% 
+vargrowth_mod <- update(variance_mod,data=TBF_long_noattr %>% 
                         filter_at(vars(vargrowth, s.logsize0,s.P_RD,s.P_RW,s.sq.P_RA,s.T_RD  ), all_vars(!is.na(.))))
 recruit_mod <- recruit_mod
 
 
 #size bounds for IPM
+TBF_long$logsize0 <- (log(TBF_long$size0+0.1))
+TBF_long$s.logsize0 <- scale(TBF_long$logsize0) 
+TBF_long$s.TBF <- scale(TBF_long$TBF) 
+TBF_long$s.TSF <- scale(TBF_long$TSF) 
+TBF_long$sq.TSF <- (TBF_long$TSF)^2
+TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF) 
 IPM_bounds <- range(TBF_long$logsize0, na.rm = TRUE)  # our IPM will be based on logsize as a size metric. 
 no_bins <- 100
 bin_edges <- seq(IPM_bounds[1], IPM_bounds[2], length.out= no_bins+1)
@@ -101,6 +107,31 @@ no_reps <- 1000 # or somethign similar
 all_pop_growth_rates <- matrix(data= NA, nrow= dim(possible_scenarios)[1], ncol= no_reps)
 
 
+########### extract model components for later predict() ###############
+sur_model_terms <- terms(survival_mod)
+sur_term <- attr(sur_model_terms, "term.labels")
+sur_term <- paste(sur_term, collapse = "+")
+
+gr_model_terms <- terms(growth_mod)
+gr_term <- attr(gr_model_terms, "term.labels")
+gr_term <- paste(gr_term, collapse = "+")
+
+prep_model_terms <- terms(prep_mod)
+prep_term <- attr(prep_model_terms, "term.labels")
+prep_term <- paste(prep_term, collapse = "+")
+
+crep_model_terms <- terms(crep_mod)
+crep_term <- attr(crep_model_terms, "term.labels")
+crep_term <- paste(crep_term, collapse = "+")
+
+vargrowth_model_terms <- terms(vargrowth_mod)
+vargrowth_term <- attr(vargrowth_model_terms, "term.labels")
+vargrowth_term <- paste(vargrowth_term, collapse = "+")
+
+rec_model_terms <- terms(recruit_mod)
+rec_term <- attr(rec_model_terms, "term.labels")
+rec_term <- paste(rec_term, collapse = "+")
+
 ###
 i=8
 ii=7
@@ -124,10 +155,13 @@ for (j in 1:no_reps){
   rprep_coefs[!names(coefficients(prep_mod)) %in% paste("site", my_sites, sep="")] <- MASS::mvrnorm(mu= coefficients(prep_mod), Sigma = vcov(prep_mod))[!names(coefficients(prep_mod)) %in% paste("site", my_sites, sep="")]
   rcrep_coefs <- lme4::fixef(crep_mod)
   rcrep_coefs <-  MASS::mvrnorm(mu= lme4::fixef(crep_mod) , Sigma = vcov(crep_mod)) # no site effect in this model
-  rvar_coefs <- lme4::fixef(variance_mod)
-  rvar_coefs <-  MASS::mvrnorm(mu= lme4::fixef(variance_mod) , Sigma = vcov(variance_mod)) # no site effect in this model
-  rrec_coefs <- lme4::fixef(recruit_mod)
-  rrec_coefs <-  MASS::mvrnorm(mu= lme4::fixef(recruit_mod) , Sigma = vcov(recruit_mod)) 
+  rvar_coefs <- lme4::fixef(vargrowth_mod)
+  rvar_coefs <-  MASS::mvrnorm(mu= lme4::fixef(vargrowth_mod) , Sigma = vcov(vargrowth_mod)) # no site effect in this model
+  rrec_coefs <- coefficients(recruit_mod)
+  rrec_coefs[!names(coefficients(recruit_mod)) %in% paste("site", my_sites, sep="")] <-  MASS::mvrnorm(mu= coefficients(recruit_mod), Sigma = vcov(recruit_mod))[!names(coefficients(recruit_mod)) %in% paste("site", my_sites, sep="")]
+  #rrec_coefs <- lme4::fixef(recruit_mod)recruit_dredge_R
+  #rrec_coefs <-  MASS::mvrnorm(mu= lme4::fixef(recruit_mod) , Sigma = vcov(recruit_mod)) # no site effect in this model
+  
   
  
   # no site effect in this model
@@ -174,23 +208,20 @@ for (i in 1: dim(possible_scenarios)[1]) {
     s_data_for_prediction_rec$site <- factor(s_data_for_prediction_rec$site, levels = my_sites)
     
     s_data_for_prediction <- s_data_for_prediction %>% mutate(across(c("s.logsize0", "s.sq.TSF", "s.TSF", "s.TBF"), as.numeric))   ### change col type to numeric to avoid matrix col type
-    
-    
-    
     # Zheng-- you will have to change the predict() call in the below to be a custom predict function that uses the random coefficients generated earlier in the code (e.g., rsur_coefs)
     
     ### build model matrices and use mx multiplication to obtain predicted values. Don't forget to transform if needed!!!!!!!!!
     
-    m_sur <- model.matrix(~s.logsize0 + s.P_LH + s.sq.T_LH + s.sq.TSF + s.T_LA + s.T_LD + s.T_LH + s.TSF + site + s.P_LH:s.T_LH,data=s_data_for_prediction)
+    m_sur <- model.matrix(~s.logsize0+s.P_LH+s.sq.T_LH+s.sq.TSF+s.T_LA+s.T_LD+s.T_LH+s.TBF+s.TSF+site+s.P_LH:s.T_LH ,data=s_data_for_prediction)
     p2_sur <- rsur_coefs %*% t(m_sur) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
     p2_sur <- plogis(p2_sur)   ## transform to binomial 
     predicted_sur_allsites[s,] <- p2_sur
-  
-    m_gr <- model.matrix(~s.logsize0 + s.P_LA + s.P_LH + s.sq.T_LA +s.T_LA+s.T_LC+s.T_LD +s.TSF+s.P_LA:s.T_LA,data=s_data_for_prediction)
+    
+    m_gr <- model.matrix(~s.logsize0+s.P_LA+s.P_LH+s.sq.T_LA+s.T_LA+s.T_LC+s.T_LD+s.TSF+s.P_LA:s.T_LA, data=s_data_for_prediction)
     p2_gr <- rgr_coefs %*% t(m_gr) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
     predicted_gr_allsites[s,] <- p2_gr
     
-    m_prep <- model.matrix(~s.logsize0 +s.P_RA +s.P_RH +s.sq.P_RA+s.sq.T_RA+s.sq.TSF+s.T_RA+s.T_RC+s.T_RH+s.TBF+s.TSF+site+s.P_RA:s.T_RA+s.TBF:s.TSF ,data=s_data_for_prediction)
+    m_prep <- model.matrix(~s.logsize0+s.P_RA+s.P_RH+s.sq.P_RA+s.sq.T_RA+s.sq.TSF+s.T_RA+s.T_RC+s.T_RH+s.TBF+s.TSF+site+s.P_RA:s.T_RA+s.TBF:s.TSF,data=s_data_for_prediction)
     p2_prep <- rprep_coefs %*% t(m_prep) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
     p2_prep <- plogis(p2_prep)   ## transform to binomial 
     predicted_pr_allsites[s,] <- p2_prep
@@ -199,24 +230,25 @@ for (i in 1: dim(possible_scenarios)[1]) {
     p2_crep <- rcrep_coefs %*% t(m_crep) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
     predicted_cr_allsites[s,] <- p2_crep
     
-    m_vg <- model.matrix(~s.logsize0 +s.P_RD + s.P_RW + s.sq.P_RA+s.T_RD,data=s_data_for_prediction)
+    m_vg <- model.matrix(~s.logsize0+s.P_LW+s.sq.TSF+s.T_LA+s.T_LD+s.TBF+s.TSF+s.TBF:s.TSF,data=s_data_for_prediction)
     p2_vg <- rvar_coefs %*% t(m_vg) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
     predicted_vg_allsites[s,] <- p2_vg
     
-    m_rec <- model.matrix(~log.fr +s.T_RA +s.T_RC, data=s_data_for_prediction_rec)
+    m_rec <- model.matrix(~log.fr+s.P_LH+s.T_LA+s.T_LD+s.TBF+s.TSF+s.TBF:s.TSF , data=s_data_for_prediction_rec)
     p2_rec <- rrec_coefs %*% t(m_rec) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
     p2_rec <- exp(p2_rec)   ## transform to negative binomial 
     predicted_rec_allsites[s,1] <- p2_rec
     
   
   # for mixed models, the above functions will predict site-specific results (i.e., will incorporate random effects)
-  rm(s_data_for_prediction) # this part removes the site-specific dataframe used in this loop, so you do not accidentaly use the previous sites' dataframe instead of the current one-- in case there was an error somehow
+    rm(s_data_for_prediction) # this part removes the site-specific dataframe used in this loop, so you do not accidentaly use the previous sites' dataframe instead of the current one-- in case there was an error somehow
   }
   predicted_sur <- apply(predicted_sur_allsites, MARGIN= 2, FUN= mean) # average size-specific vital rates across sites
   predicted_gr <- apply(predicted_gr_allsites, MARGIN= 2, FUN= mean)
   predicted_pr <- apply(predicted_pr_allsites, MARGIN= 2, FUN= mean)
   predicted_cr <- apply(predicted_cr_allsites, MARGIN= 2, FUN= mean)
   predicted_vg <- apply(predicted_vg_allsites, MARGIN= 2, FUN= mean)
+  predicted_vg[which(predicted_vg<0)] <- 0                 #### to prevent negative variance
   predicted_rec <- mean(predicted_rec_allsites)
   
   gmx <- matrix(NA, length(bin_mids),length(bin_mids)) ## create empty gmx before entering the no_bins loop
@@ -307,7 +339,66 @@ plt1
 
 
 
+##################  for copy and paste (for using models with different orders of coefficients) ###############
 
+#####   quadratic TSF 
+
+m_sur <- model.matrix(~s.logsize0 + s.P_LH + s.sq.T_LH + s.sq.TSF + s.T_LA + s.T_LD + s.T_LH + s.TSF + site + s.P_LH:s.T_LH,data=s_data_for_prediction)
+p2_sur <- rsur_coefs %*% t(m_sur) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+p2_sur <- plogis(p2_sur)   ## transform to binomial 
+predicted_sur_allsites[s,] <- p2_sur
+
+m_gr <- model.matrix(~s.logsize0 + s.P_LA + s.P_LH + s.sq.T_LA +s.T_LA+s.T_LC+s.T_LD +s.TSF+s.P_LA:s.T_LA,data=s_data_for_prediction)
+p2_gr <- rgr_coefs %*% t(m_gr) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+predicted_gr_allsites[s,] <- p2_gr
+
+m_prep <- model.matrix(~s.logsize0 +s.P_RA +s.P_RH +s.sq.P_RA+s.sq.T_RA+s.sq.TSF+s.T_RA+s.T_RC+s.T_RH+s.TBF+s.TSF+site+s.P_RA:s.T_RA+s.TBF:s.TSF ,data=s_data_for_prediction)
+p2_prep <- rprep_coefs %*% t(m_prep) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+p2_prep <- plogis(p2_prep)   ## transform to binomial 
+predicted_pr_allsites[s,] <- p2_prep
+
+m_crep <- model.matrix(~s.logsize0 +s.T_RA+s.T_RH  ,data=s_data_for_prediction)
+p2_crep <- rcrep_coefs %*% t(m_crep) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+predicted_cr_allsites[s,] <- p2_crep
+
+m_vg <- model.matrix(~s.logsize0 +s.P_RD + s.P_RW + s.sq.P_RA+s.T_RD,data=s_data_for_prediction)
+p2_vg <- rvar_coefs %*% t(m_vg) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+predicted_vg_allsites[s,] <- p2_vg
+
+m_rec <- model.matrix(~log.fr +s.T_RA +s.T_RC, data=s_data_for_prediction_rec)
+p2_rec <- rrec_coefs %*% t(m_rec) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+p2_rec <- exp(p2_rec)   ## transform to negative binomial 
+predicted_rec_allsites[s,1] <- p2_rec
+
+
+####### linear VR ####################
+
+m_sur <- model.matrix(~s.logsize0 +  s.P_LD + s.P_LH+s.sq.T_LH+s.T_LA +s.T_LD +s.T_LH +s.TBF+s.TSF + site + s.P_LH:s.T_LH +s.TBF:s.TSF ,data=s_data_for_prediction)
+p2_sur <- rsur_coefs %*% t(m_sur) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+p2_sur <- plogis(p2_sur)   ## transform to binomial 
+predicted_sur_allsites[s,] <- p2_sur
+
+m_gr <- model.matrix(~s.logsize0 + s.P_LA +s.P_LH +s.sq.T_LA+s.T_LA + s.T_LC+s.T_LD +s.TSF+s.P_LA:s.T_LA ,data=s_data_for_prediction)
+p2_gr <- rgr_coefs %*% t(m_gr) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+predicted_gr_allsites[s,] <- p2_gr
+
+m_prep <- model.matrix(~s.logsize0 + s.P_LA +s.P_LH+s.sq.P_LA +s.sq.T_LA+s.T_LA +s.T_LH + s.TBF +s.TSF+site+s.P_LA:s.T_LA+s.P_LH:s.T_LH+s.TBF:s.TSF,data=s_data_for_prediction)
+p2_prep <- rprep_coefs %*% t(m_prep) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+p2_prep <- plogis(p2_prep)   ## transform to binomial 
+predicted_pr_allsites[s,] <- p2_prep
+
+m_crep <- model.matrix(~s.logsize0 +s.T_RA+s.T_RH  ,data=s_data_for_prediction)
+p2_crep <- rcrep_coefs %*% t(m_crep) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+predicted_cr_allsites[s,] <- p2_crep
+
+m_vg <- model.matrix(~s.logsize0 +s.P_LA+s.T_LA +s.T_LD +s.TSF,data=s_data_for_prediction)
+p2_vg <- rvar_coefs %*% t(m_vg) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+predicted_vg_allsites[s,] <- p2_vg
+
+m_rec <- model.matrix(~log.fr +s.P_LH + s.sq.T_LH + s.T_LA+s.T_LD +s.T_LH , data=s_data_for_prediction_rec)
+p2_rec <- rrec_coefs %*% t(m_rec) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+p2_rec <- exp(p2_rec)   ## transform to negative binomial 
+predicted_rec_allsites[s,1] <- p2_rec
 
 
 
