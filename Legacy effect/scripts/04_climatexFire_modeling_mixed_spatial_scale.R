@@ -84,7 +84,7 @@ sur_dredge_R <- MuMIn::dredge(
 head(sur_dredge_R)
 
 survival_mod<- get.models(sur_dredge_R, 1)[[1]]
-summary(sur_mod_R)   
+
 stopCluster(cluster)
 
 ### growth
@@ -125,19 +125,11 @@ prep_subset_R <-
   filter_at(vars(prep1, s.logsize0, s.TSF, s.TBF,s.sq.TSF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
                  s.P_RH, ), all_vars(!is.na(.)))
 
-GM_R_prep <- glmer(
-  prep1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
-    s.T_LA + s.sq.T_LA +s.P_RA+ s.sq.P_RA + s.T_LA:s.P_RA+
-    s.T_LH + s.P_RH + s.T_LH:s.P_RH + s.T_LC +
-    (1|site),
-  data = prep_subset_R,
-  family = "binomial", 
-  na.action = "na.fail"
-)   ### this likely won't work due to convergence failure, but feel free to try (take a long time to fit)
+ ### this likely won't work due to convergence failure, but feel free to try (take a long time to fit)
 
 
 GM_R_prep <- glm(
-  prep1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+  prep1 ~ s.logsize0 + s.TSF * s.TBF +
     s.T_LA + s.sq.T_LA +s.P_RA+ s.sq.P_RA + s.T_LA:s.P_RA+
     s.T_LH + s.P_RH + s.T_LH:s.P_RH + s.T_LC +
     site,
@@ -153,13 +145,13 @@ registerDoParallel(cluster)
 clusterExport(cluster, c("prep_subset_R"))   ### replace with different subset (different global models)
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
-prep_dredge_R <- MuMIn::dredge(
+prep_dredge_R_2 <- MuMIn::dredge(
   GM_R_prep,
   cluster = cluster,
   trace   = 2
 )
-head(prep_dredge_R)
-prep_mod <- get.models(prep_dredge_R, 1)[[1]]
+head(prep_dredge_R_2)
+prep_mod <- get.models(prep_dredge_R_2, 1)[[1]]
 
 stopCluster(cluster)
 
@@ -170,7 +162,7 @@ crep_subset_R <-
   filter_at(vars(logcrep1, s.logsize0, TSF, TBF,s.sq.TSF, site, s.T_RA, s.T_RH), all_vars(!is.na(.)))
 
 GM_R_crep <- lmer(
-  logcrep1 ~ s.logsize0 + TSF * TBF + s.sq.TSF + s.T_LA + s.T_LH +
+  logcrep1 ~ s.logsize0 + s.TSF * s.TBF  + s.T_LA + s.T_LH +
     (1 | site),
   data = crep_subset_R,
   na.action = "na.fail"
@@ -204,7 +196,7 @@ recruit_subset <-
   recruit_df %>% 
   dplyr::filter(across(c(num_news, log.fr, TSF, TBF,site), ~ !is.na(.)))
 
-recruit_mod_g_R <- glm.nb(num_news ~log.fr+s.TSF*s.TBF +s.sq.TSF +
+recruit_mod_g_R <- glm.nb(num_news ~log.fr+s.TSF*s.TBF  +
                             s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_RH +
                             s.P_RH:s.T_LH + s.P_RD + 
                             site,   data = recruit_subset, na.action = "na.fail") 
@@ -254,7 +246,7 @@ Vargrowth_subset$og_logsize1 <- exp(Vargrowth_subset$logsize1)
 
 #***** to prevent negative numbers later
 
-GM_vargrowth_R <- lmer(vargrowth ~ s.logsize0 + s.T_LA+ s.TSF * s.TBF + s.sq.TSF +
+GM_vargrowth_R <- lmer(vargrowth ~ s.logsize0 + s.T_LA+ s.TSF * s.TBF  +
                          s.P_RA  + s.sq.P_RA  + s.T_LC +s.T_LD +
                          s.P_RD + s.P_RW
                        + (1|site), #  
@@ -283,7 +275,7 @@ stopCluster(cluster)
 
 ################################# save ##############
 
-save(survival_mod, growth_mod, prep_mod, crep_mod,vargrowth_mod,recruit_mod, TBF_long, file = "Legacy effect/data/TBFxClimate/VR_mod_mixed scale.Rdata")
+save(survival_mod, growth_mod, prep_mod, crep_mod,vargrowth_mod,recruit_mod, TBF_long, file = "Legacy effect/data/TBFxClimate/VR_mod linear mixed scale.Rdata")
 
 
 #################################################################################################################################################
@@ -310,7 +302,7 @@ sur_subset_R <-
                  s.P_RH, s.P_RD), all_vars(!is.na(.)))
 
 GM_R_sur <- glmer(
-  sur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+  sur0_1 ~ s.logsize0 + s.TSF * s.TBF + 
     s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
     s.P_RH:s.T_RH + s.P_RD + 
     (1 | site),
@@ -340,7 +332,7 @@ summary(sur_mod_R)
 
 ## treating site as fixed effect (if the best fit glmer failts to converge)
 GM_R_sur_2 <- glm(
-  sur0_1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+  sur0_1 ~ s.logsize0 + s.TSF * s.TBF +  +
     s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
     s.P_RH:s.T_RH + s.P_RD + 
     site,
@@ -377,7 +369,7 @@ gr_subset_R_2 <-
   filter_at(vars(logsize1, s.logsize0, s.TSF,s.sq.TSF, s.TBF, site, s.sq.T_RA,s.T_RA, s.P_RA, s.T_RC, 
                  s.T_RD, s.P_RH), all_vars(!is.na(.)))
 GM_R_gr <- lmer(
-  logsize1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF + s.T_RA + s.sq.T_RA + s.P_RA + s.T_RA:s.P_RA +
+  logsize1 ~ s.logsize0 + s.TSF * s.TBF  + s.T_RA + s.sq.T_RA + s.P_RA + s.T_RA:s.P_RA +
     s.T_RC + s.T_RD + s.P_RH +
     (1 | site),
   data = gr_subset_R_2,
@@ -409,7 +401,7 @@ prep_subset_R <-
                  s.P_RH, ), all_vars(!is.na(.)))
 
 GM_R_prep <- glmer(
-  prep1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+  prep1 ~ s.logsize0 + s.TSF * s.TBF +
     s.T_RA + s.sq.T_RA +s.P_RA+ s.sq.P_RA + s.T_RA:s.P_RA+
     s.T_RH + s.P_RH + s.T_RH:s.P_RH + s.T_RC +
     (1|site),
@@ -420,7 +412,7 @@ GM_R_prep <- glmer(
 
 
 GM_R_prep <- glm(
-  prep1 ~ s.logsize0 + s.TSF * s.TBF + s.sq.TSF+
+  prep1 ~ s.logsize0 + s.TSF * s.TBF +
     s.T_RA + s.sq.T_RA +s.P_RA+ s.sq.P_RA + s.T_RA:s.P_RA+
     s.T_RH + s.P_RH + s.T_RH:s.P_RH + s.T_RC +
     site,
@@ -453,7 +445,7 @@ crep_subset_R <-
   filter_at(vars(logcrep1, s.logsize0, TSF, TBF,s.sq.TSF, site, s.T_RA, s.T_RH), all_vars(!is.na(.)))
 
 GM_R_crep <- lmer(
-  logcrep1 ~ s.logsize0 + TSF * TBF + s.sq.TSF + s.T_RA + s.T_RH +
+  logcrep1 ~ s.logsize0 + TSF * TBF  + s.T_RA + s.T_RH +
     (1 | site),
   data = crep_subset_R,
   na.action = "na.fail"
@@ -487,7 +479,7 @@ recruit_subset <-
   recruit_df %>% 
   dplyr::filter(across(c(num_news, log.fr, TSF, TBF,site), ~ !is.na(.)))
 
-recruit_mod_g_R <- glm.nb(num_news ~log.fr+s.TSF*s.TBF +s.sq.TSF +
+recruit_mod_g_R <- glm.nb(num_news ~log.fr+s.TSF*s.TBF  +
                             s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
                             s.P_RH:s.T_RH + s.P_RD + 
                             site,   data = recruit_subset, na.action = "na.fail") 
@@ -537,7 +529,7 @@ Vargrowth_subset$og_logsize1 <- exp(Vargrowth_subset$logsize1)
 
 #***** to prevent negative numbers later
 
-GM_vargrowth_R <- lmer(vargrowth ~ s.logsize0 + s.T_RA+ s.TSF * s.TBF + s.sq.TSF +
+GM_vargrowth_R <- lmer(vargrowth ~ s.logsize0 + s.T_RA+ s.TSF * s.TBF  +
                          s.P_RA  + s.sq.P_RA  + s.T_RC +s.T_RD +
                          s.P_RD + s.P_RW
                        + (1|site), #  

@@ -4,6 +4,7 @@
 #################################simulate graphs########################
 ########################################################################
 
+library(merTools)
 
 
 ########################################################################
@@ -113,12 +114,14 @@ data_new1$s.sq.T_LH <- rep(mean(TBF_long$s.sq.T_LH, na.rm=TRUE), nrow*2)
 ################## sur (GLM) #################################
 
 sur_pred <- predict(survival_mod, data_new1, type = "response", se.fit = TRUE)
+
 data_new1$sur_fit <- sur_pred$fit
 data_new1$sur_se <- sur_pred$se.fit
 
 data_new1$sur_lwr <- sur_pred$fit - qnorm(0.975) * sur_pred$se.fit
 data_new1$sur_upr <- sur_pred$fit + qnorm(0.975) * sur_pred$se.fit
 
+#data_new1$sur <- merTools::predictInterval(survival_mod, data_new1, type = "probability",level= 0.95,n.sims= 2000)
 
 
 plt1 <- ggplot(data= data_new1, aes(x= TSF, y= sur_fit)) +
