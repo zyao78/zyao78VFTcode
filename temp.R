@@ -172,3 +172,39 @@ recruit_df$s.TSF <- scale(recruit_df$TSF)
 recruit_df$s.sq.TSF <- scale(recruit_df$sq.TSF)
 recruit_df$s.TBF <- scale(recruit_df$TBF)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+sur_pred_link <- predict.glm(survival_mod, data_new1, type = "link", se.fit = TRUE)
+fit <- sur_pred_link$fit
+
+link_lwr <- sur_pred_link$fit + qnorm(0.025) * sur_pred_link$se.fit
+link_upr <- sur_pred_link$fit + qnorm(0.975) * sur_pred_link$se.fit
+
+fit2 <- survival_mod$family$linkinv(fit)
+upr2 <- survival_mod$family$linkinv(link_upr)
+lwr2 <- survival_mod$family$linkinv(link_lwr)
+
+data_new1$sur_fit
+
+
+m1 <- predict.glm(survival_mod, data_new1, type = "link", se.fit = TRUE)
+m1$se.fit
+fit <- m1$fit
+fit2 <- survival_mod$family$linkinv(fit)
+
+
+m2 <- predict.glm(survival_mod, data_new1, type = "response", se.fit = TRUE)
+m2$se.fit
+
+

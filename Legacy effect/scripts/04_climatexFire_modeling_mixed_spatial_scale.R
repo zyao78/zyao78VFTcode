@@ -479,13 +479,10 @@ recruit_subset <-
   recruit_df %>% 
   dplyr::filter(across(c(num_news, log.fr, TSF, TBF,site), ~ !is.na(.)))
 
-recruit_mod_g_R <- glm.nb(num_news ~log.fr+s.TSF*s.TBF  +
-                            s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
-                            s.P_RH:s.T_RH + s.P_RD + 
+recruit_mod_g_R <- glm.nb(num_news ~log.fr+ s.TSF+ s.TBF  +
+                            s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_RH +
+                            s.P_RH:s.T_LH + s.P_RD + 
                             site,   data = recruit_subset, na.action = "na.fail") 
-
-
-
 
 
 n_cores <- detectCores()
@@ -502,6 +499,80 @@ recruit_dredge_R <- MuMIn::dredge(
 )
 head(recruit_dredge_R)
 recruit_mod <- get.models(recruit_dredge_R, 1)[[1]]
+
+
+### fit num rec/ num fruit instead
+
+recruit_df <- read_csv("Legacy effect/data/recruit_df_11_24_2025.csv")
+
+recruit_df$rec_perfruit <- case_when(
+  recruit_df$num_fr > 0 ~ recruit_df$num_news / recruit_df$num_fr,
+  recruit_df$num_fr == 0 & recruit_df$num_news > 0 ~ NA,
+  recruit_df$num_fr == 0 & recruit_df$num_news == 0 ~ 0 )
+
+recruit_df$rec_perfruit <- recruit_df$num_news / (recruit_df$num_fr + 0.1)
+recruit_df$rec_per_logfruit <- recruit_df$num_news / recruit_df$log.fr
+
+recruit_df <- recruit_df %>%
+  select(rec_perfruit, rec_per_logfruit, everything())
+recruit_subset <- 
+  recruit_df %>% 
+  dplyr::filter(across(c(rec_per_logfruit, log.fr, TSF, TBF,site), ~ !is.na(.)))
+
+recruit_mod_g_R <- lmer (rec_per_logfruit ~ s.TSF+ s.TBF  +
+                            s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_RH +
+                            s.P_RH:s.T_LH + s.P_RD + 
+                            (1|site),   data = recruit_subset, na.action = "na.fail") 
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("recruit_subset"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+recruit_dredge_R <- MuMIn::dredge(
+  recruit_mod_g_R,
+  cluster = cluster,
+  trace   = 2
+)
+head(recruit_dredge_R)
+recruit_mod_log_lmer <- get.models(recruit_dredge_R, 1)[[1]]
+stopCluster(cluster)
+
+hist(resid(recruit_mod_log_lmer))
+
+
+### Crone's approach ###
+
+recruit_df <- recruit_df %>% dplyr::mutate(row_id = dplyr::row_number())
+
+recruit_subset <- 
+  recruit_df %>% 
+  dplyr::filter(across(c(rec_per_logfruit, log.fr, TSF, TBF,site), ~ !is.na(.)))
+
+recruit_mod_g_R <- glmer ( num_news ~ s.TSF + s.TBF  +
+                           s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_RH +
+                           s.P_RH:s.T_LH + s.P_RD + 
+                           (1|row_id),   data = recruit_subset, family = poisson, na.action = "na.fail") 
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("recruit_subset"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+recruit_dredge_R <- MuMIn::dredge(
+  recruit_mod_g_R,
+  cluster = cluster,
+  trace   = 2
+)
+head(recruit_dredge_R)
+recruit_mod_OLRE <- get.models(recruit_dredge_R, 1)[[1]]   ### go to fix warnings code if not converging
+hist(resid(recruit_mod_OLRE))
+stopCluster(cluster)
+
+
+
 
 ######### vargrowth ################################################
 growth_terms <- attr(terms(growth_mod), "term.labels")
@@ -557,14 +628,24 @@ stopCluster(cluster)
 
 save(survival_mod, growth_mod, prep_mod, crep_mod,vargrowth_mod,recruit_mod, TBF_long, file = "Legacy effect/data/TBFxClimate/VR_mod_regional.Rdata")
 
+########################################################
+########################################################
+########## dharma residual #############################
+########################################################
+########################################################
+
+install.packages("DHARMa")
+library(DHARMa)
 
 
+simulationOutput <- simulateResiduals(fittedModel = recruit_mod, plot = F)
+residuals(simulationOutput)
 
+plot(residuals(simulationOutput))
 
+hist(residuals(simulationOutput))
 
-
-
-
+plot(simulateResiduals(fittedModel = growth_mod, plot = F))
 
 
 

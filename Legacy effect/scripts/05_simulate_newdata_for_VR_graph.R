@@ -6,7 +6,7 @@
 
 library(merTools)
 
-
+load("Legacy effect/data/TBFxClimate/VR_mod linear mixed scale.Rdata")# loads in the VR functions
 ########################################################################
 ######## TSFxTBF response for each vital rate            ###############
 ########################################################################
@@ -52,7 +52,7 @@ TBF <- sort(unique(original_vector), na.last = TRUE)
 scaled_vector <- TBF_long$s.TBF
 sort(unique(scaled_vector), na.last = TRUE)
 # vector to used for simulation
-sim_TBF <- c(0,max(TBF))   ### change accordingly
+sim_TBF <- seq(from = 0, to = max(TBF, na.rm = TRUE))   ### change accordingly
 # Extract the mean and standard deviation used for scaling
 mean_val <- mean(original_vector)
 sd_val <- sd(original_vector)
@@ -80,9 +80,9 @@ data_new1$TBF <- c(rep(min(TBF), nrow), rep(max(TBF), nrow))    #### change max(
 data_new1$s.TSF <- c(scaled_sim_TSF,scaled_sim_TSF)
 data_new1$s.sq.TSF <- c(scaled_sim_s.sq.TSF,scaled_sim_s.sq.TSF)
 data_new1$s.sq.TSF <- as.numeric(data_new1$s.sq.TSF)
-data_new1$s.TBF <- c(rep(min(scaled_sim_TBF), nrow), rep(max(scaled_sim_TBF), nrow))
-data_new1$newTBF[which(data_new1$s.TBF== min(scaled_sim_TBF))] <- "Short TBF"
-data_new1$newTBF[which(data_new1$s.TBF== max(scaled_sim_TBF))] <- "Long TBF"
+data_new1$s.TBF <- c(rep(scaled_sim_TBF[3], nrow), rep(max(scaled_sim_TBF), nrow))   ### modify if needed to set different TBF
+data_new1$newTBF[1:11] <- "Short TBF"
+data_new1$newTBF[12:22] <- "Long TBF"
 
 data_new1$site <- "GSP-LI"
 data_new1$s.P_RD <- rep(mean(TBF_long$s.P_RD, na.rm=TRUE), nrow*2)
@@ -113,20 +113,21 @@ data_new1$s.sq.T_LH <- rep(mean(TBF_long$s.sq.T_LH, na.rm=TRUE), nrow*2)
 
 ################## sur (GLM) #################################
 
-sur_pred <- predict(survival_mod, data_new1, type = "response", se.fit = TRUE)
+sur_pred <- predict.glm(survival_mod, data_new1, type = "link", se.fit = TRUE)
 
-data_new1$sur_fit <- sur_pred$fit
-data_new1$sur_se <- sur_pred$se.fit
+sur_lwr_link <- sur_pred$fit + qnorm(0.025) * sur_pred$se.fit
+sur_upr_link <- sur_pred$fit + qnorm(0.975) * sur_pred$se.fit
 
-data_new1$sur_lwr <- sur_pred$fit - qnorm(0.975) * sur_pred$se.fit
-data_new1$sur_upr <- sur_pred$fit + qnorm(0.975) * sur_pred$se.fit
+data_new1$sur_fit <- survival_mod$family$linkinv(sur_pred$fit)
+data_new1$sur_lwr <- survival_mod$family$linkinv(sur_lwr_link)
+data_new1$sur_upr <- survival_mod$family$linkinv(sur_upr_link)
 
 #data_new1$sur <- merTools::predictInterval(survival_mod, data_new1, type = "probability",level= 0.95,n.sims= 2000)
 
 
 plt1 <- ggplot(data= data_new1, aes(x= TSF, y= sur_fit)) +
   geom_line(aes(color= newTBF)) + 
-  geom_ribbon(aes(ymin = data_new1$sur_lwr, ymax = data_new1$sur_upr, fill= newTBF), alpha = 0.1) + 
+  geom_ribbon(aes(ymin = sur_lwr, ymax = sur_upr, fill= newTBF), alpha = 0.1) + 
   #ylim(0,1) +
   #xlim(c(0, 12)) +
   labs(y= "Survival", x = "Time since fire", tag= "A") +
@@ -148,18 +149,15 @@ plt2 <- ggplot(data= data_new1, aes(x= TSF, y= gr$fit)) +
 plt2
 
 ################## prep (glm)  #################################
-data_new1$prep_fit <- NA
-data_new1$prep_se  <-NA
-data_new1$prep_lwr <-  NA
-data_new1$prep_upr <-NA
+prep_pred <- predict.glm(prep_mod, data_new1, type = "link", se.fit = TRUE)
 
+prep_lwr_link <- prep_pred$fit + qnorm(0.025) * prep_pred$se.fit
+prep_upr_link <- prep_pred$fit + qnorm(0.975) * prep_pred$se.fit
 
-prep_pred <- predict.glm(prep_mod, data_new1, type = "response", se.fit = TRUE)
-data_new1$prep_fit <- prep_pred$fit
-data_new1$prep_se <- prep_pred$se.fit
+data_new1$prep_fit <- prep_mod$family$linkinv(prep_pred$fit)
+data_new1$prep_lwr <- prep_mod$family$linkinv(prep_lwr_link)
+data_new1$prep_upr <- prep_mod$family$linkinv(prep_upr_link)
 
-data_new1$prep_lwr <- prep_pred$fit - qnorm(0.975) * prep_pred$se.fit
-data_new1$prep_upr <- prep_pred$fit + qnorm(0.975) * prep_pred$se.fit
 
 plt3 <- ggplot(data= data_new1, aes(x= TSF, y= prep_fit)) +
   geom_line(aes(color= newTBF)) + 
@@ -269,23 +267,24 @@ ggpubr::ggarrange(plt1, plt2,plt3,plt4)
 recruit_df <- read_csv("Legacy effect/data/recruit_df_11_24_2025.csv")
 data_new1$log.fr <- rep(mean(recruit_df$log.fr, na.rm=TRUE), nrow*2)
 
-rec_pred <- predict(recruit_mod, data_new1, type = "response", se.fit = TRUE)
+rec_pred <- predict(recruit_mod, data_new1, type = "link", se.fit = TRUE)
 
-data_new1$rec_fit <- rec_pred$fit
-data_new1$rec_se <- rec_pred$se.fit
+rec_lwr_link <- rec_pred$fit + qnorm(0.025) * rec_pred$se.fit
+rec_upr_link <- rec_pred$fit + qnorm(0.975) * rec_pred$se.fit
 
-data_new1$rec_lwr <- rec_pred$fit - qnorm(0.975) * rec_pred$se.fit
-data_new1$rec_upr <- rec_pred$fit + qnorm(0.975) * rec_pred$se.fit
+data_new1$rec_fit <- recruit_mod$family$linkinv(rec_pred$fit)
+data_new1$rec_lwr <- recruit_mod$family$linkinv(rec_lwr_link)
+data_new1$rec_upr <- recruit_mod$family$linkinv(rec_upr_link)
 
 plt5 <- ggplot(data= data_new1, aes(x= TSF, y= rec_fit)) +
   geom_line(aes(color= newTBF)) + 
-#  ylim(0,1) + 
-#  xlim(c(0, 16.5)) +
+
   geom_ribbon(aes(ymin = data_new1$rec_lwr, ymax = data_new1$rec_upr, 
                   fill= newTBF), alpha = 0.1) + 
-  labs(y= "num recruit", x = "Time since fire",  color= "", fill= "", tag= "C") + 
+  labs(y= "number of recruit", x = "Time since fire",  color= "", fill= "") + 
   theme_bw()  + 
-  theme(legend.position = "none", legend.spacing.y = unit(-20, "pt")) +
+  xlim(c(0, 11)) + 
+  theme(legend.position = "right") +
   theme(text = element_text(size = 20)) 
 plt5
 

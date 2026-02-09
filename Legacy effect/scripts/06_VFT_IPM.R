@@ -101,7 +101,6 @@ possible_scenarios[, c(  "s.T_LA",  "s.T_LH",  "s.sq.T_LH",  "s.sq.P_LA",  "s.T_
                          "s.P_LW",  "s.P_LH",  "s.T_RA",  "s.sq.T_RA",  "s.P_RA",  "s.T_RH",  "s.P_RH",  "s.T_RC",  "s.T_RW",  "s.T_RD",
                          "s.sq.T_RC","s.P_RW","s.P_RD", "s.sq.T_RH",  "s.sq.P_RA",  "s.sq.P_RW",  "s.sq.P_RD")]     <- 0 # setting all climate variable to their mean
 
-log.fr <- log(1) ### 1 fruit is not log(1), it is log(1+0.1)
 my_sites <- unique(TBF_long$site) 
 no_reps <- 1000 # or somethign similar
 
@@ -189,7 +188,7 @@ for (i in 1: dim(possible_scenarios)[1]) {
   data_for_prediction <- i_ii_scenario[rep(seq_len(nrow(i_ii_scenario)), length(bin_mids)), ]
   data_for_prediction$s.logsize0 <-   scale(bin_mids, center= attr(TBF_long$s.logsize0,"scaled:center"), 
                                                     scale= attr(TBF_long$s.logsize0,"scaled:scale"))
-  data_for_prediction_rec <- cbind(i_ii_scenario, log.fr)
+  data_for_prediction_rec <- cbind(i_ii_scenario)
   
   predicted_sur <- predicted_gr <-predicted_pr <- predicted_cr <- predicted_vg <- matrix(data=NA, nrow= length(my_sites), ncol= length(bin_mids))
   predicted_rec <- rep(NA, length(my_sites))
@@ -238,8 +237,8 @@ for (i in 1: dim(possible_scenarios)[1]) {
     
     m_rec <- model.matrix(rec_term , data=s_data_for_prediction_rec)
     p2_rec <- rrec_coefs %*% t(m_rec) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
-    p2_rec <- exp(p2_rec)   ## transform to negative binomial 
-    predicted_rec_allsites[s,1] <- p2_rec
+   # p2_rec is num_news/log.fr (num_news/ log (FR in the field + 0.1))
+    predicted_rec_allsites[s,1] <- p2_rec*log(1.1)
     
   
   # for mixed models, the above functions will predict site-specific results (i.e., will incorporate random effects)
