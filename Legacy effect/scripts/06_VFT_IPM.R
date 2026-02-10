@@ -93,7 +93,7 @@ names(possible_scenarios) <- c("FRI","s.TBF","s.T_LA", "s.T_LH",
 
 
 possible_scenarios$FRI <- rep(1:11, 2) # we want FRI to range from 1-11
-possible_scenarios$s.TBF <- scale(rep(c(3, 11), each= 11) ,# raw TBF values
+possible_scenarios$s.TBF <- scale(rep(c(0, 10), each= 11) ,# raw TBF values
                                   center= attr(TBF_long$s.TBF,"scaled:center"), 
                                   scale= attr(TBF_long$s.TBF,"scaled:scale")) # for each set of FRI's, we want to set a short TBF (of 3) and a long TBF (of 11)
 
@@ -158,9 +158,8 @@ for (j in 1:no_reps){
   rcrep_coefs <-  MASS::mvrnorm(mu= lme4::fixef(crep_mod) , Sigma = vcov(crep_mod)) # no site effect in this model
   rvar_coefs <- lme4::fixef(vargrowth_mod)
   rvar_coefs <-  MASS::mvrnorm(mu= lme4::fixef(vargrowth_mod) , Sigma = vcov(vargrowth_mod)) # no site effect in this model
-  rrec_coefs <- coefficients(recruit_mod)
-  rrec_coefs[!names(coefficients(recruit_mod)) %in% paste("site", my_sites, sep="")] <-  MASS::mvrnorm(mu= coefficients(recruit_mod), Sigma = vcov(recruit_mod))[!names(coefficients(recruit_mod)) %in% paste("site", my_sites, sep="")]
-  #rrec_coefs <- lme4::fixef(recruit_mod)recruit_dredge_R
+  rrec_coefs <- lme4::fixef(recruit_mod)
+  rrec_coefs <-  MASS::mvrnorm(mu= lme4::fixef(recruit_mod) , Sigma = vcov(recruit_mod)) # no site effect in this model
   #rrec_coefs <-  MASS::mvrnorm(mu= lme4::fixef(recruit_mod) , Sigma = vcov(recruit_mod)) # no site effect in this model
   
   
@@ -232,13 +231,13 @@ for (i in 1: dim(possible_scenarios)[1]) {
     predicted_cr_allsites[s,] <- p2_crep
     
     m_vg <- model.matrix(vargrowth_term,data=s_data_for_prediction)
-    p2_vg <- rvar_coefs %*% t(m_vg) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
-    predicted_vg_allsites[s,] <- p2_vg
+    p2_vg <- rvar_coefs %*% t(m_vg) # 
+    predicted_vg_allsites[s,] <- exp(p2_vg)  
     
     m_rec <- model.matrix(rec_term , data=s_data_for_prediction_rec)
     p2_rec <- rrec_coefs %*% t(m_rec) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
    # p2_rec is num_news/log.fr (num_news/ log (FR in the field + 0.1))
-    predicted_rec_allsites[s,1] <- p2_rec*log(1.1)
+    predicted_rec_allsites[s,1] <- p2_rec*log(1.1)            #### account for composite rec variable (rec/log.fr)
     
   
   # for mixed models, the above functions will predict site-specific results (i.e., will incorporate random effects)
@@ -408,6 +407,12 @@ sd <- sd (FRI_slopedif$slope_dif1_2, na.rm = TRUE)
 
 mean + 1.96 * sd / sqrt(1000)
 mean - 1.96 * sd / sqrt(1000)
+
+df_ci_mean$slope <- factor(
+  df_ci_mean$slope,
+  levels = paste0("slope_dif", 1:10, "_", 2:11)
+)
+
 ggplot(df_ci_mean, aes(x = slope, y = mean)) +
   geom_point(size = 2) +
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.15) +
@@ -421,5 +426,6 @@ ggplot(df_ci_mean, aes(x = slope, y = mean)) +
     axis.text.x = element_text(angle = 45, hjust = 1)
   )
 
+save(all_pop_growth_rates, file = "Legacy effect/data/TBFxClimate/IPM_output_final_mixed_scale_linear.Rdata")
 
 
