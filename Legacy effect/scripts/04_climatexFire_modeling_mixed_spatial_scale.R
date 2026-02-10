@@ -190,27 +190,29 @@ stopCluster(cluster)
 #################################################
 ########### recruit ############################
 
-recruit_df <- read_csv("Legacy effect/data/recruit_df_11_24_2025.csv")
+### fit num rec/ num fruit instead
 library(MASS)
+recruit_df <- read_csv("Legacy effect/data/recruit_df_11_24_2025.csv")
+
+recruit_df$rec_perfruit <- recruit_df$num_news / (recruit_df$num_fr + 0.1)
+recruit_df$rec_per_logfruit <- recruit_df$num_news / recruit_df$log.fr
+
+recruit_df <- recruit_df %>%
+  select(rec_perfruit, rec_per_logfruit, everything())
 recruit_subset <- 
   recruit_df %>% 
-  dplyr::filter(across(c(num_news, log.fr, TSF, TBF,site), ~ !is.na(.)))
+  dplyr::filter(across(c(rec_per_logfruit, log.fr, TSF, TBF,site), ~ !is.na(.)))
 
-recruit_mod_g_R <- glm.nb(num_news ~log.fr+s.TSF*s.TBF  +
-                            s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_RH +
-                            s.P_RH:s.T_LH + s.P_RD + 
-                            site,   data = recruit_subset, na.action = "na.fail") 
-
-
-
-
-
+recruit_mod_g_R <- lmer (rec_per_logfruit ~ s.TSF+ s.TBF  +
+                           s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_RH +
+                           s.P_RH:s.T_LH + s.P_RD + 
+                           (1|site),   data = recruit_subset, na.action = "na.fail") 
 n_cores <- detectCores()
 n_cores
 cluster <- makeCluster(n_cores - 1)
 registerDoParallel(cluster)
 clusterExport(cluster, c("recruit_subset"))   ### replace with different subset (different global models)
-clusterEvalQ(cluster, {library(MASS); library(MuMIn)})
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
 recruit_dredge_R <- MuMIn::dredge(
   recruit_mod_g_R,
@@ -219,6 +221,9 @@ recruit_dredge_R <- MuMIn::dredge(
 )
 head(recruit_dredge_R)
 recruit_mod <- get.models(recruit_dredge_R, 1)[[1]]
+stopCluster(cluster)
+
+hist(resid(recruit_mod_log_lmer))
 
 ######### vargrowth ################################################
 growth_terms <- attr(terms(growth_mod), "term.labels")
@@ -240,13 +245,12 @@ Vargrowth_subset$predgrowth <- predict(growth_mod,newdata=Vargrowth_subset)
 Vargrowth_subset$vargrowth <-
   (Vargrowth_subset$predgrowth - # variance is equivalent to (predicted-expected)^2
      Vargrowth_subset$logsize1)^2
-Vargrowth_subset$og_predgrowth <- exp(Vargrowth_subset$predgrowth)
-Vargrowth_subset$og_logsize1 <- exp(Vargrowth_subset$logsize1)
 
+Vargrowth_subset$log.vargrowth <- log(Vargrowth_subset$vargrowth)
 
 #***** to prevent negative numbers later
 
-GM_vargrowth_R <- lmer(vargrowth ~ s.logsize0 + s.T_LA+ s.TSF * s.TBF  +
+GM_vargrowth_R <- lmer(log.vargrowth ~ s.logsize0 + s.T_LA+ s.TSF * s.TBF  +
                          s.P_RA  + s.sq.P_RA  + s.T_LC +s.T_LD +
                          s.P_RD + s.P_RW
                        + (1|site), #  
@@ -270,12 +274,13 @@ vargrowth_dredge_R <- MuMIn::dredge(
 head(vargrowth_dredge_R)
 vargrowth_mod <- get.models(vargrowth_dredge_R, 1)[[1]]
 
+hist(resid(vargrowth_mod))
 stopCluster(cluster)
 
 
 ################################# save ##############
 
-save(survival_mod, growth_mod, prep_mod, crep_mod,vargrowth_mod,recruit_mod, TBF_long, file = "Legacy effect/data/TBFxClimate/VR_mod linear mixed scale.Rdata")
+save(survival_mod, growth_mod, prep_mod, crep_mod,vargrowth_mod, recruit_mod, TBF_long, Vargrowth_subset, file = "Legacy effect/data/TBFxClimate/VR_mod linear mixed scale.Rdata")
 
 
 #################################################################################################################################################
