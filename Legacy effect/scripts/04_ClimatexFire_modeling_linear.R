@@ -311,7 +311,7 @@ stopCluster(cluster)
 
 ######################### recruit #####################
 
-recruit_df <- read.csv("Legacy effect/data/recruit_df_11_24_2025.csv")
+recruit_df <- read_csv("Legacy effect/data/recruit_df_11_24_2025.csv")
 library(MASS)
 recruit_subset <- 
   recruit_df %>% 
@@ -426,6 +426,14 @@ stopCluster(cluster)
 vargrowth_mod <- if (AICc (vargrowth_mod_R) < AICc(vargrowth_mod_L)) vargrowth_mod_R else vargrowth_mod_L
 
 
+mr <- glmer.nb(num_news ~ log.fr+TSF+(1|site) , data=recruit_df)
+mr_0 <- glmer.nb(num_news ~ log.fr+TSF+(1|site_ID) , data=recruit_df)
+
+
+recruit_mod_g_R <- glm.nb(num_news ~log.fr+s.TSF*s.TBF +  
+                            s.T_RA + s.T_RH + s.sq.T_RH + s.T_RD +s.P_RH +
+                            s.P_RH:s.T_RH + s.P_RD + 
+                            site,   data = recruit_subset, na.action = "na.fail") 
 ############# compare AICc ###################
 
 save(survival_mod, growth_mod, prep_mod, crep_mod,vargrowth_mod,recruit_mod, TBF_long, file = "Legacy effect/data/TBFxClimate/VR_mod_linear.Rdata")

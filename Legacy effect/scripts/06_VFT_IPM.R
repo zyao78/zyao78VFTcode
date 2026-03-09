@@ -6,7 +6,7 @@ library(glue)
 library(zoo)
 library(MASS)
 
-load("Legacy effect/data/TBFxClimate/VR_mod_linear.Rdata") # loads in the VR functions
+load("Legacy effect/data/TBFxClimate/VR_mod linear mixed scale.Rdata") # loads in the VR functions
 
 ### load data and remove model attr (if needed, check str of VR models)
 TBF_long_noattr <- read_csv("Legacy effect/data/TBF_long_export_11_24_25.csv")
@@ -340,24 +340,23 @@ plt1
 ################### test sig TBFxTSF interaction at lambda level ######################################################
 #######################################################################################################################
 
+load("Legacy effect/data/TBFxClimate/IPM_output_final_mixed_scale_linear.Rdata") 
 
+rep_cols <- grep("^rep", names(all_pop_growth_rates), value = TRUE)
 
 df <- all_pop_growth_rates %>%
   dplyr::select(FRI,s.TBF,rep_cols) %>%
   mutate(TBF=NA) 
 
 
-
 df$TBF[1:11] <- "Short TBF"
 df$TBF[12:22] <- "Long TBF"
-
 
 slope_cols <- paste0("slope_dif", 1:10, "_", 2:11)
 FRI_slopedif <- data.frame(rep = rep_cols,matrix(NA_real_,
                                                           nrow = length(rep_cols),
                                                           ncol = length(slope_cols),
                                                           dimnames = list(NULL, slope_cols)))
-
 i=1
 ii=1
 
@@ -427,5 +426,10 @@ ggplot(df_ci_mean, aes(x = slope, y = mean)) +
   )
 
 save(all_pop_growth_rates, file = "Legacy effect/data/TBFxClimate/IPM_output_final_mixed_scale_linear.Rdata")
+
+################################################################################
+#######################some simple summaries ###################################
+
+
 
 
