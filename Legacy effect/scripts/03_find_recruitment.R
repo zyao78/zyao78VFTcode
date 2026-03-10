@@ -6,38 +6,41 @@ library(MuMIn)
 library(glue)
 library(MASS)
 
-load alldemodata_upto2024 and TBF_data_long1
+load alldemodata_upto2025 and data_long
 
 # check NAs in columns
 
-sum(is.na(TBF_data_long1$y))
+sum(is.na(data_long$y))
 
 # start
 
-TBF_data_long1$x <- NA
-TBF_data_long1$y <- NA
-TBF_data_long1$qs <- "N"
-TBF_data_long1$site_ID <- paste(TBF_data_long1$site, TBF_data_long1$ID, sep = "_")
+data_long$x <- NA
+data_long$y <- NA
+data_long$qs <- "N"
+data_long$site_ID <- paste(data_long$site, data_long$ID, sep = "_")
 
-for (i in 1:nrow(TBF_data_long1)) {
-  # Find the matching index in TBF_data_long1 based on the 'site_ID' column
-  match_index <- which(alldemodata_upto2024$site_ID == TBF_data_long1$site_ID[i])
+for (i in 1:nrow(data_long)) {
+  # Find the matching index in data_long based on the 'site_ID' column
+  match_index <- which(alldemodata_upto2025$site_ID == data_long$site_ID[i])
   
-  # If there's a match, update the 'quad' value in TBF_data_long1
+  # If there's a match, update the 'quad' value in data_long
   if (length(match_index) > 0) {
-    TBF_data_long1$x[i] <- alldemodata_upto2024$x[match_index]
-    TBF_data_long1$y[i] <- alldemodata_upto2024$y[match_index]
+    data_long$x[i] <- alldemodata_upto2025$x[match_index]
+    data_long$y[i] <- alldemodata_upto2025$y[match_index]
     
   }
 } 
 
 
-TBF_data_long1 <- TBF_data_long1 %>% # move columns to the front
+data_long <- data_long %>% # move columns to the front
   select(x, y,site_ID, everything())
 
 # add quad num to GSP sites
 
-GSP_sites <- TBF_data_long1[TBF_data_long1$site %in% c("GSP-BI", "GSP-LI"), ]
+GSP_sites <- data_long[data_long$site %in% c("GSP-BI", "GSP-LI"), ]
+GSP_sites$x <- as.numeric(GSP_sites$x)
+GSP_sites$y
+
 
 GSP_sites$quad_num <- NA
 GSP_sites$quad_num <- cut(
@@ -56,34 +59,34 @@ GSP_sites$quad <- recode(GSP_sites$quad,         # change into consistent quad n
 table(GSP_sites$quad)
 
 GSP_sites$quad <- paste(GSP_sites$quad, GSP_sites$quad_num, sep = "-")
-
-for (i in 1:nrow(TBF_data_long1)) {
+data_long$quad <- as.character(data_long$quad)
+for (i in 1:nrow(data_long)) {
   # Find the matching index in GSP_sites based on the 'key' column
-  match_index <- which(GSP_sites$site_ID == TBF_data_long1$site_ID[i])
+  match_index <- which(GSP_sites$site_ID == data_long$site_ID[i])
   
   # If there's a match, 
   if (length(match_index) > 0) {
-    TBF_data_long1$quad[i] <- GSP_sites$quad[[match_index[1]]]   # since match_index is a vector (multiple rows), assign quad of the first row (or the second or the third)
+    data_long$quad[i] <- GSP_sites$quad[[match_index[1]]]   # since match_index is a vector (multiple rows), assign quad of the first row (or the second or the third)
   }
 } 
-
+table(data_long$quad)
 
 # find qs
-rows_with_qs <- TBF_data_long1[grep("\\bqs", TBF_data_long1$comm1, ignore.case = TRUE), ]  # case insensitive
+rows_with_qs <- data_long[grep("\\bqs", data_long$comm1, ignore.case = TRUE), ]  # case insensitive
 rows_with_qs <- rows_with_qs[!grepl("qs/ns", rows_with_qs$comm1,ignore.case = TRUE), ]
 rows_with_qs <- rows_with_qs[!grepl("qs/qns", rows_with_qs$comm1,ignore.case = TRUE), ]
 
-TBF_data_long1$qs <- "N"
+data_long$qs <- "N"
 
-TBF_data_long1$key <- paste(TBF_data_long1$site, TBF_data_long1$ID, TBF_data_long1$startyear, sep = "_")
-TBF_data_long1$key_qsy <- paste(TBF_data_long1$quad, TBF_data_long1$site, TBF_data_long1$startyear, sep = "_")
+data_long$key <- paste(data_long$site, data_long$ID, data_long$startyear, sep = "_")
+data_long$key_qsy <- paste(data_long$quad, data_long$site, data_long$startyear, sep = "_")
 
 rows_with_qs$key <- paste(rows_with_qs$site, rows_with_qs$ID, rows_with_qs$startyear, sep = "_") # make keys for matching by site_ID_year
 rows_with_qs$key_qsy <- paste(rows_with_qs$quad, rows_with_qs$site, rows_with_qs$startyear, sep = "_") # make keys for matching by site_ID_year
 
-TBF_data_long1$qs[TBF_data_long1$key_qsy %in% rows_with_qs$key_qsy] <- "Y"
+data_long$qs[data_long$key_qsy %in% rows_with_qs$key_qsy] <- "Y"
 
-table(TBF_data_long1$qs) #check correct number of Y and N
+table(data_long$qs) #check correct number of Y and N
 
 
 # define search range x
@@ -112,7 +115,7 @@ for (i in 1:nrow(rows_with_qs)) {                             # fix cases where 
 # count num of news
 
 
-rows_with_new <- TBF_data_long1[grepl("\\bnew", TBF_data_long1$comm1), ]
+rows_with_new <- data_long[grepl("\\bnew", data_long$comm1), ]
 rows_with_new1 <- rows_with_new[!grepl("no new", rows_with_new$comm1), ] # delete "no new"
 rows_with_new1 <- rows_with_new1[!grepl("no news", rows_with_new1$comm1), ] # delete "no new" 
 rows_with_new1 <- rows_with_new1[!grepl("not possible to see new plants", rows_with_new1$comm1), ]
@@ -148,10 +151,10 @@ for (i in 1:nrow(rows_with_qs)) {
   site_i <- rows_with_qs$site[i]
   starty_i <- 25
   endy_i <- 50
-  rows_with_qs$num_fr [i]= sum(TBF_data_long1$rep0[TBF_data_long1$key_qsy == key_i & TBF_data_long1$x>=startx_i 
-                                                   & TBF_data_long1$x<=endx_i 
-                                                   & TBF_data_long1$y>=starty_i 
-                                                   & TBF_data_long1$y<=endy_i],na.rm = TRUE)
+  rows_with_qs$num_fr [i]= sum(data_long$rep0[data_long$key_qsy == key_i & data_long$x>=startx_i 
+                                                   & data_long$x<=endx_i 
+                                                   & data_long$y>=starty_i 
+                                                   & data_long$y<=endy_i],na.rm = TRUE)
   
 }
 
@@ -176,12 +179,12 @@ for (i in 1:nrow(rows_with_qs)) {
   endy_i <- 50
   
   rows_with_qs$mean_logsize0[i] <- mean(
-    TBF_data_long1$s.logsize0[
-      TBF_data_long1$key_qsy == key_i & 
-        TBF_data_long1$x >= startx_i & 
-        TBF_data_long1$x <= endx_i & 
-        TBF_data_long1$y >= starty_i & 
-        TBF_data_long1$y <= endy_i
+    data_long$s.logsize0[
+      data_long$key_qsy == key_i & 
+        data_long$x >= startx_i & 
+        data_long$x <= endx_i & 
+        data_long$y >= starty_i & 
+        data_long$y <= endy_i
     ],
     na.rm = TRUE
   )

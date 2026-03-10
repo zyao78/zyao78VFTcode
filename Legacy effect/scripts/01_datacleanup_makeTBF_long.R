@@ -4,8 +4,8 @@ Numextract <- function(string){
   return(myreturnvalue)
 }
 
-alldemodata_upto2025 <- read.csv("Legacy effect/data/VFT master data/alldemodata_upto2025.csv")
-data <- read.csv("legacy effect/raw-data/VFT master data/alldemodata_upto2025.csv",colClasses = "character")  ## ensure that the column types don't change (otherwise there will be ridiculous N,L)
+alldemodata_upto2025 <- read.csv("Legacy effect/raw-data/alldemodata_upto2025.csv")
+data <- read.csv("Legacy effect/raw-data/alldemodata_upto2025.csv",colClasses = "character")  ## ensure that the column types don't change (otherwise there will be ridiculous N,L)
 
 Sur_cols <- paste0("sur_", 15:24, "_", 16:25)
 
@@ -63,7 +63,8 @@ names(data15_16) <-  names(data16_17) <-  names(data17_18) <-  names(data18_19) 
   names(data19_20) <-  names(data20_21) <-  names(data21_22) <- names(data22_23) <- 
   names(data23_24) <- names(data24_25) <- c("site", "ID", "quad", "size0", "rep0", "sur0_1", "sur0_1_tp","size1", "N1", "L1",  "rep1","comm1", "startyear")
 head(data24_25)
-data_long <- rbind(data15_16, data16_17, data17_18, data18_19, data19_20, data20_21, data21_22, data22_23, data23_24, data24_25)   
+data_long <- rbind(data15_16, data16_17, data17_18, data18_19, data19_20, data20_21, data21_22, data22_23, data23_24, data24_25) 
+
       data_long$site <- factor(data_long$site)    
       data_long$quad <- factor(data_long$quad)   
       data_long$size0 <- as.numeric(data_long$size0) 
@@ -72,8 +73,71 @@ data_long <- rbind(data15_16, data16_17, data17_18, data18_19, data19_20, data20
       data_long$rep1 <- as.numeric(data_long$rep1)  
       data_long$startyear <- factor(data_long$ startyear)
 
-# adding the "fine detailed" fire history from Natalie's FireHistory.rmd file---- 
       
+########### convert transect into quad ########
+      data_long$x <- NA
+      data_long$y <- NA
+      data_long$site_ID <- paste(data_long$site, data_long$ID, sep = "_")
+      
+      for (i in 1:nrow(data_long)) {
+        # Find the matching index in data_long based on the 'site_ID' column
+        match_index <- which(alldemodata_upto2025$site_ID == data_long$site_ID[i])
+        
+        # If there's a match, update the 'quad' value in data_long
+        if (length(match_index) > 0) {
+          data_long$x[i] <- alldemodata_upto2025$x[match_index]
+          data_long$y[i] <- alldemodata_upto2025$y[match_index]
+          
+        }
+      } 
+      
+      
+      data_long <- data_long %>% # move columns to the front
+        select(x, y,site_ID, everything())
+      
+      GSP_sites <- data_long[data_long$site %in% c("GSP-BI", "GSP-LI"), ]
+      
+      GSP_sites$quad_num <- NA
+      GSP_sites$quad_num <- cut(
+        GSP_sites$x,
+        breaks = seq(0, 1000, by = 50),  # Adjust 1000 if needed for higher ranges
+        labels = 1:20,                   # Labels quadrats as 1, 2, 3, ..., 20
+        right = F ,    # Exclude the upper boundary in each interval
+        include.lowest = TRUE     
+      )
+      
+      GSP_sites$quad <- recode(GSP_sites$quad,         # change into consistent quad names
+                               "E" = "east",
+                               "W" = "west",
+                               "N" = "north",
+                               "S" = "south")
+
+      GSP_sites$quad <- paste(GSP_sites$quad, GSP_sites$quad_num, sep = "-")
+      data_long$quad <- as.character(data_long$quad)
+      
+      for (i in 1:nrow(data_long)) {
+        # Find the matching index in GSP_sites based on the 'key' column
+        match_index <- which(GSP_sites$site_ID == data_long$site_ID[i])
+        
+        # If there's a match, 
+        if (length(match_index) > 0) {
+          data_long$quad[i] <- GSP_sites$quad[[match_index[1]]]   # since match_index is a vector (multiple rows), assign quad of the first row (or the second or the third)
+        }
+      } 
+      
+      
+      
+      for (i in 1:nrow(data_long)) {
+        # Find the matching index in GSP_sites based on the 'key' column
+        match_row <- GSP_sites[which(GSP_sites$site_ID == data_long$site_ID[i]),]
+        
+        # If there's a match, 
+        if (nrow(match_row) > 0) {
+          data_long$quad[i] <- match_row$quad[1]   # since match_index is a vector (multiple rows), assign quad of the first row (or the second or the third)
+        }
+      } 
+      table(data_long$quad)
+# adding the "fine detailed" fire history from Natalie's FireHistory.rmd file---- 
 #load in fire file
 fire_histories <- read.csv("legacy effect/processed-data/fire_histories_landscape.csv") ## load in the most recent fire history fire
       
@@ -101,8 +165,29 @@ for (i in 1:nrow(data_long)) {
     
   }
 }
-     
+
+################### add vital rate variables ###############
+data_long$s.logsize0 <- scale(log(data_long$size0+0.1)) 
+data_long$logsize1 <- (log(data_long$size1+0.1))
+data_long$logsize0 <- (log(data_long$size0+0.1))
+
+data_long$prep1 <- NA
+look <- data_long %>%
+  filter(sur0_1==1) %>%
+  filter(is.na(rep1))
+
+data_long$rep1[data_long$sur0_1 == 1 & is.na(data_long$rep1)] <- 0
+look <- data_long %>%
+  filter(is.na(sur0_1==0)) %>%
+  filter(!is.na(rep1))    ####### no rep1 is correct
+
+data_long$prep1[which(data_long$rep1==0 & !is.na(data_long$rep1))] <- 0 # make sure no values assigned to NA
+data_long$prep1[which(data_long$rep1>0 & !is.na(data_long$rep1))] <- 1
+data_long$logcrep1 <- NA
+data_long$logcrep1[which(data_long$prep1== 1)] <- log(data_long$rep1[which(data_long$prep1== 1)]) #number of fruit
+
 
 #################################################################################################
-
-write.csv(data_long, file= "legacy effect/data/TBFxClimate/TBF_long_landscape.csv")
+data_long <- data_long %>%
+  select(-qs)
+write.csv(data_long, file= "VFT_long_upto2025.csv")

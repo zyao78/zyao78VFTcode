@@ -207,4 +207,10 @@ fit2 <- survival_mod$family$linkinv(fit)
 m2 <- predict.glm(survival_mod, data_new1, type = "response", se.fit = TRUE)
 m2$se.fit
 
+look <- VFT_long_upto2025 %>%
+  filter(sur0_1==1) %>%
+  filter(is.na(rep1))
 
+look2 <- data %>%
+  filter(Alive16==1 & Alive15==1 & is.na(rep16) ) %>%
+  select(Alive15,Alive16, size15, size16,rep15,rep16, site_ID)
