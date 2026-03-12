@@ -1,0 +1,132 @@
+---
+title: "Local Adaptation in VFT"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## load packages
+
+```{r}
+library(dplyr)
+library(readr)
+library(here)
+library(tidyverse)
+library(lubridate)
+library(purrr)
+```
+## HOBO data 2025 are only continuous for CH. For all other sites, it either recorded for only a few months or actually in past years 
+
+## load 2025 pendant data
+```{r}
+IA_2025 <- list(           # updated codes, use purrr map() to wrap everything in one pipeline
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/ia_start_2025.csv",
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/ia_end.csv"
+) %>%
+  map(~ read.csv(.x, skip = 1, header = TRUE)) %>%
+  map(~ select(.x, Date.Time = 2, Value = 3)) %>%
+  map(~ mutate(.x, Unit = "C")) %>%
+  bind_rows()
+
+GSP_LI_2025 <- list(           # updated codes, use purrr map() to wrap everything in one pipeline
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/gsp_li_q1.csv",
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/gsp_li_q20.csv"
+) %>%
+  map(~ read.csv(.x, skip = 1, header = TRUE)) %>%
+  map(~ select(.x, Date.Time = 2, Value = 3)) %>%
+  map(~ mutate(.x, Unit = "C")) %>%
+  bind_rows()
+
+GSP_BI_2025 <- list(           # updated codes, use purrr map() to wrap everything in one pipeline
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/gsp_bi_end_0.csv",
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/gsp_bi_start.csv"
+) %>%
+  map(~ read.csv(.x, skip = 1, header = TRUE)) %>%
+  map(~ select(.x, Date.Time = 2, Value = 3)) %>%
+  map(~ mutate(.x, Unit = "C")) %>%
+  bind_rows()
+
+CM_2025 <- list(           # updated codes, use purrr map() to wrap everything in one pipeline
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/cm_q1_2025.csv"
+) %>%
+  map(~ read.csv(.x, skip = 1, header = TRUE)) %>%
+  map(~ select(.x, Date.Time = 2, Value = 3)) %>%
+  map(~ mutate(.x, Unit = "C")) %>%
+  bind_rows()
+
+CH_2025 <- list(           # updated codes, use purrr map() to wrap everything in one pipeline
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/ch_q1_2025.csv",
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/ch_q6_2025.csv",
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/ch_q7_2025.csv"
+) %>%
+  map(~ read.csv(.x, skip = 1, header = TRUE)) %>%
+  map(~ select(.x, Date.Time = 2, Value = 3)) %>%
+  map(~ mutate(.x, Unit = "C")) %>%
+  bind_rows()
+
+B2_2025 <- list(           # updated codes, use purrr map() to wrap everything in one pipeline
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/b2_q1_pendant_2025.csv",
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/b2_q16_pendant_2025.csv"
+) %>%
+  map(~ read.csv(.x, skip = 1, header = TRUE)) %>%
+  map(~ select(.x, Date.Time = 2, Value = 3)) %>%
+  map(~ mutate(.x, Unit = "C")) %>%
+  bind_rows()
+
+B1_2025 <- list(           # updated codes, use purrr map() to wrap everything in one pipeline
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/b1_quad_7_pendant_2025.csv",
+  "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/b1_quad_1_pendant2025.csv"
+) %>%
+  map(~ read.csv(.x, skip = 1, header = TRUE)) %>%
+  map(~ select(.x, Date.Time = 2, Value = 3)) %>%
+  map(~ mutate(.x, Unit = "C")) %>%
+  bind_rows()
+
+datalist <- list(B1=B1_2025, B2=B2_2025, CH=CH_2025, CM=CM_2025,GSP_BI=GSP_BI_2025, GSP_LI=GSP_LI_2025, IA=IA_2025)
+soilT_2025 <- bind_rows(datalist, .id = "site")
+table(soilT_2025$site)
+#################################################################################################################
+
+soilT_2025$date_parsed <- parse_date_time(
+  soilT_2025$Date.Time,
+  orders = c("mdy HMS p", "mdy HM p","mdy HM" )
+  
+)
+
+soilT_2025$month <- month(soilT_2025$date_parsed)
+soilT_2025$day   <- day(soilT_2025$date_parsed)
+soilT_2025$year  <- year(soilT_2025$date_parsed)
+
+
+
+soilT_2025$startyear <- ifelse(
+  ((soilT_2025$month > 6) | (soilT_2025$month == 6 & soilT_2025$day >= 15)),
+  soilT_2025$year,
+  (soilT_2025$year)-1
+)
+
+soilT_2025$newMonth <- NA
+soilT_2025$newMonth <- ifelse(
+  soilT_2025$day >= 15,
+  soilT_2025$month,
+  ifelse(soilT_2025$month == 1, 12, soilT_2025$month - 1)
+)
+```
+
+## add soilT_2025 to soilT_upto2024
+```{r}
+SoilT_upto2024 <- read_csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/SoilT_upto2024.csv")
+```
+```{r}
+SoilT_upto2025 <- bind_rows(soilT_2025, SoilT_upto2024)
+SoilT_upto2025 <- SoilT_upto2025 %>%
+  filter(year != 2000)
+
+table(SoilT_upto2025$startyear)
+## export soilT_upto2025
+
+write.csv(SoilT_upto2025, "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/SoilT_upto2025.csv")
+```
+## export soilT_2025
+
