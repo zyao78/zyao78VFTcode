@@ -132,12 +132,6 @@ rec_model_terms <- terms(recruit_mod)
 rec_term <- attr(rec_model_terms, "term.labels")
 rec_term <- reformulate(rec_term)
 
-###
-i=8
-ii=7
-
-s="B2"
-###
 
 ##################################################################
 ###################### initiate IPM ##############################
