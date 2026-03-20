@@ -487,3 +487,11 @@ all_pop_growth_rates_Cro <- foreach(
   }
   j_pop_gr_rate_Cr
 }
+
+my_matrix <- matrix(1:30, nrow = 5, ncol = 6)
+
+# Calculate the sum of each column
+col_sums <- apply(my_matrix, 1, sum)
+
+# Print the result
+print(col_sums)
