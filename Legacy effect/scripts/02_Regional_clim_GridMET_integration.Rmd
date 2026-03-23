@@ -8,34 +8,34 @@ date: "2025-07-21"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## load data (change directory if needed)
+## regional T
 ```{r}
-B1_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_B1.csv")
-B2_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_B2.csv")
-CH_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_CH.csv")
-CM_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_CM.csv")
-IA_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_IA.csv")
-ME_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_ME.csv")
-GSP_BI_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_GSP_BI.csv")
-GSP_LI_reg <- read.csv("F:/VFT/TSF_effect/climate variables/Gridmet/GridMET_T/ClimateEngine_T_GSP_LI.csv")
+B1_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_B1.csv")
+B2_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_B2.csv")
+CH_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_CH.csv")
+CM_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_CM.csv")
+IA_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_IA.csv")
+ME_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_ME.csv")
+GSP_BI_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_GSP_BI.csv")
+GSP_LI_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_GSP_LI.csv")
 
-dat.list_reg <- list(
-  ME = ME_reg,
-  IA = IA_reg,
-  GSP_LI = GSP_LI_reg,
-  GSP_BI = GSP_BI_reg,
-  CM = CM_reg,
-  CH = CH_reg,  
-  B1 = B1_reg,
-  B2 = B2_reg
+dat.list_reg_T <- list(
+  ME = ME_reg_T,
+  IA = IA_reg_T,
+  GSP_LI = GSP_LI_reg_T,
+  GSP_BI = GSP_BI_reg_T,
+  CM = CM_reg_T,
+  CH = CH_reg_T,  
+  B1 = B1_reg_T,
+  B2 = B2_reg_T
 )
 
-dat.list_reg <- lapply(dat.list_reg, function(reg) {           
-  colnames(reg) <- c("date", "Temp")   
+dat.list_reg_T <- lapply(dat.list_reg_T, function(reg) {           
+  colnames(reg) <- c("date", "Temp")
   return(reg)
 })
 
-Reg_T_upto2024 <- bind_rows(dat.list_reg, .id = "site") # vertically merge dataframes and create a new column that indicates sites
+Reg_T_upto2024 <- bind_rows(dat.list_reg_T, .id = "site") # vertically merge dataframes and create a new column that indicates sites
 Reg_T_upto2024$date_parsed <- ymd(Reg_T_upto2024$date)   # first parse the date that is in mdy_hms format
 Reg_T_upto2024$month <- month(Reg_T_upto2024$date_parsed)
 Reg_T_upto2024$day   <- day(Reg_T_upto2024$date_parsed)

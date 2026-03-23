@@ -130,3 +130,15 @@ write.csv(SoilT_upto2025, "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data
 ```
 ## export soilT_2025
 
+
+# HOBO 
+
+HOBO 2025 data are in very poor quality
+
+
+```{r}
+B1_2025 <- 
+```
+
+
+

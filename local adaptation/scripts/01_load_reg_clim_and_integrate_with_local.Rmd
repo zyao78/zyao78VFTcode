@@ -1,0 +1,123 @@
+---
+title: "01_regionalclimate_and_integration"
+output: pdf_document
+date: "2026-03-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##
+
+```{r}
+library(dplyr)
+library(readr)
+library(here)
+library(tidyverse)
+library(lubridate)
+library(purrr)
+```
+
+
+# load regional T 
+
+```{r}
+B1_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_B1.csv")
+B2_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_B2.csv")
+CH_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_CH.csv")
+CM_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_CM.csv")
+IA_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_IA.csv")
+ME_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_ME.csv")
+GSP_BI_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_GSP_BI.csv")
+GSP_LI_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_GSP_LI.csv")
+
+dat.list_reg_T <- list(
+  ME = ME_reg_T,
+  IA = IA_reg_T,
+  GSP_LI = GSP_LI_reg_T,
+  GSP_BI = GSP_BI_reg_T,
+  CM = CM_reg_T,
+  CH = CH_reg_T,  
+  B1 = B1_reg_T,
+  B2 = B2_reg_T
+)
+
+dat.list_reg_T <- lapply(dat.list_reg_T, function(reg) {           
+  colnames(reg) <- c("date", "Temp")
+  return(reg)
+})
+
+Reg_T_upto2025 <- bind_rows(dat.list_reg_T, .id = "site") # vertically merge dataframes and create a new column that indicates sites
+Reg_T_upto2025$date_parsed <- ymd(Reg_T_upto2025$date)   # first parse the date that is in mdy_hms format
+Reg_T_upto2025$month <- month(Reg_T_upto2025$date_parsed)
+Reg_T_upto2025$day   <- day(Reg_T_upto2025$date_parsed)
+Reg_T_upto2025$year  <- year(Reg_T_upto2025$date_parsed)
+```
+
+# regional P
+```{r}
+B1_reg_P <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_P_B1.csv")
+B2_reg_P <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_P_B2.csv")
+CH_reg_P <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_P_CH.csv")
+CM_reg_P <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_P_CM.csv")
+IA_reg_P <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_P_IA.csv")
+ME_reg_P <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_P_ME.csv")
+GSP_BI_reg_P <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_P_GSP_BI.csv")
+GSP_LI_reg_P <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_P_GSP_LI.csv")
+
+dat.list_reg_P <- list(
+  ME = ME_reg_P,
+  IA = IA_reg_P,
+  GSP_LI = GSP_LI_reg_P,
+  GSP_BI = GSP_BI_reg_P,
+  CM = CM_reg_P,
+  CH = CH_reg_P,  
+  B1 = B1_reg_P,
+  B2 = B2_reg_P
+)
+
+dat.list_reg_P <- lapply(dat.list_reg_P, function(reg) {           
+  colnames(reg) <- c("date", "Prec")
+  return(reg)
+})
+
+reg_P_upto2025 <- bind_rows(dat.list_reg_P, .id = "site") # vertically merge dataframes and create a new column that indicates sites
+reg_P_upto2025$date_parsed <- ymd(reg_P_upto2025$date)   # first parse the date that is in mdy_hms format
+reg_P_upto2025$month <- month(reg_P_upto2025$date_parsed)
+reg_P_upto2025$day   <- day(reg_P_upto2025$date_parsed)
+reg_P_upto2025$year  <- year(reg_P_upto2025$date_parsed)
+```
+
+# join P and T and create startyear and newMonth
+```{r}
+Reg_clim_upto2025 <- reg_P_upto2025 %>% 
+  left_join(Reg_T_upto2025, by = c( "site"  ,   "date" ,        "date_parsed", "month"  ,     "day"     ,  "year"))
+
+
+Reg_clim_upto2025$startyear <- NA
+Reg_clim_upto2025$startyear <- ifelse(
+  ((Reg_clim_upto2025$month > 6) | (Reg_clim_upto2025$month == 6 & Reg_clim_upto2025$day >= 15)),
+  Reg_clim_upto2025$year,
+  (Reg_clim_upto2025$year)-1
+)
+
+Reg_clim_upto2025$newMonth <- NA
+Reg_clim_upto2025$newMonth <- ifelse(
+  Reg_clim_upto2025$day >= 15,
+  Reg_clim_upto2025$month,
+  ifelse(Reg_clim_upto2025$month == 1, 12, Reg_clim_upto2025$month - 1)
+)
+
+```
+
+# export 
+
+```{r}
+write.csv(Reg_clim_upto2025, "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/Reg_clim_upto2025.csv")
+```
+
+
+
+
+
