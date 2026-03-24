@@ -135,10 +135,103 @@ write.csv(SoilT_upto2025, "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data
 
 HOBO 2025 data are in very poor quality
 
+## add HOBO 2025
+```{r}
+B1_2025 <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/b1_hobo_2025l.csv", skip = 1)
+B2_2025 <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/b2_hobo_2025.csv", skip = 1)  #### this was old data, new data(2025) is missing
+CH_2025 <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/CH_hobo_2025.csv", skip = 1)
+CM_2025 <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/CM_hobo_2025.csv", skip = 1)
+GSP_BI_2025 <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/HOBO-2025-GSP-BI.csv", skip = 1)   
+GSP_LI_2025 <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/HOBO-2025-LI.csv", skip = 1) 
+IA_2025 <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/climate variables/VFT climate data 2025/IAhobo.csv", skip = 1) 
+
+```
 
 ```{r}
-B1_2025 <- 
+dat.list_hobo <- list(
+#  ME = ME_reg_P,
+  IA = IA_2025,
+  GSP_LI = GSP_LI_2025,
+  GSP_BI = GSP_BI_2025,
+  CM = CM_2025,
+  CH = CH_2025,  
+  B1 = B1_2025,
+  B2 = B2_2025
+)
+
+
+### code to merge multiple hobo sensors
+dat.list_hobo<- lapply(dat.list_hobo, function(hobo) {  
+  
+  if (sum(grepl("Water.Content", colnames(hobo)))>1) {
+    hobo$mSWC <- rowMeans(hobo[, grepl("Water.Content", colnames(hobo))], na.rm = TRUE)}
+  if (sum(grepl("Water.Content", colnames(hobo)))==1) {
+    hobo$mSWC <- hobo[, grepl("Water.Content", colnames(hobo))]}
+  
+  WC_col <- hobo[, grepl("Date|mSWC", colnames(hobo))]
+
+  return(WC_col)
+})
+
+soilP_2025 <- bind_rows(dat.list_hobo, .id = "site")
+
+## fix erroneous data logging
+soilP_2025$mSWC[which(soilP_2025$mSWC <0 | soilP_2025$mSWC>1)] <- NA 
+
+## add necessary columns
+
+soilP_2025$date_parsed <- parse_date_time(
+  soilP_2025$Date.Time..GMT.04.00,
+  orders = c("mdy HMS p", "mdy HM p","mdy HM" ))
+
+soilP_2025$month <- month(soilP_2025$date_parsed)
+soilP_2025$day   <- day(soilP_2025$date_parsed)
+soilP_2025$year  <- year(soilP_2025$date_parsed)
+
+
+
+soilP_2025$startyear <- ifelse(
+  ((soilP_2025$month > 6) | (soilP_2025$month == 6 & soilP_2025$day >= 15)),
+  soilP_2025$year,
+  (soilP_2025$year)-1
+)
+
+soilP_2025$newMonth <- NA
+soilP_2025$newMonth <- ifelse(
+  soilP_2025$day >= 15,
+  soilP_2025$month,
+  ifelse(soilP_2025$month == 1, 12, soilP_2025$month - 1)
+)
 ```
+
+## add soilP_2025 to soilP_upto2024
+
+
+```{r}
+HOBO_upto2024 <- read_csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/HOBO_upto2024.csv")
+
+df_bind <- bind_rows(HOBO_upto2024, soilP_2025)
+df_bind2 <- df_bind %>%
+  select(site, date_parsed, month, day, year, startyear, mSWC, newMonth)
+
+dupes_janitor <- df_bind2 %>%
+  get_dupes(date_parsed, mSWC,site)
+
+#### get rid of the completely duplicated rows (data overlaps between years)
+df_bind3 <- df_bind2 %>%
+  group_by(across(everything())) %>%
+  slice_head(n = 1) %>%
+  ungroup()
+
+```
+
+## export HOBO_upto2025
+
+```{r}
+write.csv(df_bind3, "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/HOBO_upto2025.csv")
+
+```
+
 
 
 
