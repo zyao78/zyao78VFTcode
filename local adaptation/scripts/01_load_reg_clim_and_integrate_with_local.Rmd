@@ -8,7 +8,7 @@ date: "2026-03-23"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-##
+## 
 
 ```{r}
 library(dplyr)
@@ -17,10 +17,15 @@ library(here)
 library(tidyverse)
 library(lubridate)
 library(purrr)
+library(AICcmodavg)
+library(nlme)
+library(mgcv)
+library(parallel)
+library(doParallel)
+library(MuMIn)
 ```
 
-
-# load regional T 
+# load regional T
 
 ```{r}
 B1_reg_T <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_T_B1.csv")
@@ -48,14 +53,20 @@ dat.list_reg_T <- lapply(dat.list_reg_T, function(reg) {
   return(reg)
 })
 
-Reg_T_upto2025 <- bind_rows(dat.list_reg_T, .id = "site") # vertically merge dataframes and create a new column that indicates sites
-Reg_T_upto2025$date_parsed <- ymd(Reg_T_upto2025$date)   # first parse the date that is in mdy_hms format
-Reg_T_upto2025$month <- month(Reg_T_upto2025$date_parsed)
-Reg_T_upto2025$day   <- day(Reg_T_upto2025$date_parsed)
-Reg_T_upto2025$year  <- year(Reg_T_upto2025$date_parsed)
+Reg_T_2025 <- bind_rows(dat.list_reg_T, .id = "site") # vertically merge dataframes and create a new column that indicates sites
+
+Reg_T_2025$date_parsed <- parse_date_time(date, orders = c("ymd", "dmy"))   ## date parse with flexible formats.
+any(is.na(Reg_T_2025$date_parsed)) ## make sure all dates were successfully parsed
+
+Reg_T_2025$month <- month(Reg_T_2025$date_parsed)
+Reg_T_2025$day   <- day(Reg_T_2025$date_parsed)
+Reg_T_2025$year  <- year(Reg_T_2025$date_parsed)
+
+any(is.na(Reg_T_2025$Temp))
 ```
 
 # regional P
+
 ```{r}
 B1_reg_P <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_P_B1.csv")
 B2_reg_P <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/raw-data/ClimateEngine_P_B2.csv")
@@ -82,17 +93,30 @@ dat.list_reg_P <- lapply(dat.list_reg_P, function(reg) {
   return(reg)
 })
 
-reg_P_upto2025 <- bind_rows(dat.list_reg_P, .id = "site") # vertically merge dataframes and create a new column that indicates sites
-reg_P_upto2025$date_parsed <- ymd(reg_P_upto2025$date)   # first parse the date that is in mdy_hms format
-reg_P_upto2025$month <- month(reg_P_upto2025$date_parsed)
-reg_P_upto2025$day   <- day(reg_P_upto2025$date_parsed)
-reg_P_upto2025$year  <- year(reg_P_upto2025$date_parsed)
+reg_P_2025 <- bind_rows(dat.list_reg_P, .id = "site") # vertically merge dataframes and create a new column that indicates sites
+reg_P_2025$date_parsed <- parse_date_time(date, orders = c("ymd", "dmy"))   
+any(is.na(Reg_T_2025$date_parsed)) ## make sure all dates were successfully parsed
+
+reg_P_2025$month <- month(reg_P_2025$date_parsed)
+reg_P_2025$day   <- day(reg_P_2025$date_parsed)
+reg_P_2025$year  <- year(reg_P_2025$date_parsed)
+
+any(is.na(reg_P_2025$Prec))
+
+
 ```
 
 # join P and T and create startyear and newMonth
+
 ```{r}
-Reg_clim_upto2025 <- reg_P_upto2025 %>% 
-  left_join(Reg_T_upto2025, by = c( "site"  ,   "date" ,        "date_parsed", "month"  ,     "day"     ,  "year"))
+Reg_clim_upto2025 <- reg_P_2025 %>% 
+  left_join(Reg_T_2025, by = c( "site"  , "date_parsed", "month"  , "day" , "year")) %>%
+  select(-date.y) %>%
+  rename(Date=date.x)
+
+any(is.na(Reg_clim_upto2025$Prec))
+any(is.na(Reg_clim_upto2025$Temp))
+
 
 
 Reg_clim_upto2025$startyear <- NA
@@ -111,13 +135,267 @@ Reg_clim_upto2025$newMonth <- ifelse(
 
 ```
 
-# export 
+# export reg_clim_upto2025
 
 ```{r}
 write.csv(Reg_clim_upto2025, "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/Reg_clim_upto2025.csv")
 ```
 
+# integrate regional and local
+
+## load in local and regional data
+
+```{r}
+LocalP <- read_csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/HOBO_upto2025.csv")
+LocalT <- read_csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/SoilT_upto2025.csv")
+RegionalTP<-read_csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/Reg_clim_upto2025.csv")
+
+## check that sites names are consistent
+table(LocalP$site)
+table(LocalT$site)
+table(RegionalTP$site)
+
+## fix
+LocalP$site[which(LocalP$site == "GSP_BI")] <- "GSP-BI"
+LocalP$site[which(LocalP$site == "GSP_LI")] <- "GSP-LI"
+LocalT$site[which(LocalT$site == "GSP_BI")] <- "GSP-BI"
+LocalT$site[which(LocalT$site == "GSP_LI")] <- "GSP-LI"
+RegionalTP$site[which(RegionalTP$site == "GSP_BI")] <- "GSP-BI"
+RegionalTP$site[which(RegionalTP$site == "GSP_LI")] <- "GSP-LI"
+## check whether some soil T are in F
+hist(LocalT$Value) ## looking normal
+
+```
+
+
+## calculate daily summaries
+
+```{r}
+LocalT_daily <- LocalT %>%   
+  group_by(newMonth, month,day,startyear, site) %>%    # for startyear of 2021 for example, months 6-12 were in 2021 and 1-5 were in 2015.
+  summarize(meanST = mean(Value,na.rm = TRUE))%>%
+  ungroup()
+
+LocalP_daily <- LocalP %>%   
+  group_by(newMonth, month,day,startyear, site) %>%    # for startyear of 2021 for example, months 6-12 were in 2021 and 1-5 were in 2015.
+  summarize(meanSP = mean(mSWC,na.rm = TRUE)) %>%
+  ungroup()
+
+
+```
+
+## combine regional and local
+```{r}
+Combined <- RegionalTP
+Combined$local_T <- NA
+Combined$local_P <- NA
+
+for (i in 1:nrow(Combined)) {
+  match <- LocalT_daily$meanST[LocalT_daily$site == Combined$site[i] & 
+                                 LocalT_daily$startyear == Combined$startyear[i] &
+                                 LocalT_daily$day == Combined$day[i] &
+                                 LocalT_daily$newMonth == Combined$newMonth[i] ] 
+  if (length(match) >= 1) {  # Ensure there's exactly one match
+    Combined$local_T[i] <- match
+  }
+}
+
+for (i in 1:nrow(Combined)) {
+  match <- LocalP_daily$meanSP[LocalP_daily$site == Combined$site[i] & 
+                                 LocalP_daily$startyear == Combined$startyear[i] &
+                                 LocalP_daily$day == Combined$day[i] &
+                                 LocalP_daily$newMonth == Combined$newMonth[i] ] 
+  if (length(match) >= 1) {  # Ensure there's exactly one match
+    Combined$local_P[i] <- match
+  }
+}
+
+## rename columns
+Combined <- Combined %>%
+  rename(regional_P=Prec, regional_T=Temp) %>%
+  select(Date,site, month, day, year, startyear, newMonth, regional_P, regional_T, local_P, local_T) %>%
+  mutate(RowID = row_number())
+
+## some visual checks
+
+list <- list(LP=Combined$local_P,RP=Combined$regional_P, LT=Combined$local_T, RT=Combined$regional_T )
+
+lapply(list, hist,  col = "skyblue", main = "Histogram")
+
+
+```
+
+# soil T interpolation
+
+```{r}
+
+attach(Combined)
+ggplot(data=Combined, aes(x=regional_T, y=local_T, colour = site)) +
+  geom_point()
+
+
+## check whether soil temperature is normally distributed (histogram suggests not exactly)
+# for large data set like ours, perform a KS test 
+
+ref_dist <- rnorm(sum(!is.na(local_T)), mean(local_T, na.rm = T), sd(local_T, na.rm = T))
+
+ks.test(ref_dist, local_T) ### this is suggesting deviation from normal distribution
 
 
 
+## try a linear 
+Local_T_subset <- 
+  Combined %>% 
+  filter_at(vars(local_T,regional_T,site), all_vars(!is.na(.)))
+
+GM_T <- lm(local_T~regional_T * site 
+                  ,data=Local_T_subset,
+                na.action = "na.fail")  
+
+summary(GM_T)   ## we do see significant site:T interaction.
+
+## look a at residuals
+hist(residuals(GM_T))
+
+# seems fine, proceed
+
+```
+
+```{r}
+gap_in_LT <- Combined[which(is.na(Combined$local_T)),c("local_T", "regional_T", "site", "RowID")]
+
+gap_in_LT$local_T <- predict(GM_T, gap_in_LT, interval = "prediction")[,1]
+
+for (i in 1:nrow(Combined)) { 
+  if(is.na(Combined$local_T[i])){
+    match_row <- gap_in_LT[which(Combined$RowID[i] == gap_in_LT$RowID),]  ## RowID ensures one to one match
+    if(nrow(match_row) == 1){
+      Combined$local_T[i] <- match_row$local_T}
+  }
+  }
+any(is.na(Combined$local_T))
+
+```
+
+# soil P interpolation
+
+```{r}
+attach(Combined)
+
+Combined$s.logRP <- scale(log(Combined$regional_P+0.1))
+Combined$num.date <- NA
+Combined$Date <- as.Date(Combined$Date)
+Combined$num.date <- as.numeric(Date - min(Date))+1
+
+ggplot(data=Combined[which(Combined$site == "CH"),], aes(x=Date, y=local_P, colour = site)) +
+  geom_line()
+
+## try a linear 
+Local_P_subset <- 
+  Combined %>% 
+  filter_at(vars(local_P, site,s.logRP), all_vars(!is.na(.)))
+
+m1 <- lm(local_P~s.logRP*site ,data=Local_P_subset,
+                na.action = "na.fail")    
+m2 <-  lm(local_P~site,data=Local_P_subset,
+                na.action = "na.fail")   
+m3 <-  lm(local_P~s.logRP*site + regional_T, data=Local_P_subset,
+                na.action = "na.fail") 
+m4 <-  lm(local_P~s.logRP*site + regional_T*s.logRP, data=Local_P_subset,
+                na.action = "na.fail") 
+m5 <- lm(local_P~s.logRP*local_T*site, data=Local_P_subset,
+                na.action = "na.fail")
+AIC_list <- c(AICc(m1), AICc(m2),AICc(m3),AICc(m4), AIC(m5))
+
+GM_P <- lm (local_P ~ s.logRP + site + s.logRP:site + regional_T + regional_T:site + regional_T:site:s.logRP + local_T + local_T:site + local_T:site:s.logRP
+              
+              ,data=Local_P_subset,
+                na.action = "na.fail")
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("Local_P_subset")) 
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+LP_dredge <- MuMIn::dredge(
+  GM_P,
+  cluster = cluster,
+  trace   = 2
+)
+head(LP_dredge)
+mod_LP <- get.models(LP_dredge, 1)[[1]]
+stopCluster(cluster)
+
+
+## look a at residuals
+hist(residuals(mod_LP))
+
+hist(gap_in_LP$local_P)
+# seems fine, proceed
+```
+
+```{r}
+names(mod_LP$coefficients)
+
+gap_in_LP <- Combined[which(is.na(Combined$local_P)),c("local_P", "regional_T", "local_T","s.logRP", "site", "RowID")]
+
+gap_in_LP$local_P <- predict(mod_LP, gap_in_LP, interval = "prediction")[,1]
+
+## check that predictions are reasonable (not below 0 or greater than 1)
+range(gap_in_LP$local_P)
+
+for (i in 1:nrow(Combined)) { 
+  if(is.na(Combined$local_P[i])){
+    match_row <- gap_in_LP[which(Combined$RowID[i] == gap_in_LP$RowID),]  ## RowID ensures one to one match
+    if(nrow(match_row) == 1){
+      Combined$local_P[i] <- match_row$local_P}
+  }
+}
+
+
+any(is.na(Combined$local_P)) ## all gaps are filled
+hist(Combined$local_P)
+
+```
+#### Zak's Gam function (not ideal but just to put it here)
+```{r}
+gam_fit = function(x, y){        ### x, y are vectors that goes into the GAM
+  
+  k. = round(length(unique(x))/2, digits=0)   ## maximum number of knots allowed
+  new_dat = data.frame(cbind(x, y))
+  colnames(new_dat) = c("x", "y")
+  #new_dat = filter(new_dat, Year>1990)
+  gam2 = gam(y ~ s(x, k =k.), data=new_dat, seWithMean = TRUE, method="REML", family=gaussian)
+  gam2
+  print(summary(gam2))
+  print(AIC(gam2))
+  
+  new_df = data.frame(rep(seq(min(new_dat$x), max(new_dat$x), length.out = 200)))
+  colnames(new_df) = "x"
+  
+  pred <- predict(gam2, new_df, se.fit = TRUE)
+  se.fit <- pred$se.fit
+  new_df$pred = pred[[1]]
+  new_df$se = pred$se.fit
+  new_df = mutate(new_df, up_ci = pred+se*2, low_ci=pred-se*2)
+  new_df$up_ci2 = gam2$family$linkinv(new_df$up_ci)
+  new_df$low_ci2 = gam2$family$linkinv(new_df$low_ci)
+  
+  print(ggplot(new_df, aes(x=x))+
+  geom_ribbon(aes(ymin = low_ci, ymax = up_ci), alpha=0.5)+
+    geom_point(data = new_dat, aes(x=x, y = y), col="red"))
+  
+  return(new_df)
+}
+```
+###### GAM
+```{r}
+gam_fit(Local_P_subset$num.date[which(Local_P_subset$site == "CH")], Local_P_subset$local_P[which(Local_P_subset$site == "CH")])
+```
+
+### export
+```{r}
+write.csv(Combined, "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/Climvar_upto2025.csv")
+```
 
