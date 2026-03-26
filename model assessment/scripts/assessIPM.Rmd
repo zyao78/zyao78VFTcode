@@ -745,7 +745,12 @@ plt4
 
 Here, the differences in growth rate among regions are driven solely by the site fixed effect in two of the vital rate functions (survival and prob of reproduction).
 
+
+
 # build region specific IPM (refit vital rate functions using subsets of data)
+
+
+
 
 ##Croatan
 
@@ -1639,10 +1644,10 @@ all_pop_growth_rates_GSP_reg <- foreach(
         grows <- growcdf[2:length(bin_edges)]-growcdf[1:(length(bin_edges)-1)]
         if(sum(grows)>0){grows <- grows/sum(grows)
         gmx[,ss] <- grows
-        } else if (sum(grows)==0 & grow_vals[ss]< min(bin_edges)) { 
-          gmx[,ss] <- c(1, rep(0, length(binmids)-1))  
-        } else if (sum(grows)==0 & grow_vals[ss]> max(bin_edges)) { 
-          gmx[,ss] <- c(rep(0, length(binmids)-1), 1)  } else { # deals with complete eviction-- OUT OF THE BOUNDS  of the kernel
+        } else if (sum(grows)==0 & predicted_gr[ss]< min(bin_edges)) { 
+          gmx[,ss] <- c(1, rep(0, length(bin_mids)-1))  
+        } else if (sum(grows)==0 & predicted_gr[ss]> max(bin_edges)) { 
+          gmx[,ss] <- c(rep(0, length(bin_mids)-1), 1)  } else { # deals with complete eviction-- OUT OF THE BOUNDS  of the kernel
             gmx[,ss] <- NA} 
         # this if statement breaks the code (puts NA's into the matrix) if the sum of the PDF is zero (which happens if all the probability is outside of the size bounds)
       } # end ss loop
@@ -1695,7 +1700,7 @@ mean_lambda_across_scenarios_GSP_reg$TBF[12:22] <- "Long TBF"
 ##########. graph 
 ##########
 
-plt5<- ggplot(data= mean_lambda_across_scenarios_GSP_reg, aes(x= FRI, y= mean_lambda)) +
+plt6<- ggplot(data= mean_lambda_across_scenarios_GSP_reg, aes(x= FRI, y= mean_lambda)) +
   geom_line(aes(color= TBF)) + 
   geom_ribbon(aes(ymin = mean_lambda_across_scenarios_GSP_reg$lower_bound, ymax = mean_lambda_across_scenarios_GSP_reg$upper_bound, fill= TBF), alpha = 0.1) + 
   #ylim(0,1) +
@@ -1705,7 +1710,37 @@ plt5<- ggplot(data= mean_lambda_across_scenarios_GSP_reg, aes(x= FRI, y= mean_la
   theme(legend.position = "right") +
   scale_x_continuous(breaks = 0:10) +
   theme(text = element_text(size = 16)) 
-plt5
+plt6
 ```
+##graph
+
+```{r}
+lambda_regionalIPM <- bind_rows(
+  mean_lambda_across_scenarios %>% mutate(dataset = "global IPM"),
+  mean_lambda_across_scenarios_Cro_reg %>% mutate(dataset = "Croatan"),
+  mean_lambda_across_scenarios_GSP_reg %>% mutate(dataset = "Green Swamp"))
+
+plt7 <- ggplot(lambda_regionalIPM, aes(x = FRI, y = mean_lambda)) +
+    geom_ribbon(
+    aes(ymin = lower_bound, ymax = upper_bound,
+        fill = dataset, group = interaction(dataset, TBF)),
+    alpha = 0.1) +
+  geom_line(
+    aes(color = dataset, linetype = TBF,
+        group = interaction(dataset, TBF)),
+    size = 1) +
+  theme_bw() +
+  labs(
+    y = "Growth Rate",
+    x = "Fire Return Interval",
+    color = "Dataset",
+    fill = "Dataset",
+    linetype = "TBF") +
+  scale_x_continuous(breaks = 0:10) +
+  theme(text = element_text(size = 16))
+
+plt7
+```
+
 
 

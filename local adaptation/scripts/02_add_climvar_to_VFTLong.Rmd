@@ -1,0 +1,84 @@
+
+```{r}
+library(dplyr)
+library(readr)
+library(ggplot2)
+```
+
+
+## add data
+
+```{r}
+VFT <- read_csv("/Users/a123/Desktop/TOM/VFT/local adaptation/data/processed data/VFT_long_upto2025.csv")
+Climvar <- read_csv("/Users/a123/Desktop/TOM/VFT/local adaptation/data/processed data/Climvar_upto2025.csv")
+```
+## add annual variables
+
+#### local
+```{r}
+TP_LA<- Climvar %>%
+  group_by(startyear, site) %>%    # for startyear of 2021 for example, months 6-12 were in 2021 and 1-5 were in 2022.
+  summarise(T_LA = mean(local_T,na.rm = TRUE),P_LA = mean(local_P,na.rm = TRUE))
+
+
+VFT$T_LA <- NA
+VFT$P_LA <- NA
+
+for (i in 1:nrow(VFT)) {
+  site_i = VFT$site[i]
+  startyear_i = VFT$startyear[i]
+  
+  VFT$T_LA [i] <- TP_LA$T_LA[which(TP_LA$site == site_i & TP_LA$startyear== startyear_i) ]
+  VFT$P_LA [i] <- TP_LA$P_LA[which(TP_LA$site == site_i & TP_LA$startyear== startyear_i) ]
+}
+
+head(VFT)
+```
+
+#### regional
+```{r}
+TP_RA<- Climvar %>%
+  group_by(startyear, site) %>%    # for startyear of 2021 for example, months 6-12 were in 2021 and 1-5 were in 2022.
+  summarise(T_RA = mean(regional_T,na.rm = TRUE),P_RA = sum(regional_P))
+
+
+VFT$T_RA <- NA
+VFT$P_RA <- NA
+
+for (i in 1:nrow(VFT)) {
+  site_i = VFT$site[i]
+  startyear_i = VFT$startyear[i]
+  
+  VFT$T_RA [i] <- TP_RA$T_RA[which(TP_RA$site == site_i & TP_RA$startyear== startyear_i) ]
+  VFT$P_RA [i] <- TP_RA$P_RA[which(TP_RA$site == site_i & TP_RA$startyear== startyear_i) ]
+}
+
+head(VFT)
+```
+
+##add extreme month variables
+
+####local
+```{r}
+Hottest_month <- 7
+Coldest_month <- 1
+driest_month <- 12
+wettest_month <- 8       ### these values are obtained from Louthan et al., 2022 (https://esajournals.onlinelibrary.wiley.com/doi/full/10.1002/ecm.1528). These were calculated from historical avergaes of precipitation and temperature data.
+
+TP_LM<- Climvar %>%
+  group_by(startyear, site, newMonth) %>%    
+  summarise(T_LM = mean(local_T,na.rm = TRUE),P_LM = mean(local_P,na.rm = TRUE), 
+            T_LMax= max(local_T,na.rm = TRUE), T_LMin= min(local_T,na.rm = TRUE))
+
+VFT$T_LH <- VFT$T_LC <- VFT$T_LW <- VFT$T_LD <- VFT$P_LH <- VFT$P_LW <- VFT$P_LD <- NA
+
+for (i in 1:nrow(VFT)) {
+  site_i = VFT$site[i]
+  startyear_i = VFT$startyear[i]
+  
+  VFT$T_RA [i] <- TP_RA$T_RA[which(TP_RA$site == site_i & TP_RA$startyear== startyear_i) ]
+  VFT$P_RA [i] <- TP_RA$P_RA[which(TP_RA$site == site_i & TP_RA$startyear== startyear_i) ]
+}
+
+```
+
