@@ -9,8 +9,8 @@ library(ggplot2)
 ## add data
 
 ```{r}
-VFT <- read_csv("/Users/a123/Desktop/TOM/VFT/local adaptation/data/processed data/VFT_long_upto2025.csv")
-Climvar <- read_csv("/Users/a123/Desktop/TOM/VFT/local adaptation/data/processed data/Climvar_upto2025.csv")
+VFT <- read_csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/VFT_long_upto2025.csv")
+Climvar <- read_csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/Climvar_upto2025.csv")
 ```
 ## add annual variables
 
@@ -75,10 +75,111 @@ VFT$T_LH <- VFT$T_LC <- VFT$T_LW <- VFT$T_LD <- VFT$P_LH <- VFT$P_LW <- VFT$P_LD
 for (i in 1:nrow(VFT)) {
   site_i = VFT$site[i]
   startyear_i = VFT$startyear[i]
-  
-  VFT$T_RA [i] <- TP_RA$T_RA[which(TP_RA$site == site_i & TP_RA$startyear== startyear_i) ]
-  VFT$P_RA [i] <- TP_RA$P_RA[which(TP_RA$site == site_i & TP_RA$startyear== startyear_i) ]
+
+  # VFT$T_LH [i] <- ifelse(which(TP_LM$site == site_i & TP_LM$startyear== startyear_i & TP_LM$newMonth==Hottest_month)=0, NA,TP_LM$T_LMax[which(TP_LM$site == site_i & TP_LM$startyear== startyear_i & TP_LM$newMonth==Hottest_month)])
+  # VFT$T_LC [i] <- ifelse(length(which(TP_LM$site == site_i & TP_LM$startyear== startyear_i & TP_LM$newMonth==Coldest_month))== 0, NA, TP_LM$T_LMin[which(TP_LM$site == site_i & TP_LM$startyear== startyear_i & TP_LM$newMonth==Coldest_month)])
+  VFT$T_LH [i] <- TP_LM$T_LMax[which(TP_LM$site == site_i & TP_LM$startyear== startyear_i & TP_LM$newMonth==Hottest_month)]
+  VFT$T_LC [i] <- TP_LM$T_LMin[which(TP_LM$site == site_i & TP_LM$startyear== startyear_i & TP_LM$newMonth==Coldest_month)]
+  VFT$T_LW [i] <- TP_LM$T_LM[which(TP_LM$site == site_i & TP_LM$startyear== startyear_i& TP_LM$newMonth==wettest_month) ]
+  VFT$T_LD [i] <- TP_LM$T_LM[which(TP_LM$site == site_i & TP_LM$startyear== startyear_i& TP_LM$newMonth==driest_month) ]
+  VFT$P_LH [i] <- TP_LM$P_LM[which(TP_LM$site == site_i & TP_LM$startyear== startyear_i& TP_LM$newMonth==Hottest_month) ]
+  VFT$P_LW [i] <- TP_LM$P_LM[which(TP_LM$site == site_i & TP_LM$startyear== startyear_i& TP_LM$newMonth==wettest_month) ]
+  VFT$P_LD [i] <- TP_LM$P_LM[which(TP_LM$site == site_i & TP_LM$startyear== startyear_i& TP_LM$newMonth==driest_month) ]
+
 }
 
+```
+
+#### regional 
+
+```{r}
+TP_RM<- Climvar %>%
+  group_by(startyear, site, newMonth) %>%    
+  summarise(T_RM = mean(local_T,na.rm = TRUE),P_RM = sum(local_P,na.rm = TRUE), 
+            T_RMax= max(local_T,na.rm = TRUE), T_RMin= min(local_T,na.rm = TRUE))
+
+VFT$T_RH <- VFT$T_RC <- VFT$T_RW <- VFT$T_RD <- VFT$P_RH <- VFT$P_RW <- VFT$P_RD <- NA
+
+for (i in 1:nrow(VFT)) {
+  site_i = VFT$site[i]
+  startyear_i = VFT$startyear[i]
+
+  # VFT$T_RH [i] <- ifelse(which(TP_RM$site == site_i & TP_RM$startyear== startyear_i & TP_RM$newMonth==Hottest_month)=0, NA,TP_RM$T_RMax[which(TP_RM$site == site_i & TP_RM$startyear== startyear_i & TP_RM$newMonth==Hottest_month)])
+  # VFT$T_RC [i] <- ifelse(length(which(TP_RM$site == site_i & TP_RM$startyear== startyear_i & TP_RM$newMonth==Coldest_month))== 0, NA, TP_RM$T_RMin[which(TP_RM$site == site_i & TP_RM$startyear== startyear_i & TP_RM$newMonth==Coldest_month)])
+  VFT$T_RH [i] <- TP_RM$T_RMax[which(TP_RM$site == site_i & TP_RM$startyear== startyear_i & TP_RM$newMonth==Hottest_month)]
+  VFT$T_RC [i] <- TP_RM$T_RMin[which(TP_RM$site == site_i & TP_RM$startyear== startyear_i & TP_RM$newMonth==Coldest_month)]
+  VFT$T_RW [i] <- TP_RM$T_RM[which(TP_RM$site == site_i & TP_RM$startyear== startyear_i& TP_RM$newMonth==wettest_month) ]
+  VFT$T_RD [i] <- TP_RM$T_RM[which(TP_RM$site == site_i & TP_RM$startyear== startyear_i& TP_RM$newMonth==driest_month) ]
+  VFT$P_RH [i] <- TP_RM$P_RM[which(TP_RM$site == site_i & TP_RM$startyear== startyear_i& TP_RM$newMonth==Hottest_month) ]
+  VFT$P_RW [i] <- TP_RM$P_RM[which(TP_RM$site == site_i & TP_RM$startyear== startyear_i& TP_RM$newMonth==wettest_month) ]
+  VFT$P_RD [i] <- TP_RM$P_RM[which(TP_RM$site == site_i & TP_RM$startyear== startyear_i& TP_RM$newMonth==driest_month) ]
+
+}
+
+```
+# scale climate variables
+
+```{r}
+VFT$s.T_RA <- NA
+VFT$s.T_RA <- scale(VFT$T_RA) 
+VFT$s.P_RA <- NA
+VFT$s.P_RA <- scale(VFT$P_RA) 
+VFT$s.P_RW <- NA
+VFT$s.P_RW <- scale(VFT$P_RW) 
+VFT$s.P_RD <- NA
+VFT$s.P_RD <- scale(VFT$P_RD) 
+VFT$s.P_RH <- NA
+VFT$s.P_RH <- scale(VFT$P_RH) 
+VFT$s.T_RH<- NA
+VFT$s.T_RD<- NA
+VFT$s.T_RW<- NA
+VFT$s.T_RC<- NA
+VFT$s.T_RH <- scale(VFT$T_RH) 
+VFT$s.T_RC <- scale(VFT$T_RC) 
+VFT$s.T_RD <- scale(VFT$T_RD) 
+VFT$s.T_RW <- scale(VFT$T_RW) 
+
+
+VFT$sq.P_RA <- (VFT$P_RA)^2
+VFT$sq.T_RA <- (VFT$T_RA)^2
+VFT$sq.T_RH <- (VFT$T_RH)^2
+VFT$s.sq.T_RH <- scale(VFT$sq.T_RH)
+VFT$s.sq.P_RA <- scale(VFT$sq.P_RA)
+VFT$s.sq.T_RA <- scale(VFT$sq.T_RA)
+
+
+
+VFT$s.T_LA <- NA
+VFT$s.T_LA <- scale(VFT$T_LA) 
+VFT$s.P_LA <- NA
+VFT$s.P_LA <- scale(VFT$P_LA) 
+VFT$s.P_LW <- NA
+VFT$s.P_LW <- scale(VFT$P_LW) 
+VFT$s.P_LD <- NA
+VFT$s.P_LD <- scale(VFT$P_LD) 
+VFT$s.P_LH <- NA
+VFT$s.P_LH <- scale(VFT$P_LH) 
+VFT$s.T_LH<- NA
+VFT$s.T_LD<- NA
+VFT$s.T_LW<- NA
+VFT$s.T_LC<- NA
+VFT$s.T_LH <- scale(VFT$T_LH) 
+VFT$s.T_LC <- scale(VFT$T_LC) 
+VFT$s.T_LD <- scale(VFT$T_LD) 
+VFT$s.T_LW <- scale(VFT$T_LW) 
+
+VFT$sq.P_LA <- (VFT$P_LA)^2
+VFT$sq.T_LA <- (VFT$T_LA)^2
+VFT$sq.T_LH <- (VFT$T_LH)^2
+VFT$s.sq.T_LH <- scale(VFT$sq.T_LH)
+VFT$s.sq.P_LA <- scale(VFT$sq.P_LA)
+VFT$s.sq.T_LA <- scale(VFT$sq.T_LA)
+
+```
+
+# export
+
+```{r}
+write.csv(VFT, "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/VFT_long_upto2025_2")
 ```
 

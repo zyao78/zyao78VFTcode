@@ -55,7 +55,7 @@ dat.list_reg_T <- lapply(dat.list_reg_T, function(reg) {
 
 Reg_T_2025 <- bind_rows(dat.list_reg_T, .id = "site") # vertically merge dataframes and create a new column that indicates sites
 
-Reg_T_2025$date_parsed <- parse_date_time(date, orders = c("ymd", "dmy"))   ## date parse with flexible formats.
+Reg_T_2025$date_parsed <- parse_date_time(Reg_T_2025$date, orders = c("ymd", "dmy"))   ## date parse with flexible formats.
 any(is.na(Reg_T_2025$date_parsed)) ## make sure all dates were successfully parsed
 
 Reg_T_2025$month <- month(Reg_T_2025$date_parsed)
@@ -94,7 +94,7 @@ dat.list_reg_P <- lapply(dat.list_reg_P, function(reg) {
 })
 
 reg_P_2025 <- bind_rows(dat.list_reg_P, .id = "site") # vertically merge dataframes and create a new column that indicates sites
-reg_P_2025$date_parsed <- parse_date_time(date, orders = c("ymd", "dmy"))   
+reg_P_2025$date_parsed <- parse_date_time(Reg_T_2025$date, orders = c("ymd", "dmy"))   
 any(is.na(Reg_T_2025$date_parsed)) ## make sure all dates were successfully parsed
 
 reg_P_2025$month <- month(reg_P_2025$date_parsed)
@@ -110,9 +110,8 @@ any(is.na(reg_P_2025$Prec))
 
 ```{r}
 Reg_clim_upto2025 <- reg_P_2025 %>% 
-  left_join(Reg_T_2025, by = c( "site"  , "date_parsed", "month"  , "day" , "year")) %>%
-  select(-date.y) %>%
-  rename(Date=date.x)
+  left_join(Reg_T_2025, by = c( "site"  , "date_parsed", "month"  , "day" , "year")) 
+
 
 any(is.na(Reg_clim_upto2025$Prec))
 any(is.na(Reg_clim_upto2025$Temp))
@@ -213,8 +212,9 @@ for (i in 1:nrow(Combined)) {
 ## rename columns
 Combined <- Combined %>%
   rename(regional_P=Prec, regional_T=Temp) %>%
-  select(Date,site, month, day, year, startyear, newMonth, regional_P, regional_T, local_P, local_T) %>%
-  mutate(RowID = row_number())
+  select(date.x,site, month, day, year, startyear, newMonth, regional_P, regional_T, local_P, local_T) %>%
+  mutate(RowID = row_number()) %>%
+  rename(Date = date.x)
 
 ## some visual checks
 
@@ -229,7 +229,6 @@ lapply(list, hist,  col = "skyblue", main = "Histogram")
 
 ```{r}
 
-attach(Combined)
 ggplot(data=Combined, aes(x=regional_T, y=local_T, colour = site)) +
   geom_point()
 
@@ -280,12 +279,20 @@ any(is.na(Combined$local_T))
 # soil P interpolation
 
 ```{r}
-attach(Combined)
 
 Combined$s.logRP <- scale(log(Combined$regional_P+0.1))
 Combined$num.date <- NA
-Combined$Date <- as.Date(Combined$Date)
-Combined$num.date <- as.numeric(Date - min(Date))+1
+Combined$Date <- as.Date(
+  paste(Combined$year, Combined$month, Combined$day, sep = "-")
+)
+
+
+Combined$num.date <- as.numeric(Combined$Date - min(Combined$Date))+1
+Combined2$Date <- as.Date(
+  paste(Combined2$year, Combined2$month, Combined2$day, sep = "-")
+)
+
+
 
 ggplot(data=Combined[which(Combined$site == "CH"),], aes(x=Date, y=local_P, colour = site)) +
   geom_line()
@@ -356,7 +363,6 @@ for (i in 1:nrow(Combined)) {
 
 any(is.na(Combined$local_P)) ## all gaps are filled
 hist(Combined$local_P)
-
 ```
 #### Zak's Gam function (not ideal but just to put it here)
 ```{r}
