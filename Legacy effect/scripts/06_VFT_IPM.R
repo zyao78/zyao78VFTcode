@@ -9,7 +9,7 @@ library(MASS)
 load("Legacy effect/data/TBFxClimate/VR_mod linear mixed scale.Rdata") # loads in the VR functions
 
 ### load data and remove model attr (if needed, check str of VR models)
-TBF_long_noattr <- read_csv("Legacy effect/data/TBF_long_export_11_24_25.csv")
+TBF_long_noattr <- read_csv("F:/VFT/VFT_github/zyao78VFTcode/Legacy effect/data/TBF_long_export_11_24_25.csv")
 
 TBF_long_noattr <- TBF_long_noattr %>%
   mutate(across(c("s.logsize0", "s.sq.TSF", "s.TSF", "s.TBF"), as.numeric))
@@ -26,7 +26,7 @@ prep_mod <- update(prep_mod,data=TBF_long_noattr %>%
                                   s.P_RH, ), all_vars(!is.na(.))))
 crep_mod <- update(crep_mod,data=TBF_long_noattr %>% 
                    filter_at(vars(logcrep1, s.logsize0, TSF, TBF,s.sq.TSF, site, s.T_RA, s.T_RH), all_vars(!is.na(.))))
-vargrowth_mod <- update(variance_mod,data=TBF_long_noattr %>% 
+vargrowth_mod <- update(vargrowth_mod,data=TBF_long_noattr %>% 
                         filter_at(vars(vargrowth, s.logsize0,s.P_RD,s.P_RW,s.sq.P_RA,s.T_RD  ), all_vars(!is.na(.))))
 recruit_mod <- recruit_mod
 
@@ -297,9 +297,59 @@ names(all_pop_growth_rates) <- c(names(possible_scenarios), paste("rep", 1:no_re
 
 
 
-################## graph #############################
+################## summary and graph #############################
 rep_cols <- grep("^rep", names(all_pop_growth_rates), value = TRUE)
 
+
+all_pop_growth_rates_long <- all_pop_growth_rates %>%
+  dplyr::select(FRI, s.TBF, all_of(rep_cols)) %>%
+  pivot_longer( !c(FRI, s.TBF), names_to = "rep", values_to = "lambda")
+
+all_pop_growth_rates_long$TBF <- NA
+
+all_pop_growth_rates_long$TBF[which(all_pop_growth_rates_long$s.TBF == min(all_pop_growth_rates_long$s.TBF))] <- "Short TBF"
+all_pop_growth_rates_long$TBF[which(all_pop_growth_rates_long$s.TBF == max(all_pop_growth_rates_long$s.TBF))] <- "Long TBF"
+
+## get mean and sd
+
+mean(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$FRI == 1)])
+sd(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$FRI == 1)])
+mean(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$FRI == 11)])
+sd(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$FRI == 11)])
+
+mean(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$TBF =="Long TBF" )])
+sd(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$TBF == "Long TBF")])
+mean(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$TBF == "Short TBF")])
+sd(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$TBF == "Short TBF")])
+
+### calculate global slope_dif 
+
+global_slope <- all_pop_growth_rates_long %>%
+  group_by(rep, TBF) %>%
+  summarise(
+    slope = lambda[FRI == 11] - lambda[FRI == 1],
+    .groups = "drop"
+  )
+
+
+global_slope_dif <- global_slope %>%
+  group_by(rep) %>%
+  summarise(
+    slope_dif = slope[TBF == "Long TBF"] - slope[TBF == "Short TBF"],
+   
+  )
+
+mean(global_slope_dif$slope_dif)
+sd(global_slope_dif$slope_dif)
+
+
+## assess significance 
+
+summary(lm(lambda~FRI, data = all_pop_growth_rates_long))
+summary(lm(lambda~TBF, data = all_pop_growth_rates_long))
+
+
+#########
 mean_lambda_across_scenarios <- all_pop_growth_rates %>%
   rowwise() %>%
   mutate(
@@ -363,7 +413,7 @@ for (i in 1: dim(FRI_slopedif)[1]) {
     
     slope_long  <- df[df$FRI == ii+1 & df$TBF == "Long TBF",  rep] - df[df$FRI == ii  & df$TBF == "Long TBF",  rep]
     
-    FRI_slopedif[i, colname] <- slope_short - slope_long
+    FRI_slopedif[i, colname] <- slope_long-slope_short 
   }
 }
 
@@ -395,11 +445,7 @@ df_ci_mean <- slopediff %>%
     upper = mean + 1.96 * se,
     .groups = "drop"
   )
-mean <- mean (FRI_slopedif$slope_dif1_2, na.rm = TRUE)
-sd <- sd (FRI_slopedif$slope_dif1_2, na.rm = TRUE)
 
-mean + 1.96 * sd / sqrt(1000)
-mean - 1.96 * sd / sqrt(1000)
 
 df_ci_mean$slope <- factor(
   df_ci_mean$slope,
@@ -426,4 +472,7 @@ save(all_pop_growth_rates, file = "Legacy effect/data/TBFxClimate/IPM_output_fin
 
 
 
-
+sample_size <- TBF_long %>%
+  group_by(site) %>%
+  summarise(n_site_ID = n_distinct(site_ID), .groups = "drop")
+  

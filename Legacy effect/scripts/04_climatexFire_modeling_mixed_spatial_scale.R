@@ -223,7 +223,7 @@ head(recruit_dredge_R)
 recruit_mod <- get.models(recruit_dredge_R, 1)[[1]]
 stopCluster(cluster)
 
-hist(resid(recruit_mod_log_lmer))
+hist(resid(recruit_mod))
 
 ######### vargrowth ################################################
 growth_terms <- attr(terms(growth_mod), "term.labels")
@@ -280,7 +280,7 @@ stopCluster(cluster)
 
 ################################# save ##############
 
-save(survival_mod, growth_mod, prep_mod, crep_mod,vargrowth_mod, recruit_mod, TBF_long, Vargrowth_subset, file = "Legacy effect/data/TBFxClimate/VR_mod linear mixed scale.Rdata")
+save(survival_mod, growth_mod, prep_mod, crep_mod,vargrowth_mod, recruit_mod, TBF_long, Vargrowth_subset, file = "Legacy effect/data/model_export_mar_2026.Rdata")
 
 
 #################################################################################################################################################

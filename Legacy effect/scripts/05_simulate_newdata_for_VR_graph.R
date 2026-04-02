@@ -299,6 +299,13 @@ plt5
 ###################################################################################
 
 
+
+
+
+
+
+
+
 data_new1 <- read.csv("data/TBFxClimate/data_new1_2024.csv")
 
 TBF <- sort(unique(original_vector), na.last = TRUE)
@@ -310,7 +317,7 @@ data_new1$s.TSF <- s.TSF
 data_new1$s.TBF <- s.TBF
 data_new1$s.sq.TSF <- s.sq.TSF
 
-TLA <- quantile(TBF_long$s.T_LA, probs = seq(0, 1, length.out = 11), na.rm = TRUE)
+TLA <- quantile(TBF_long$s.T_LA, probs = seq(0, 1, length.out = 50), na.rm = TRUE)
 TLA_sq <- quantile(TBF_long$s.sq.T_LA, probs = seq(0, 1, length.out = 11), na.rm = TRUE)
 
 PLA <- quantile(TBF_long$s.P_LA, probs = c(0.10, 0.90), na.rm = TRUE)

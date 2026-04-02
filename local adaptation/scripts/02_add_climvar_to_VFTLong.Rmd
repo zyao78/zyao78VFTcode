@@ -176,10 +176,18 @@ VFT$s.sq.P_LA <- scale(VFT$sq.P_LA)
 VFT$s.sq.T_LA <- scale(VFT$sq.T_LA)
 
 ```
-
 # export
 
 ```{r}
-write.csv(VFT, "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/VFT_long_upto2025_2")
+write.csv(VFT, "F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/VFT_long_upto2025_2.csv")
+```
+
+
+
+
+
+
+```{r}
+range(VFT$)
 ```
 

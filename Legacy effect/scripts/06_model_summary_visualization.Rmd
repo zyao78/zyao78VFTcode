@@ -1,0 +1,68 @@
+---
+title: "model summary plotting"
+output: html_document
+date: "2026-03-30"
+---
+
+```{r}
+library(ggplot2)
+install.packages("modelsummary")
+library(modelsummary)
+
+load("F:/VFT/VFT_github/zyao78VFTcode/Legacy effect/data/model_export_mar_2026.Rdata")
+```
+
+# coef_map
+
+```{r}
+coef_map <- c(
+  "(Intercept)"   = "Intercept",
+  "s.logsize0"    = "Initial size",
+  "s.TBF"         = "TBF",
+  "s.TSF"         = "TSF",
+  "s.P_RA"        = "Cumulative Precipitation (annual)",
+  "s.sq.P_RA"     = "Cumulative Precipitation (annual) ^2",
+  "s.P_RD"        = "Cumulative Precipitation (driest month)",
+  "s.P_RW"        = "Cumulative Precipitation (wettest month)" ,
+  "s.P_RH"        = "Cumulative Precipitation (hottest month)",
+  "s.T_LA"        = "mean Temperature (annual)",
+  "s.sq.T_LA"     = "mean Temperature (annual)^2",
+  "s.T_LD"        = "mean Temperature (driest month)",
+  "s.T_LC"        = "min Temperature (coldest month)",
+  "s.T_LH"        = "max Temperature (hottest month)",
+  "s.sq.T_LH"     = "Max Temperature (hottest month) ^2",
+  "siteB2"        = "Site B2",
+  "siteCH"        = "Site CH",
+  "siteCM"        = "Site CM",
+  "siteGSP-BI"    = "Site GSP-BI",
+  "siteGSP-LI"    = "Site GSP-LI",
+  "siteIA"        = "Site IA",
+  "siteME"        = "Site ME",
+  "s.P_RA:s.T_LA" = "Precipitation x Temperature (annual)",
+  "s.P_RH:s.T_LH" = "Precipitation x Temperature (hottest month)"
+)
+
+```
+ "number of fruits" = crep_mod,
+"number of seedlings per fruit"=recruit_mod
+       "variance in growth" = vargrowth_mod
+       "growth"=growth_mod
+# make coefficient plots for vital rate models
+## survival
+
+```{r}
+sur_model_terms <- terms(survival_mod)
+
+modelplot(list("probability of survival"=survival_mod,"probability of fruiting"=prep_mod, "growth"=growth_mod, "variance in growth" = vargrowth_mod, "number of fruits" = crep_mod,"number of seedlings per fruit"=recruit_mod), 
+          coef_map = rev(coef_map), # rev() reverses list order
+          coef_omit = "Intercept") + 
+          # coord_cartesian(xlim = c(-30, 30)) +
+          # color = ) + # use plus to add customizations like any ggplot object
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed", linewidth = .75) # red 0 line
+
+
+```
+
+
+
+

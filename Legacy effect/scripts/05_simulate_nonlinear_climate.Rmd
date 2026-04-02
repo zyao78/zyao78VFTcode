@@ -1,0 +1,196 @@
+
+
+
+```{r}
+library(ggplot2)
+
+```
+
+# load models and VFT long data with original attributes
+
+```{r}
+load("F:/VFT/VFT_github/zyao78VFTcode/Legacy effect/data/model_export_mar_2026.Rdata")
+
+VFT_raw <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/Legacy effect/data/TBFxClimate/TBF_long_landscape_2024.csv")
+
+VFT_raw$s.T_RA <- NA
+VFT_raw$s.T_RA <- scale(VFT_raw$T_RA) 
+VFT_raw$s.P_RA <- NA
+VFT_raw$s.P_RA <- scale(VFT_raw$P_RA) 
+VFT_raw$s.P_RW <- NA
+VFT_raw$s.P_RW <- scale(VFT_raw$P_RW) 
+VFT_raw$s.P_RD <- NA
+VFT_raw$s.P_RD <- scale(VFT_raw$P_RD) 
+VFT_raw$s.P_RH <- NA
+VFT_raw$s.P_RH <- scale(VFT_raw$P_RH) 
+VFT_raw$s.T_RH<- NA
+VFT_raw$s.T_RD<- NA
+VFT_raw$s.T_RW<- NA
+VFT_raw$s.T_RC<- NA
+VFT_raw$s.T_RH <- scale(VFT_raw$T_RH) 
+VFT_raw$s.T_RC <- scale(VFT_raw$T_RC) 
+VFT_raw$s.T_RD <- scale(VFT_raw$T_RD) 
+VFT_raw$s.T_RW <- scale(VFT_raw$T_RW) 
+
+
+VFT_raw$sq.P_RA <- (VFT_raw$P_RA)^2
+VFT_raw$sq.T_RA <- (VFT_raw$T_RA)^2
+VFT_raw$sq.T_RH <- (VFT_raw$T_RH)^2
+VFT_raw$s.sq.T_RH <- scale(VFT_raw$sq.T_RH)
+VFT_raw$s.sq.P_RA <- scale(VFT_raw$sq.P_RA)
+VFT_raw$s.sq.T_RA <- scale(VFT_raw$sq.T_RA)
+
+
+
+VFT_raw$s.T_LA <- NA
+VFT_raw$s.T_LA <- scale(VFT_raw$T_LA) 
+VFT_raw$s.P_LA <- NA
+VFT_raw$s.P_LA <- scale(VFT_raw$P_LA) 
+VFT_raw$s.P_LW <- NA
+VFT_raw$s.P_LW <- scale(VFT_raw$P_LW) 
+VFT_raw$s.P_LD <- NA
+VFT_raw$s.P_LD <- scale(VFT_raw$P_LD) 
+VFT_raw$s.P_LH <- NA
+VFT_raw$s.P_LH <- scale(VFT_raw$P_LH) 
+VFT_raw$s.T_LH<- NA
+VFT_raw$s.T_LD<- NA
+VFT_raw$s.T_LW<- NA
+VFT_raw$s.T_LC<- NA
+VFT_raw$s.T_LH <- scale(VFT_raw$T_LH) 
+VFT_raw$s.T_LC <- scale(VFT_raw$T_LC) 
+VFT_raw$s.T_LD <- scale(VFT_raw$T_LD) 
+VFT_raw$s.T_LW <- scale(VFT_raw$T_LW) 
+
+VFT_raw$sq.P_LA <- (VFT_raw$P_LA)^2
+VFT_raw$sq.T_LA <- (VFT_raw$T_LA)^2
+VFT_raw$sq.T_LH <- (VFT_raw$T_LH)^2
+VFT_raw$s.sq.T_LH <- scale(VFT_raw$sq.T_LH)
+VFT_raw$s.sq.P_LA <- scale(VFT_raw$sq.P_LA)
+VFT_raw$s.sq.T_LA <- scale(VFT_raw$sq.T_LA)
+
+```
+
+# get attributes 
+
+
+```{r}
+
+mean_TA <- attr(VFT_raw$s.T_LA,"scaled:center")
+sd_TA <- attr(VFT_raw$s.T_LA,"scaled:scale")
+
+mean_TA2 <- attr(VFT_raw$s.sq.T_LA,"scaled:center")
+sd_TA2 <- attr(VFT_raw$s.sq.T_LA,"scaled:scale")
+
+mean_PA <- attr(VFT_raw$s.P_RA,"scaled:center")
+sd_PA <- attr(VFT_raw$s.P_RA,"scaled:scale")
+
+mean_PA2 <- attr(VFT_raw$s.sq.P_RA,"scaled:center")
+sd_PA2 <- attr(VFT_raw$s.sq.P_RA,"scaled:scale")
+
+
+```
+
+# make data_new
+
+```{r}
+data_new1 <- as.data.frame((rep(mean(TBF_long$s.logsize0, na.rm=TRUE), 50)))
+names(data_new1)[1] <- "s.logsize0"
+data_new1$annual_Soil_T <- seq(min(VFT_raw$T_LA), max(VFT_raw$T_LA), length.out = 50)
+data_new1$annual_precip <- seq(min(VFT_raw$P_RA), max(VFT_raw$P_RA), length.out = 50)
+
+data_new1$s.T_LA <- as.numeric(scale(data_new1$annual_Soil_T, center= mean_TA, 
+                               scale=sd_TA ))
+data_new1$s.sq.T_LA <- as.numeric(scale((data_new1$annual_Soil_T)^2, center= mean_TA2, 
+                               scale=sd_TA2 ))
+data_new1$s.P_RA <- as.numeric(scale(data_new1$annual_precip, center= mean_PA,
+                               scale=sd_PA ))
+data_new1$s.sq.P_RA <- as.numeric(scale((data_new1$annual_precip)^2, center= mean_PA2,
+                               scale=sd_PA2 ))
+
+
+
+
+data_new1$s.TSF <- mean(TBF_long$s.TSF)
+data_new1$s.TBF <- mean(TBF_long$s.TBF)
+
+data_new1$site <- "GSP-LI"
+data_new1$s.P_RD <- rep(mean(TBF_long$s.P_RD, na.rm=TRUE) )
+data_new1$s.P_RH <- rep(mean(TBF_long$s.P_RH, na.rm=TRUE) )
+data_new1$s.sq.T_LH <- rep(mean(TBF_long$s.sq.T_LH, na.rm=TRUE) )
+data_new1$s.T_LD <- rep(mean(TBF_long$s.T_LD, na.rm=TRUE) )
+data_new1$s.T_LH <- rep(mean(TBF_long$s.T_LH, na.rm=TRUE) )
+data_new1$s.T_LC <- rep(mean(TBF_long$s.T_LC, na.rm=TRUE) )
+data_new1$s.P_RW <- rep(mean(TBF_long$s.P_RW, na.rm=TRUE) )
+```
+
+# if predicting against Temp only, run this first 
+```{r}
+data_new1$s.P_RA <-  rep(mean(TBF_long$s.P_RA, na.rm=TRUE) )
+data_new1$s.sq.P_RA <- rep(mean(TBF_long$s.sq.P_RA, na.rm=TRUE) )
+```
+
+# if predicting against precip only, run this first 
+```{r}
+data_new1$s.T_LA <-  rep(mean(TBF_long$s.P_RA, na.rm=TRUE) )
+data_new1$s.sq.T_LA <- rep(mean(TBF_long$s.sq.P_RA, na.rm=TRUE) )
+```
+
+
+# predict prep
+
+```{r}
+prep_pred <- predict.glm(prep_mod, data_new1, type = "link", se.fit = TRUE)
+
+prep_lwr_link <- prep_pred$fit + qnorm(0.025) * prep_pred$se.fit
+prep_upr_link <- prep_pred$fit + qnorm(0.975) * prep_pred$se.fit
+
+data_new1$prep_fit <- prep_mod$family$linkinv(prep_pred$fit)
+data_new1$prep_lwr <- prep_mod$family$linkinv(prep_lwr_link)
+data_new1$prep_upr <- prep_mod$family$linkinv(prep_upr_link)
+```
+
+# predict growth 
+
+```{r}
+data_new1$gr <- merTools::predictInterval(growth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
+
+```
+# predict vargrowh
+```{r}
+data_new1$vargr <- merTools::predictInterval(vargrowth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
+
+# inverse log 
+data_new1$vargr_origional <- exp(data_new1$vargr)
+```
+
+
+# plot 
+
+```{r}
+plt3 <- ggplot(data= data_new1, aes(x= annual_precip, y= prep_fit)) +
+  geom_line() + 
+  geom_ribbon(aes(ymin = data_new1$prep_lwr, ymax = data_new1$prep_upr), alpha = 0.1) + 
+  #ylim(0,1) +
+  # labs(y= "probability of reproduction", x = "annual mean soil temperature") +
+  theme_bw() + theme(legend.position='none') +
+  theme(legend.position = "right") +
+  theme(text = element_text(size = 20)) 
+plt3
+
+plt2 <- ggplot(data= data_new1, aes(x= annual_Soil_T, y= gr$fit)) +
+  geom_line()+ 
+  geom_ribbon(aes(ymin = data_new1$gr$lwr, ymax = data_new1$gr$upr), alpha = 0.1) + 
+  scale_x_continuous(breaks = 0:10) +
+  theme(legend.position = "right") +
+  theme(text = element_text(size = 20)) 
+plt2
+
+plt5 <- ggplot(data= data_new1, aes(x= annual_precip, y= vargr$fit)) +
+  geom_line()+ 
+  geom_ribbon(aes(ymin = data_new1$vargr$lwr, ymax = data_new1$vargr$upr), alpha = 0.1) +
+  scale_x_continuous(breaks = 0:10) +
+  theme(legend.position = "right") +
+  theme(text = element_text(size = 20)) 
+plt5
+```
+
