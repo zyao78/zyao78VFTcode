@@ -63,6 +63,12 @@ modelplot(list("probability of survival"=survival_mod,"probability of fruiting"=
 
 ```
 
+# some data summaries
+```{r}
+##  see on average how many plants are in a population
 
+
+
+```
 
 

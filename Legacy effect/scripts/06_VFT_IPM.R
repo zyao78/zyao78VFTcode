@@ -322,6 +322,23 @@ sd(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$TBF == "Long
 mean(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$TBF == "Short TBF")])
 sd(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$TBF == "Short TBF")])
 
+### test for H2 at population level: at FRI=1, or right after the burning, do we see TBF negatively affect lambda?
+
+mean_lam_short <- mean(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$FRI == 1 & all_pop_growth_rates_long$TBF == "Short TBF")])
+sd_lam_short <- sd(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$FRI == 1 & all_pop_growth_rates_long$TBF == "Short TBF")])
+mean_lam_long <- mean(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$FRI == 1 & all_pop_growth_rates_long$TBF == "Long TBF")])
+sd_lam_long <- sd(all_pop_growth_rates_long$lambda[which(all_pop_growth_rates_long$FRI == 1 & all_pop_growth_rates_long$TBF == "Long TBF")])
+
+ggplot() + 
+  geom_point(aes(x = c("Short TBF", "Long TBF"), y = c(mean_lam_short, mean_lam_long))) +
+  geom_errorbar(aes(
+    x = c("Short TBF", "Long TBF"),
+    ymin = c(mean_lam_short - sd_lam_short, mean_lam_long - sd_lam_long),
+    ymax = c(mean_lam_short + sd_lam_short, mean_lam_long + sd_lam_long)
+  ), width=0.2) +
+  xlab("TBF") +
+  ylab("mean population growth rate")
+
 ### calculate global slope_dif 
 
 global_slope <- all_pop_growth_rates_long %>%
