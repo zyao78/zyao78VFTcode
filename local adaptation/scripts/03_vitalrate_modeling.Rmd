@@ -1,1 +1,140 @@
 
+## load
+```{r}
+library(dplyr)
+library(lme4)
+library(MuMIn)
+library(parallel)
+library(doParallel)
+library(foreach)
+library(AICcmodavg)
+library(readr)
+```
+
+```{r}
+VFT_long <- read_csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/VFT_long_upto2025_2.csv")
+
+VFT_long$s.TSF <- scale(VFT_long$TSF)
+VFT_long$s.TBF <- scale(VFT_long$TBF)
+
+```
+# explore candidate source of local adaptation (variables that vary among sites)
+
+##plot time series
+```{r}
+SoilT_list <- c("T_LA", "T_LW", "T_LH", "T_LD", "T_LC")
+SoilMoisture_list <- c("P_LA", "P_LD", "P_LH", "P_LW")
+
+RegionalT_list <- c("T_RA", "T_RW", "T_RH", "T_RD", "T_RC")
+precip_list <- c("P_RA", "P_RD", "P_RH", "P_RW")
+
+Plot_clim <- function(x, data) {
+  ggplot(data,
+         aes(x = as.factor(startyear),
+             y = .data[[x]],
+             colour = site,
+             group = site)) +
+    geom_line() +
+    geom_point() +
+    labs(y = x, x = "Year") +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 8)
+    ) +
+    ggtitle(x)
+}
+
+
+p_soilT <- lapply(SoilT_list, Plot_clim, data = VFT_long)
+
+p_soilT <- ggpubr::ggarrange(
+  plotlist = p_soilT[1:5],
+  ncol = 3,
+  nrow = 2,
+  common.legend = TRUE,
+  legend = "right"
+)
+
+p_soilmoisture <- lapply(SoilMoisture_list, Plot_clim, data = VFT_long)
+
+p_soilmoisture <- ggpubr::ggarrange(
+  plotlist = p_soilmoisture[1:5],
+  ncol = 3,
+  nrow = 2,
+  common.legend = TRUE,
+  legend = "right"
+)
+
+
+p_precip <- lapply(precip_list, Plot_clim, data = VFT_long)
+
+p_precip <- ggpubr::ggarrange(
+  plotlist = p_precip[1:5],
+  ncol = 3,
+  nrow = 2,
+  common.legend = TRUE,
+  legend = "right"
+)
+
+p_regTemp <- lapply(RegionalT_list, Plot_clim, data = VFT_long)
+
+p_regTemp <- ggpubr::ggarrange(
+  plotlist = p_regTemp[1:5],
+  ncol = 3,
+  nrow = 2,
+  common.legend = TRUE,
+  legend = "right"
+)
+
+
+
+print(p_regTemp)
+print(p_precip)
+print(p_soilT)
+print(p_soilmoisture)
+
+```
+
+## significant test
+
+
+
+
+# survival 
+## regional climate variables
+```{r}
+sur_subset_R <- 
+  VFT_long %>% 
+  filter_at(vars(sur0_1_tp, s.logsize0, s.TSF,s.TBF, site, ), all_vars(!is.na(.)))
+
+GM_R_sur <- glmer(
+  sur0_1_tp ~ s.logsize0 + s.TSF * s.TBF +
+    s.T_RA + s.T_RA:site + s.T_RH + s.sq.T_RH + s.T_RD + s.T_RD:site +s.P_RH +
+    s.P_RH:s.T_RH + s.P_RD +(1|site),
+  data = sur_subset_R,
+  family = "binomial", 
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("sur_subset_R"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+sur_dredge_R <- MuMIn::dredge(
+  GM_R_sur,
+  cluster = cluster,
+  trace   = 2
+)
+head(sur_dredge_R) ########### manually check for comparable models
+
+sur_mod_R <- get.models(sur_dredge_R, 3)[[1]]
+```
+
+## local cilmate variabls
+
+# growth 
+
+
+# prob of reproduction
