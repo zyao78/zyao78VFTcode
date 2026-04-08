@@ -12,7 +12,7 @@ library(readr)
 ```
 
 ```{r}
-VFT_long <- read_csv("F:/VFT/VFT_github/zyao78VFTcode/local adaptation/data/processed data/VFT_long_upto2025_2.csv")
+VFT_long <- read_csv("local adaptation/data/processed data/VFT_long_upto2025_2.csv")
 
 VFT_long$s.TSF <- scale(VFT_long$TSF)
 VFT_long$s.TBF <- scale(VFT_long$TBF)
@@ -107,11 +107,14 @@ sur_subset_R <-
   filter_at(vars(sur0_1_tp, s.logsize0, s.TSF,s.TBF, site, ), all_vars(!is.na(.)))
 
 GM_R_sur <- glmer(
-  sur0_1_tp ~ s.logsize0 + s.TSF * s.TBF +
-    s.T_RA + s.T_RA:site + s.T_RH + s.sq.T_RH + s.T_RD + s.T_RD:site +s.P_RH +
-    s.P_RH:s.T_RH + s.P_RD +(1|site),
+  sur0_1_tp ~ 
+    s.logsize0 + 
+    s.TSF * s.TBF +
+    s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD + s.P_RH + s.P_RD +
+    s.P_RH:s.T_RH +
+    (1 + s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD + s.P_RH + s.P_RD || site),
   data = sur_subset_R,
-  family = "binomial", 
+  family = "binomial",
   na.action = "na.fail"
 )
 
@@ -129,10 +132,45 @@ sur_dredge_R <- MuMIn::dredge(
 )
 head(sur_dredge_R) ########### manually check for comparable models
 
-sur_mod_R <- get.models(sur_dredge_R, 3)[[1]]
+sur_mod_R <- get.models(sur_dredge_R, 1)[[1]]
 ```
 
 ## local cilmate variabls
+
+```{r}
+sur_subset_L <- 
+  VFT_long %>% 
+  filter_at(vars(sur0_1_tp, s.logsize0, s.TSF,s.TBF, site, s.T_LA,s.T_LH,s.T_LD,s.sq.T_LH,
+                 s.P_LH, s.P_LD), all_vars(!is.na(.)))
+
+GM_L_sur <- glmer(
+  sur0_1 ~ s.logsize0 + s.TSF * s.TBF + 
+    s.T_LA + s.T_LA:site + s.T_LH + s.sq.T_LH + s.T_LD + s.T_LD:site +s.P_LH +
+    s.P_LH:s.T_LH + s.P_LD + 
+    (1 | site),
+  data = sur_subset_L,
+  family = "binomial", 
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("sur_subset_L"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+sur_dredge_L <- MuMIn::dredge(
+  GM_L_sur,
+  cluster = cluster,
+  trace   = 2
+)
+head(sur_dredge_L) ########### manually check for comparable models
+
+sur_mod_L <- get.models(sur_dredge_L, 1)[[1]]
+
+```
+
 
 # growth 
 
