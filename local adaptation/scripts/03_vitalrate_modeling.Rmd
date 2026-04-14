@@ -94,13 +94,13 @@ print(p_soilmoisture)
 
 ```
 
-## significant test
-
+random effects were selected using rePCA (random effect PCA to explore dimensions (number of random effects) supported by data given 8 sites) https://arxiv.org/pdf/1506.04967. 1) run maximal random effect model, see whether it converges. 2) run rePCA to detect whether the data support this many dimensions of random effects.  3) if not, stepwise remove smallest variance component.
 
 
 
 # survival 
-## regional climate variables
+
+#### get best fit model
 ```{r}
 sur_subset_R <- 
   VFT_long %>% 
@@ -111,12 +111,14 @@ GM_R_sur <- glmer(
     s.logsize0 + 
     s.TSF * s.TBF +
     s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD + s.P_RH + s.P_RD +
-    s.P_RH:s.T_RH +
-    (1 + s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD + s.P_RH + s.P_RD || site),
+    s.P_RH:s.T_RH + 
+    (1|site),
+    # (1 + s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD + s.P_RH + s.P_RD | site),
   data = sur_subset_R,
   family = "binomial",
   na.action = "na.fail"
 )
+
 
 n_cores <- detectCores()
 n_cores
@@ -132,23 +134,196 @@ sur_dredge_R <- MuMIn::dredge(
 )
 head(sur_dredge_R) ########### manually check for comparable models
 
-sur_mod_R <- get.models(sur_dredge_R, 1)[[1]]
+stopCluster(cluster)
+sur_mod <- get.models(sur_dredge_R, 1)[[1]]
+
+summary(sur_mod) 
+
+## get the best fit model without random slope
 ```
 
-## local cilmate variabls
+#### add random slope
+```{r}
+sur_model_terms <- terms(sur_mod)
+sur_term <- attr(sur_model_terms, "term.labels")
+sur_term <- reformulate(sur_term)
+
+sur_term
+
+## maximal random effect complexity
+
+sur_m1 <- glmer(
+  sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    (1 + s.T_LA + s.T_LH  + s.T_LD + s.P_RH + s.P_RD | site),
+  data = sur_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)     
+
+rePCA(sur_m1)  ## after axis 4, standard deviations drops to essentially 0.
+
+
+## m2: maximal complexity with random slope on quadratic term 
+sur_m2 <- glmer(
+  sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    (1 + s.T_LA + s.sq.T_LH  + s.T_LD + s.P_RH + s.P_RD | site),
+  data = sur_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+) 
+summary(sur_m2)
+
+## m3: only random slope on temperature covariates
+
+sur_m3 <- glmer(
+  sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    (1 + s.T_LA + s.T_LH  + s.T_LD | site),
+  data = sur_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)     
+
+## m4: random slope on precip
+sur_m4 <- glmer(
+  sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    (1 +    s.P_RH + s.P_RD | site),
+  data = sur_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)
+
+
+## 
+sur_modelselection <- model.sel(sur_mod, sur_m1, sur_m2, sur_m3, sur_m4)
+
+```
+
+
+
+# growth 
+
+#### get best fit model
+```{r}
+gr_subset_R_2 <- 
+  VFT_long[which(VFT_long$sur0_1_tp == 1),] %>%      ## make sure to subset data to only alive plants
+  filter_at(vars(logsize1, s.logsize0, s.TSF, s.TBF, site, s.sq.T_RA,s.T_RA, s.P_RA, s.T_RC, 
+                 s.T_RD, s.P_RH), all_vars(!is.na(.)))
+GM_R_gr <- lmer(
+  logsize1 ~ s.logsize0 + s.TSF * s.TBF  + s.T_LA + s.sq.T_LA + s.P_RA + s.T_LA:s.P_RA +
+    s.T_LC + s.T_LD + s.P_RH +
+    (1 | site),
+  data = gr_subset_R_2,
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("gr_subset_R_2"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+gr_dredge_R <- MuMIn::dredge(
+  GM_R_gr,
+  cluster = cluster,
+  trace   = 2
+)
+head(gr_dredge_R)
+growth_mod<- get.models(gr_dredge_R, 1)[[1]]
+
+stopCluster(cluster)
+```
+#### add random slope
 
 ```{r}
-sur_subset_L <- 
-  VFT_long %>% 
-  filter_at(vars(sur0_1_tp, s.logsize0, s.TSF,s.TBF, site, s.T_LA,s.T_LH,s.T_LD,s.sq.T_LH,
-                 s.P_LH, s.P_LD), all_vars(!is.na(.)))
+gr_model_terms <- terms(growth_mod)
+gr_term <- attr(gr_model_terms, "term.labels")
+gr_term <- reformulate(gr_term)
 
-GM_L_sur <- glmer(
-  sur0_1 ~ s.logsize0 + s.TSF * s.TBF + 
-    s.T_LA + s.T_LA:site + s.T_LH + s.sq.T_LH + s.T_LD + s.T_LD:site +s.P_LH +
-    s.P_LH:s.T_LH + s.P_LD + 
-    (1 | site),
-  data = sur_subset_L,
+gr_term
+
+## m1: maximal complexity, linear
+
+gr_m1 <- lmer(
+  logsize1 ~ s.logsize0 + s.P_RH + s.sq.T_LA + s.T_LA + s.T_LD + s.TBF + 
+    (1 + s.P_RH +s.T_LA+s.T_LD | site),
+  data = gr_subset_R_2,
+  na.action = "na.fail", 
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)  
+
+## m2: maximal complexity, quadratic
+gr_m2 <- lmer(
+  logsize1 ~ s.logsize0 + s.P_RH + s.sq.T_LA + s.T_LA + s.T_LD + s.TBF + 
+    (1 + s.P_RH +s.sq.T_LA+s.T_LD | site),
+  data = gr_subset_R_2,
+  na.action = "na.fail", 
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)
+
+## m3: random temp 
+gr_m3 <- lmer(
+  logsize1 ~ s.logsize0 + s.P_RH + s.sq.T_LA + s.T_LA + s.T_LD + s.TBF + 
+    (1 +s.T_LA+s.T_LD | site),
+  data = gr_subset_R_2,
+  na.action = "na.fail", 
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)  
+
+## m4: random temp, non-linear
+
+gr_m4 <- lmer(
+  logsize1 ~ s.logsize0 + s.P_RH + s.sq.T_LA + s.T_LA + s.T_LD + s.TBF + 
+    (1 +s.sq.T_LA+s.T_LD | site),
+  data = gr_subset_R_2,
+  na.action = "na.fail", 
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)
+
+## m5: random precip
+
+gr_m5 <- lmer(
+  logsize1 ~ s.logsize0 + s.P_RH + s.sq.T_LA + s.T_LA + s.T_LD + s.TBF + 
+    (1 +s.P_RH | site),
+  data = gr_subset_R_2,
+  na.action = "na.fail", 
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)
+
+## model selection
+
+gr_modelselection <- model.sel(growth_mod, gr_m1, gr_m2, gr_m3, gr_m4, gr_m5)
+
+
+```
+
+
+# prob of reproduction
+####get best fit model
+
+```{r}
+prep_subset_R <- 
+ VFT_long %>% 
+  filter_at(vars(prep1, s.logsize0, s.TSF, s.TBF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
+                 s.P_RH, ), all_vars(!is.na(.)))
+
+ ### this likely won't work due to convergence failure, but feel free to try (take a long time to fit)
+
+
+GM_R_prep <- glmer(
+  prep1 ~ s.logsize0 + s.TSF * s.TBF +
+    s.T_LA + s.sq.T_LA +s.P_RA+ s.sq.P_RA + s.T_LA:s.P_RA+
+    s.T_LH + s.P_RH + s.T_LH:s.P_RH + s.T_LC +
+    (1|site),
+  data = prep_subset_R,
   family = "binomial", 
   na.action = "na.fail"
 )
@@ -157,22 +332,159 @@ n_cores <- detectCores()
 n_cores
 cluster <- makeCluster(n_cores - 1)
 registerDoParallel(cluster)
-clusterExport(cluster, c("sur_subset_L"))   ### replace with different subset (different global models)
+clusterExport(cluster, c("prep_subset_R"))   ### replace with different subset (different global models)
 clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
 
-sur_dredge_L <- MuMIn::dredge(
-  GM_L_sur,
+prep_dredge_R_2 <- MuMIn::dredge(
+  GM_R_prep,
   cluster = cluster,
   trace   = 2
 )
-head(sur_dredge_L) ########### manually check for comparable models
+prep_mod <- get.models(prep_dredge_R_2, 1)[[1]]
 
-sur_mod_L <- get.models(sur_dredge_L, 1)[[1]]
+stopCluster(cluster)
+```
+#### add random slope
+
+```{r}
+prep_model_terms <- terms(prep_mod)
+prep_term <- attr(prep_model_terms, "term.labels")
+prep_term <- reformulate(prep_term)
+
+prep_term
+
+### m1: maximal complexity, linear climate 
+
+prep_m1 <- glmer(
+  prep1 ~  s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RA + s.sq.T_LA + s.T_LA + 
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF + (1+s.P_RA+s.P_RH+s.T_LA+s.T_LH|site),
+  data = prep_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)  
+
+### m2: maximal complexity, non linear climate
+prep_m2 <- glmer(
+  prep1 ~  s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RA + s.sq.T_LA + s.T_LA + 
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF + (1+s.sq.P_RA+s.P_RH+s.sq.T_LA+s.T_LH|site),
+  data = prep_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+) 
+
+### m3: linear temperature only
+
+prep_m3 <- glmer(
+  prep1 ~  s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RA + s.sq.T_LA + s.T_LA + 
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF + (1+s.T_LA+s.T_LH|site),
+  data = prep_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+) 
+
+### m4: non linear temperature only
+prep_m4 <- glmer(
+  prep1 ~  s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RA + s.sq.T_LA + s.T_LA + 
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF + (1+s.sq.T_LA+s.T_LH|site),
+  data = prep_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+) 
+
+### m5: linear precip only
+prep_m5 <- glmer(
+  prep1 ~  s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RA + s.sq.T_LA + s.T_LA + 
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF + (1+s.P_RA+s.P_RH|site),
+  data = prep_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)
+### m6: non linear precip only
+prep_m6 <- glmer(
+  prep1 ~  s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RA + s.sq.T_LA + s.T_LA + 
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF + (1+s.sq.P_RA+s.P_RH|site),
+  data = prep_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+) 
+
+prep_modelselection <- model.sel(prep_mod, prep_m1, prep_m2, prep_m3, prep_m4, prep_m5, prep_m6)
 
 ```
 
+# number of fruits
 
-# growth 
+since previous work has shown that Crep does not depend on fire, I remove fire indices and instead create a new global model that is purely climate driven (with a complete set of climate variables).
+#### get best fit model
+```{r}
+crep_subset_R <- 
+  VFT_long %>% 
+  filter_at(vars(logcrep1, s.logsize0, TSF, TBF, site, s.T_RA, s.T_RH), all_vars(!is.na(.)))
+
+GM_R_crep <- lmer(
+  logcrep1 ~ s.logsize0 + s.P_RA  + s.sq.P_RA + s.P_RH + s.P_RW + s.P_RD +s.sq.P_RD + s.sq.T_LA + s.T_LA + s.T_LH +s.sq.T_LH + s.T_LD + s.T_LC + s.sq.T_LC+ s.P_RH:s.T_LH + s.T_LD:s.P_RD +
+    (1 | site),
+  data = crep_subset_R,
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("crep_subset_R"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+crep_dredge_R <- MuMIn::dredge(
+  GM_R_crep,
+  cluster = cluster,
+  trace   = 2
+)
+head(crep_dredge_R)
+crep_mod <- get.models(crep_dredge_R, 1)[[1]]
+
+stopCluster(cluster)
+```
+
+#### add random slope
+
+```{r}
+crep_model_terms <- terms(crep_mod)
+crep_term <- attr(crep_model_terms, "term.labels")
+crep_term <- reformulate(crep_term)
+
+crep_term
 
 
-# prob of reproduction
+#### m1: maximal complexity, linear (delete if is singular fit)
+crep_m1 <- lmer(
+  logcrep1 ~ s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RD + s.sq.T_LA + s.sq.T_LH + 
+    s.T_LA + s.T_LH + 
+    (1  + s.P_RH  + s.T_LA  | site),
+  data = crep_subset_R,
+  na.action = "na.fail"
+)
+
+summary(crep_m1)
+
+#### m2: maximal complexity, non linear 
+
+crep_m2 <- lmer(
+  logcrep1 ~ s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RD + s.sq.T_LA + s.sq.T_LH + 
+    s.T_LA + s.T_LH + 
+    (1  + s.P_RA + s.P_RH + s.sq.P_RD + s.sq.T_LA     | site),
+  data = crep_subset_R,
+  na.action = "na.fail"
+)
+summary(crep_m2)
+
+lme4::rePCA(sur_m2)
+
+```
+

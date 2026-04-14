@@ -131,6 +131,7 @@ VFT$s.P_RW <- NA
 VFT$s.P_RW <- scale(VFT$P_RW) 
 VFT$s.P_RD <- NA
 VFT$s.P_RD <- scale(VFT$P_RD) 
+VFT$s.sq.P_RD <- scale((VFT$P_RD)^2)
 VFT$s.P_RH <- NA
 VFT$s.P_RH <- scale(VFT$P_RH) 
 VFT$s.T_RH<- NA
@@ -162,6 +163,8 @@ VFT$s.P_LD <- NA
 VFT$s.P_LD <- scale(VFT$P_LD) 
 VFT$s.P_LH <- NA
 VFT$s.P_LH <- scale(VFT$P_LH) 
+
+
 VFT$s.T_LH<- NA
 VFT$s.T_LD<- NA
 VFT$s.T_LW<- NA
@@ -177,6 +180,7 @@ VFT$sq.T_LH <- (VFT$T_LH)^2
 VFT$s.sq.T_LH <- scale(VFT$sq.T_LH)
 VFT$s.sq.P_LA <- scale(VFT$sq.P_LA)
 VFT$s.sq.T_LA <- scale(VFT$sq.T_LA)
+VFT$s.sq.T_LC <- scale(VFT$T_LC^2)
 
 ```
 

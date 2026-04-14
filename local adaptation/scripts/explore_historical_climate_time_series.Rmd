@@ -1,0 +1,64 @@
+
+the goal is to determine TPC day/night temperature treatment using long term time series data.
+
+```{r}
+library(readr)
+library(ggplot2)
+library(lubridate)
+```
+
+
+## load in time series data
+
+```{r}
+daily_min <- read.csv("local adaptation/data/raw-data/TPC analyses/inner_daily_min.csv")
+colnames(daily_min) <- c("date", "minT")
+daily_mean <- read.csv("local adaptation/data/raw-data/TPC analyses/inner_daily_mean.csv")
+colnames(daily_mean) <- c("date", "meanT")
+daily_max <- read.csv("local adaptation/data/raw-data/TPC analyses/inner_daily_max.csv")
+colnames(daily_max) <- c("date", "maxT")
+
+temp_list <- list(
+  min = daily_min,
+  mean = daily_mean,
+  max = daily_max
+)
+
+temp <- left_join(daily_min,daily_max, by = "date")
+temp <- left_join(temp,daily_mean, by = "date")
+
+
+RH_max <- read.csv("local adaptation/data/raw-data/TPC analyses/inner_RH_max.csv")
+colnames(RH_max) <- c("date", "maxRH")
+RH_min <- read.csv("local adaptation/data/raw-data/TPC analyses/inner_RH_min.csv")
+colnames(RH_min) <- c("date", "minRH")
+RH <- left_join(RH_max,RH_min, by = "date")
+
+```
+
+## temperature
+
+```{r}
+mean_DTR <- mean(temp$maxT) - mean(temp$minT)
+mean_nightT <- mean(temp$minT)
+mean_dayT <- mean(temp$maxT)
+  
+mean(temp$maxT - temp$meanT) 
+mean(temp$meanT - temp$minT) 
+
+daily_mean_q <- quantile(temp$meanT, probs = c(0.1,0.25,0.5,0.75, 0.9))
+
+daily_mean_q+0.5*mean_DTR
+daily_mean_q-0.5*mean_DTR
+
+```
+## RH
+
+```{r}
+
+mean((RH$maxRH+RH$minRH)/2)
+
+mean(RH$maxRH)
+mean(RH$minRH)
+```
+
