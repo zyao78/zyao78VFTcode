@@ -9,6 +9,7 @@ library(doParallel)
 library(foreach)
 library(AICcmodavg)
 library(readr)
+library(cAIC4)
 ```
 
 ```{r}
@@ -139,19 +140,33 @@ sur_mod <- get.models(sur_dredge_R, 1)[[1]]
 
 summary(sur_mod) 
 
-## get the best fit model without random slope
-```
-
-#### add random slope
-```{r}
 sur_model_terms <- terms(sur_mod)
 sur_term <- attr(sur_model_terms, "term.labels")
 sur_term <- reformulate(sur_term)
 
 sur_term
 
-## maximal random effect complexity
+## get the best fit model without random slope
+```
 
+#### add random slope
+```{r}
+sur_subset_R <- 
+  VFT_long %>% 
+  filter_at(vars(sur0_1_tp, s.logsize0, s.TSF,s.TBF, site, ), all_vars(!is.na(.)))
+
+## intercept only
+sur_m0 <- glmer(
+  sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    (1 | site),
+  data = sur_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)
+
+## maximal random effect complexity
 sur_m1 <- glmer(
   sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
     s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
@@ -200,9 +215,20 @@ sur_m4 <- glmer(
   # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
 )
 
+## m5: just one random slope on s.T_LA (high variance)
+sur_m5 <- glmer(
+  sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    (1 +  s.T_LA | site),
+  data = sur_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)
 
 ## 
-sur_modelselection <- model.sel(sur_mod, sur_m1, sur_m2, sur_m3, sur_m4)
+# sur_modelselection <- cAIC(sur_m0, sur_m1, sur_m2, sur_m3, sur_m4, sur_m5)
+# cAIC(sur_m0)
 
 ```
 
@@ -240,15 +266,30 @@ head(gr_dredge_R)
 growth_mod<- get.models(gr_dredge_R, 1)[[1]]
 
 stopCluster(cluster)
-```
-#### add random slope
 
-```{r}
 gr_model_terms <- terms(growth_mod)
 gr_term <- attr(gr_model_terms, "term.labels")
 gr_term <- reformulate(gr_term)
 
 gr_term
+
+```
+#### add random slope
+
+```{r}
+gr_subset_R_2 <- 
+  VFT_long[which(VFT_long$sur0_1_tp == 1),] %>%      ## make sure to subset data to only alive plants
+  filter_at(vars(logsize1, s.logsize0, s.TSF, s.TBF, site, s.sq.T_RA,s.T_RA, s.P_RA, s.T_RC, 
+                 s.T_RD, s.P_RH), all_vars(!is.na(.)))
+
+## m1: intercept only
+gr_m0 <- lmer(
+  logsize1 ~ s.logsize0 + s.P_RH + s.sq.T_LA + s.T_LA + s.T_LD + s.TBF + 
+    (1  | site),
+  data = gr_subset_R_2,
+  na.action = "na.fail", 
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+) 
 
 ## m1: maximal complexity, linear
 
@@ -300,8 +341,7 @@ gr_m5 <- lmer(
 
 ## model selection
 
-gr_modelselection <- model.sel(growth_mod, gr_m1, gr_m2, gr_m3, gr_m4, gr_m5)
-
+# anocAIC(gr_m0, gr_m1, gr_m2, gr_m3, gr_m4, gr_m5)
 
 ```
 
@@ -343,15 +383,30 @@ prep_dredge_R_2 <- MuMIn::dredge(
 prep_mod <- get.models(prep_dredge_R_2, 1)[[1]]
 
 stopCluster(cluster)
-```
-#### add random slope
 
-```{r}
 prep_model_terms <- terms(prep_mod)
 prep_term <- attr(prep_model_terms, "term.labels")
 prep_term <- reformulate(prep_term)
 
 prep_term
+```
+#### add random slope
+
+```{r}
+prep_subset_R <- 
+ VFT_long %>% 
+  filter_at(vars(prep1, s.logsize0, s.TSF, s.TBF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
+                 s.P_RH, ), all_vars(!is.na(.)))
+### m0: intercept only
+prep_m0 <- glmer(
+  prep1 ~  s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RA + s.sq.T_LA + s.T_LA + 
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF + (1|site),
+  data = prep_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)
+
 
 ### m1: maximal complexity, linear climate 
 
@@ -414,7 +469,7 @@ prep_m6 <- glmer(
   # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
 ) 
 
-prep_modelselection <- model.sel(prep_mod, prep_m1, prep_m2, prep_m3, prep_m4, prep_m5, prep_m6)
+# prep_modelselection <- model.sel(prep_mod, prep_m1, prep_m2, prep_m3, prep_m4, prep_m5, prep_m6)
 
 ```
 
@@ -450,23 +505,36 @@ head(crep_dredge_R)
 crep_mod <- get.models(crep_dredge_R, 1)[[1]]
 
 stopCluster(cluster)
-```
 
-#### add random slope
-
-```{r}
 crep_model_terms <- terms(crep_mod)
 crep_term <- attr(crep_model_terms, "term.labels")
 crep_term <- reformulate(crep_term)
 
 crep_term
+```
 
+#### add random slope
+
+```{r}
+
+crep_subset_R <- 
+  VFT_long %>% 
+  filter_at(vars(logcrep1, s.logsize0, TSF, TBF, site, s.T_RA, s.T_RH), all_vars(!is.na(.)))
+
+### m0: intercept only
+crep_m0 <- lmer(
+  logcrep1 ~ s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RD + s.sq.T_LA + s.sq.T_LH + 
+    s.T_LA + s.T_LH + 
+    (1  | site),
+  data = crep_subset_R,
+  na.action = "na.fail"
+)
 
 #### m1: maximal complexity, linear (delete if is singular fit)
 crep_m1 <- lmer(
   logcrep1 ~ s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RD + s.sq.T_LA + s.sq.T_LH + 
     s.T_LA + s.T_LH + 
-    (1  + s.P_RH  + s.T_LA  | site),
+    (1  + s.P_RA + s.P_RH + s.sq.P_RD +s.T_LA + s.T_LH | site),
   data = crep_subset_R,
   na.action = "na.fail"
 )
@@ -486,5 +554,11 @@ summary(crep_m2)
 
 lme4::rePCA(sur_m2)
 
+```
+
+## model selection 
+
+```{r}
+getwd()
 ```
 
