@@ -1,8 +1,4 @@
----
-title: "script_assessIPMprediction"
-author: "Zheng Yao"
-output: html_document
----
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -16,19 +12,17 @@ library(dplyr)
 library(glue)
 library(zoo)
 library(MASS)
-install.packages(c("foreach", "doParallel"))
 library(foreach)
 library(doParallel)
 library(MuMIn)
 ```
 
-lambda_j \| lambda_g,s_j s= site effect j=B1, ... GSP-LI, n=8\
-lambda_j want to estimate the site effect
+
 
 #load in necessary data. These were made from previous scripts
 
 ```{r}
-load("/Users/a123/Desktop/TOM/VFT/model assessment/data/model_export_mar_2026.RData")    ## this environment contains vital rate functions plus the raw data used to build them.
+load("model assessment/data/model_export_mar_2026.RData")    ## this environment contains vital rate functions plus the raw data used to build them.
 
 ```
 
@@ -1712,15 +1706,498 @@ plt6<- ggplot(data= mean_lambda_across_scenarios_GSP_reg, aes(x= FRI, y= mean_la
   theme(text = element_text(size = 16)) 
 plt6
 ```
+
+
+
+
+
+
+## FB
+
+```{r}
+TBF_long_FB <- TBF_long %>%
+  filter(site=="B1"|site=="B2")
+```
+
+
+###refit vital rate 
+
+####survival
+
+```{r}
+sur_subset_FB <- 
+  TBF_long_FB %>% 
+  filter_at(vars(sur0_1, s.logsize0, s.TSF,s.TBF, site), all_vars(!is.na(.)))
+
+GM_R_sur <- glm(
+   sur0_1 ~ s.logsize0 + s.TSF * s.TBF +
+    s.T_LA + s.T_LH + s.sq.T_LH + s.T_LD +s.P_RH +
+    s.P_RH:s.T_LH + s.P_RD + 
+    site,
+  data = sur_subset_FB,
+  family = "binomial", 
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("sur_subset_FB"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+sur_dredge_FB <- MuMIn::dredge(
+  GM_R_sur,
+  cluster = cluster,
+  trace   = 2
+)
+
+sur_mod_FB <- get.models(sur_dredge_FB, 1)[[1]]
+summary(sur_mod_FB)
+
+stopCluster(cluster)
+```
+
+####growth
+
+```{r}
+gr_subset_FB <- 
+  TBF_long_FB[which(TBF_long_FB$sur0_1 == 1),] %>%      ## make sure to subset data to only alive plants
+  filter_at(vars(logsize1, s.logsize0, s.TSF,s.sq.TSF, s.TBF, site, s.sq.T_RA,s.T_RA, s.P_RA, s.T_RC, 
+                 s.T_RD, s.P_RH), all_vars(!is.na(.)))
+GM_R_gr <- lmer(
+  logsize1 ~ s.logsize0 + s.TSF * s.TBF  + s.T_LA + s.sq.T_LA + s.P_RA + s.T_LA:s.P_RA +
+    s.T_LC + s.T_LD + s.P_RH + (1|site),
+  data = gr_subset_FB,
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("gr_subset_FB"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+gr_dredge_FB <- MuMIn::dredge(
+  GM_R_gr,
+  cluster = cluster,
+  trace   = 2
+)
+growth_mod_FB<- get.models(gr_dredge_FB, 1)[[1]]
+summary(growth_mod_FB)
+stopCluster(cluster)
+```
+####prep
+
+```{r}
+prep_subset_FB <- 
+  TBF_long_FB %>% 
+  filter_at(vars(prep1, s.logsize0, s.TSF, s.TBF,s.sq.TSF, site, s.T_RA,s.P_RA, s.T_RH, s.T_RC, 
+                 s.P_RH, ), all_vars(!is.na(.)))
+
+GM_R_prep <- glm(
+  prep1 ~ s.logsize0 + s.TSF * s.TBF +
+    s.T_LA + s.sq.T_LA +s.P_RA+ s.sq.P_RA + s.T_LA:s.P_RA+
+    s.T_LH + s.P_RH + s.T_LH:s.P_RH + s.T_LC +
+    site,
+  data = prep_subset_FB,
+  family = "binomial", 
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("prep_subset_FB"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+prep_dredge_FB <- MuMIn::dredge(
+  GM_R_prep,
+  cluster = cluster,
+  trace   = 2
+)
+prep_mod_FB <- get.models(prep_dredge_FB, 1)[[1]]
+summary(prep_mod_FB)
+stopCluster(cluster)
+```
+
+####crep
+
+```{r}
+
+crep_subset_FB <- 
+  TBF_long_FB %>% 
+  filter_at(vars(logcrep1, s.logsize0, TSF, TBF,s.sq.TSF, site, s.T_RA, s.T_RH), all_vars(!is.na(.)))
+
+GM_R_crep <- lmer(
+  logcrep1 ~ s.logsize0 + s.TSF * s.TBF  + s.T_LA + s.T_LH +
+    (1 | site),
+  data = crep_subset_FB,
+  na.action = "na.fail"
+)
+
+n_cores <- detectCores()
+n_cores
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("crep_subset_FB"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+crep_dredge_FB <- MuMIn::dredge(
+  GM_R_crep,
+  cluster = cluster,
+  trace   = 2
+)
+crep_mod_FB <- get.models(crep_dredge_FB, 1)[[1]]
+
+stopCluster(cluster)
+```
+####recruitment
+```{r}
+recruit_mod_FB <- recruit_mod
+```
+####variance in growth
+
+```{r}
+growth_terms <- attr(terms(growth_mod_FB), "term.labels")
+int_terms <- grep(":", growth_terms, value = TRUE)
+int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
+main_terms <- growth_terms[!grepl(":", growth_terms)]
+logsize1 <- c("logsize1")
+gr_all_terms <- unique(c(main_terms, int_terms_broken, logsize1))
+
+Vargrowth_subset_FB <- 
+  TBF_long_FB[which(TBF_long_FB$sur0_1 == 1),] %>%      ## make sure to subset data to only alive plants
+  filter_at(vars( s.logsize0, TSF, TBF,logsize1, site), all_vars(!is.na(.)))
+
+Vargrowth_subset_FB$vargrowth <- NA
+Vargrowth_subset_FB$predgrowth <- NA
+
+Vargrowth_subset_FB$predgrowth <- predict(growth_mod_FB,newdata=Vargrowth_subset_FB)
+
+Vargrowth_subset_FB$vargrowth <-
+  (Vargrowth_subset_FB$predgrowth - # variance is equivalent to (predicted-expected)^2
+     Vargrowth_subset_FB$logsize1)^2
+
+Vargrowth_subset_FB$log.vargrowth <- log(Vargrowth_subset_FB$vargrowth)
+
+#***** to prevent negative numbers later
+
+GM_vargrowth_R <- lmer(log.vargrowth ~ s.logsize0 + s.T_LA+ s.TSF * s.TBF  +
+                         s.P_RA  + s.sq.P_RA  + s.T_LC +s.T_LD +
+                         s.P_RD + s.P_RW
+                       + (1|site), #  
+                       data = Vargrowth_subset_FB, na.action = "na.fail") 
+
+
+n_cores <- detectCores()
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("Vargrowth_subset_FB"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+
+vargrowth_dredge_FB <- MuMIn::dredge(
+  GM_vargrowth_R,
+  cluster = cluster,
+  trace   = 2
+)
+
+vargrowth_mod_FB <- get.models(vargrowth_dredge_FB, 1)[[1]]
+
+stopCluster(cluster)
+```
+### FB IPM
+
+```{r}
+TBF_long$logsize0 <- (log(TBF_long$size0+0.1))
+TBF_long$s.logsize0 <- scale(TBF_long$logsize0) 
+TBF_long$s.TBF <- scale(TBF_long$TBF) 
+TBF_long$s.TSF <- scale(TBF_long$TSF) 
+TBF_long$sq.TSF <- (TBF_long$TSF)^2
+TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF) 
+IPM_bounds <- range(TBF_long$logsize0, na.rm = TRUE)  # our IPM will be based on logsize as a size metric. 
+no_bins <- 100
+bin_edges <- seq(IPM_bounds[1], IPM_bounds[2], length.out= no_bins+1)
+bin_mids <- zoo::rollmean(bin_edges,2)
+
+# define mean and sd of seedling sizes
+rows_with_new <- TBF_long[grepl("\\bnew", TBF_long$comm1), ]
+rows_with_new <- rows_with_new[!grepl("no new", rows_with_new$comm1), ] # delete "no new"
+rows_with_new <- rows_with_new[!grepl("no news", rows_with_new$comm1), ] # delete "no new" 
+rows_with_new <- rows_with_new[!grepl("not possible to see new plants", rows_with_new$comm1), ]
+rows_with_new <- rows_with_new[!grepl("No news", rows_with_new$comm1), ]
+rows_with_new <- rows_with_new[!grepl("new lvs", rows_with_new$comm1), ]
+rows_with_new <- rows_with_new[!grepl("new nail", rows_with_new$comm1), ]
+
+mean_seedling_logsize <- mean(rows_with_new$logsize1, na.rm=T) # get the mean logsize of seedings   ### the mean seedling size is very large
+var_seedling_logsize <- var(rows_with_new$logsize1,na.rm=T)# get the var in logsize of seedings  
+
+### build empty matrices to store IPM output. Here, I'm interested in the effect of fire on lambda, so I'm setting average conditions for all other climate variables
+possible_scenarios <- 
+  as.data.frame(matrix(NA, nrow= 22, ncol = 28))
+names(possible_scenarios) <- c("FRI","s.TBF","s.T_LA", "s.T_LH",
+  "s.sq.T_LH",
+  "s.sq.P_LA",
+  "s.T_LC",
+  "s.T_LD",
+  "s.P_LD",
+  "s.sq.T_LA",
+  "s.P_LA",
+  "s.P_LW",
+  "s.P_LH",
+  "s.T_RA",
+  "s.sq.T_RA",
+  "s.P_RA",
+  "s.T_RH",
+  "s.P_RH",
+  "s.T_RC",
+  "s.T_RW",
+  "s.T_RD",
+  "s.sq.T_RC",
+  "s.P_RW",
+  "s.P_RD",
+  "s.sq.T_RH",
+  "s.sq.P_RA",
+  "s.sq.P_RW",
+  "s.sq.P_RD")
+
+
+possible_scenarios$FRI <- rep(1:11, 2) # we want FRI to range from 1-11
+possible_scenarios$s.TBF <- scale(rep(c(0, 10), each= 11) ,# raw TBF values
+                                  center= attr(TBF_long$s.TBF,"scaled:center"), 
+                                  scale= attr(TBF_long$s.TBF,"scaled:scale")) # for each set of FRI's, we want to set a short TBF (of 3) and a long TBF (of 11)
+
+possible_scenarios[, c(  "s.T_LA",  "s.T_LH",  "s.sq.T_LH",  "s.sq.P_LA",  "s.T_LC",  "s.T_LD",  "s.P_LD",  "s.sq.T_LA",  "s.P_LA",  
+                         "s.P_LW",  "s.P_LH",  "s.T_RA",  "s.sq.T_RA",  "s.P_RA",  "s.T_RH",  "s.P_RH",  "s.T_RC",  "s.T_RW",  "s.T_RD",
+                         "s.sq.T_RC","s.P_RW","s.P_RD", "s.sq.T_RH",  "s.sq.P_RA",  "s.sq.P_RW",  "s.sq.P_RD")] <- 0 # setting all climate variable to their mean
+
+my_sites <- unique(TBF_long_FB$site) 
+no_reps <- 1000 # or somethign similar
+
+########### extract model components for later predict() ###############
+sur_model_terms <- terms(sur_mod_FB)
+sur_term <- attr(sur_model_terms, "term.labels")
+sur_term <- reformulate(sur_term)
+
+gr_model_terms <- terms(growth_mod_FB)
+gr_term <- attr(gr_model_terms, "term.labels")
+gr_term <- reformulate(gr_term)
+
+prep_model_terms <- terms(prep_mod_FB)
+prep_term <- attr(prep_model_terms, "term.labels")
+prep_term <- reformulate(prep_term)
+
+crep_model_terms <- terms(crep_mod_FB)
+crep_term <- attr(crep_model_terms, "term.labels")
+crep_term <- reformulate(crep_term)
+
+vargrowth_model_terms <- terms(vargrowth_mod_FB)
+vargrowth_term <- attr(vargrowth_model_terms, "term.labels")
+vargrowth_term <- reformulate(vargrowth_term)
+
+rec_model_terms <- terms(recruit_mod_FB)
+rec_term <- attr(rec_model_terms, "term.labels")
+rec_term <- reformulate(rec_term)
+```
+
+```{r}
+all_pop_growth_rates_FB_reg <- matrix(data= NA, nrow= dim(possible_scenarios)[1], ncol= no_reps)
+n_cores <- detectCores()
+cl <- makeCluster(n_cores - 1)
+registerDoParallel(cl)
+j_pop_gr_rate_FB_reg <- rep(NA, dim(possible_scenarios)[1]) ### changed to no_scenarios
+
+all_pop_growth_rates_FB_reg <- foreach(
+  j = 1:no_reps,
+  .combine = cbind,
+  .packages = c("MASS", "lme4", "popbio", "dplyr")
+) %dopar% {
+  rsur_coefs <- coefficients(sur_mod_FB) # first, assign all "randomy selected" coefficients to the mean estimated coefficeints
+  rsur_coefs[!names(coefficients(sur_mod_FB)) %in% paste("site", my_sites, sep="")] <- MASS::mvrnorm(mu= coefficients(sur_mod_FB), Sigma = vcov(sur_mod_FB))[!names(coefficients(sur_mod_FB)) %in% paste("site", my_sites, sep="")]
+  #rsur_coefs <- lme4::fixef(survival_mod)
+  #rsur_coefs <-  MASS::mvrnorm(mu= lme4::fixef(survival_mod) , Sigma = vcov(survival_mod))
+  rgr_coefs <- lme4::fixef(growth_mod_FB)
+  rgr_coefs <-  MASS::mvrnorm(mu= lme4::fixef(growth_mod_FB) , Sigma = vcov(growth_mod_FB)) # no site effect in this model
+  rprep_coefs <- coefficients(prep_mod_FB)
+  rprep_coefs[!names(coefficients(prep_mod_FB)) %in% paste("site", my_sites, sep="")] <- MASS::mvrnorm(mu= coefficients(prep_mod_FB), Sigma = vcov(prep_mod_FB))[!names(coefficients(prep_mod_FB)) %in% paste("site", my_sites, sep="")]
+  rcrep_coefs <- lme4::fixef(crep_mod_FB)
+  rcrep_coefs <-  MASS::mvrnorm(mu= lme4::fixef(crep_mod_FB) , Sigma = vcov(crep_mod_FB)) # no site effect in this model
+  rvar_coefs <- lme4::fixef(vargrowth_mod_FB)
+  rvar_coefs <-  MASS::mvrnorm(mu= lme4::fixef(vargrowth_mod_FB) , Sigma = vcov(vargrowth_mod_FB)) # no site effect in this model
+  rrec_coefs <- lme4::fixef(recruit_mod_FB)
+  rrec_coefs <-  MASS::mvrnorm(mu= lme4::fixef(recruit_mod_FB) , Sigma = vcov(recruit_mod_FB)) # no site effect in this model
+  #rrec_coefs <-  MASS::mvrnorm(mu= lme4::fixef(recruit_mod) , Sigma = vcov(recruit_mod)) 
+  
+  for (i in 1: dim(possible_scenarios)[1]) {
+    
+    i_scenario <- possible_scenarios[i,] # which combination of FRI, TBF, and climate do I want to use
+    
+    TSFs <- 0:(i_scenario$FRI-1) # TSF range from 0 to (FRI-1) such that an FRI of 1 will always have TSF= 0
+    i_scenario <- i_scenario[rep(seq_len(nrow(i_scenario)), length(TSFs)), ]
+    i_scenario$TSF <- TSFs
+    i_scenario$s.TSF <- scale(TSFs, center= attr(TBF_long$s.TSF,"scaled:center"), 
+                              scale= attr(TBF_long$s.TSF,"scaled:scale"))
+    i_scenario$s.sq.TSF <- scale(TSFs^2, center= attr(TBF_long$s.sq.TSF,"scaled:center"), 
+                                 scale= attr(TBF_long$s.sq.TSF,"scaled:scale"))
+    
+    mx_prod <- diag(no_bins+1) # setting up an identity matrix before you enter the loop
+    
+    for (ii in TSFs){
+      i_ii_scenario <- i_scenario[which(i_scenario$TSF==ii),]
+      data_for_prediction <- i_ii_scenario[rep(seq_len(nrow(i_ii_scenario)), length(bin_mids)), ]
+      data_for_prediction$s.logsize0 <-   scale(bin_mids, center= attr(TBF_long$s.logsize0,"scaled:center"), 
+                                                scale= attr(TBF_long$s.logsize0,"scaled:scale"))
+      data_for_prediction_rec <- cbind(i_ii_scenario)
+      
+      predicted_sur <- predicted_gr <-predicted_pr <- predicted_cr <- predicted_vg <- matrix(data=NA, nrow= length(my_sites), ncol= length(bin_mids))
+      predicted_rec <- rep(NA, length(my_sites))
+      
+      ### make empty mxes before entering the site loop
+      
+      predicted_sur_allsites <-predicted_gr_allsites<-predicted_pr_allsites <-predicted_cr_allsites<-predicted_vg_allsites <-matrix(NA, nrow = length(my_sites), ncol = no_bins, dimnames = list(my_sites, NULL))
+      predicted_rec_allsites <- matrix(NA, nrow = length(my_sites), ncol = 1, dimnames = list(my_sites, NULL))
+      
+      
+      for (s in my_sites){ #looping through the sites
+        s_data_for_prediction <- data_for_prediction
+        s_data_for_prediction_rec <- data_for_prediction_rec
+        s_data_for_prediction$site <- s
+        s_data_for_prediction_rec$site <- s
+        
+        s_data_for_prediction$site     <- factor(s_data_for_prediction$site,  levels = my_sites)   ## it is important to add the levels=my_sites here to ensure that the model matrix is built correctly
+        s_data_for_prediction_rec$site <- factor(s_data_for_prediction_rec$site, levels = my_sites)
+        
+        s_data_for_prediction <- s_data_for_prediction %>% mutate(across(c("s.logsize0", "s.sq.TSF", "s.TSF", "s.TBF"), as.numeric))   
+        
+        m_sur <- model.matrix(sur_term ,data=s_data_for_prediction)
+        p2_sur <- rsur_coefs %*% t(m_sur) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+        p2_sur <- plogis(p2_sur)   ## transform to binomial 
+        predicted_sur_allsites[s,] <- p2_sur
+        
+        m_gr <- model.matrix(gr_term, data=s_data_for_prediction)
+        p2_gr <- rgr_coefs %*% t(m_gr) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+        predicted_gr_allsites[s,] <- p2_gr
+        
+        m_prep <- model.matrix(prep_term,data=s_data_for_prediction)
+        p2_prep <- rprep_coefs %*% t(m_prep) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+        p2_prep <- plogis(p2_prep)   ## transform to binomial 
+        predicted_pr_allsites[s,] <- p2_prep
+        
+        m_crep <- model.matrix(crep_term  ,data=s_data_for_prediction)
+        p2_crep <- rcrep_coefs %*% t(m_crep) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+        predicted_cr_allsites[s,] <- p2_crep
+        
+        m_vg <- model.matrix(vargrowth_term,data=s_data_for_prediction)
+        p2_vg <- rvar_coefs %*% t(m_vg) # 
+        predicted_vg_allsites[s,] <- exp(p2_vg)  
+        
+        m_rec <- model.matrix(rec_term , data=s_data_for_prediction_rec)
+        p2_rec <- rrec_coefs %*% t(m_rec) # check on whether this coef(survival_mod is a column or a row!!!!!!!!
+        predicted_rec_allsites[s,1] <- p2_rec*log(1.1)            #### account for composite rec variable (rec/log.fr)
+        
+        
+        # for mixed models, the above functions will predict site-specific results (i.e., will incorporate random effects)
+        rm(s_data_for_prediction) # this part removes the site-specific dataframe used in this loop, so you do not accidentaly use the previous sites' dataframe instead of the current one-- in case there was an error somehow
+      }
+      predicted_sur <- apply(predicted_sur_allsites, MARGIN= 2, FUN= mean, na.rm=T) # average size-specific vital rates across sites
+      predicted_gr <- apply(predicted_gr_allsites, MARGIN= 2, FUN= mean, na.rm=T)
+      predicted_pr <- apply(predicted_pr_allsites, MARGIN= 2, FUN= mean, na.rm=T)
+      predicted_cr <- apply(predicted_cr_allsites, MARGIN= 2, FUN= mean, na.rm=T)
+      predicted_vg <- apply(predicted_vg_allsites, MARGIN= 2, FUN= mean, na.rm=T)
+      predicted_vg[which(predicted_vg<0)] <- 0                 #### to prevent negative variance
+      predicted_rec <- mean(predicted_rec_allsites, na.rm=T)
+      
+      gmx <- matrix(NA, length(bin_mids),length(bin_mids)) ## create empty gmx before entering the no_bins loop
+      
+      # make the TSF-specific matrix
+      for (ss in 1:no_bins) {
+        growcdf <- pnorm(bin_edges,predicted_gr[ss],sqrt(predicted_vg[ss])) # Yes. Vargrowth=(pred - obs)^2
+        grows <- growcdf[2:length(bin_edges)]-growcdf[1:(length(bin_edges)-1)]
+        if(sum(grows)>0){grows <- grows/sum(grows)
+        gmx[,ss] <- grows
+        } else if (sum(grows)==0 & predicted_gr[ss]< min(bin_edges)) { 
+          gmx[,ss] <- c(1, rep(0, length(bin_mids)-1))  
+        } else if (sum(grows)==0 & predicted_gr[ss]> max(bin_edges)) { 
+          gmx[,ss] <- c(rep(0, length(bin_mids)-1), 1)  } else { # deals with complete eviction-- OUT OF THE BOUNDS  of the kernel
+            gmx[,ss] <- NA} 
+        # this if statement breaks the code (puts NA's into the matrix) if the sum of the PDF is zero (which happens if all the probability is outside of the size bounds)
+      } # end ss loop
+      
+      # make the surv*growth mx
+      survgmx <- gmx*t(matrix( rep(predicted_sur,no_bins),no_bins)) # Yes, this is doing element-wise multiplication 
+      reprow <-  predicted_sur*predicted_pr*predicted_cr # prob that you survive, reproduce, then number fruits|reproduce; this multiplcation does it element by element
+      
+      mx <- matrix(0, no_bins+1, no_bins+1)
+      mx[2:(no_bins+1), 2:(no_bins+1)] = survgmx
+      mx[1,2:(no_bins+1)] = reprow # FRUIT ROW
+      
+      sdlng_cdf <- pnorm(bin_edges,mean_seedling_logsize,sqrt(var_seedling_logsize)) 
+      sdlng_pdf <- sdlng_cdf[2:length(bin_edges)]-sdlng_cdf[1:(length(bin_edges)-1)]
+      if(sum(sdlng_pdf)>0){
+        sdlng_pdf <- sdlng_pdf/sum(sdlng_pdf)} else {
+          sdlng_pdf <- NA} 
+      
+      mx[2:(no_bins+1),1]  = predicted_rec *sdlng_pdf 
+      
+      mx_prod <- mx_prod %*% mx # in the first iteration of the loop, mx just becomes mx_prod
+      
+    } # closes ii (TSFs) loop
+    
+    j_pop_gr_rate_FB_reg[i] <- (popbio::lambda(mx_prod))^(1/length(TSFs)) 
+    # multiply them together to get a matrix, etc. 
+  }
+    j_pop_gr_rate_FB_reg
+}
+
+
+all_pop_growth_rates_FB_reg <- cbind(possible_scenarios, all_pop_growth_rates_FB_reg)
+names(all_pop_growth_rates_FB_reg) <- c(names(possible_scenarios), paste("rep", 1:no_reps, sep = ""))
+rep_cols <- grep("^rep", names(all_pop_growth_rates_FB_reg), value = TRUE)
+
+mean_lambda_across_scenarios_FB_reg <- all_pop_growth_rates_FB_reg %>%
+  rowwise() %>%
+  mutate(
+    mean_lambda = mean(c_across(all_of(rep_cols)), na.rm = TRUE),
+    lower_bound = quantile(c_across(all_of(rep_cols)), 0.025, na.rm = TRUE),
+    upper_bound = quantile(c_across(all_of(rep_cols)), 0.975, na.rm = TRUE)
+  ) %>%
+  dplyr::select(FRI,s.TBF,mean_lambda,lower_bound, upper_bound) %>%
+  mutate(TBF=NA) %>%
+  ungroup()
+
+mean_lambda_across_scenarios_FB_reg$TBF[1:11] <- "Short TBF"
+mean_lambda_across_scenarios_FB_reg$TBF[12:22] <- "Long TBF"
+
+##########. graph 
+##########
+
+plt7<- ggplot(data= mean_lambda_across_scenarios_FB_reg, aes(x= FRI, y= mean_lambda)) +
+  geom_line(aes(color= TBF)) + 
+  geom_ribbon(aes(ymin = mean_lambda_across_scenarios_FB_reg$lower_bound, ymax = mean_lambda_across_scenarios_FB_reg$upper_bound, fill= TBF), alpha = 0.1) + 
+  #ylim(0,1) +
+  #xlim(c(0, 12)) +
+  labs(y= "Growth Rate", x = "Fire Return Interval",color = NULL, fill = NULL) +
+  theme_bw() + theme(legend.position='none') +
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = 0:10) +
+  theme(text = element_text(size = 16)) 
+plt7
+
+```
+
 ##graph
 
 ```{r}
 lambda_regionalIPM <- bind_rows(
   mean_lambda_across_scenarios %>% mutate(dataset = "global IPM"),
   mean_lambda_across_scenarios_Cro_reg %>% mutate(dataset = "Croatan"),
-  mean_lambda_across_scenarios_GSP_reg %>% mutate(dataset = "Green Swamp"))
+  mean_lambda_across_scenarios_GSP_reg %>% mutate(dataset = "Green Swamp"),
+  mean_lambda_across_scenarios_FB_reg %>% mutate(dataset = "Fort Bragg"))
 
-plt7 <- ggplot(lambda_regionalIPM, aes(x = FRI, y = mean_lambda)) +
+plt8 <- ggplot(lambda_regionalIPM, aes(x = FRI, y = mean_lambda)) +
     geom_ribbon(
     aes(ymin = lower_bound, ymax = upper_bound,
         fill = dataset, group = interaction(dataset, TBF)),
@@ -1739,8 +2216,16 @@ plt7 <- ggplot(lambda_regionalIPM, aes(x = FRI, y = mean_lambda)) +
   scale_x_continuous(breaks = 0:10) +
   theme(text = element_text(size = 16))
 
-plt7
+plt8
 ```
+```{r}
 
+table(TBF_long_Cro$TSF)
+table(TBF_long_Cro$TBF)
+
+table(TBF_long_FB$TSF)
+table(TBF_long_FB$TBF)
+
+```
 
 

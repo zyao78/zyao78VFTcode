@@ -11,12 +11,21 @@ library(lubridate)
 ## load in time series data
 
 ```{r}
+# daily_min <- read.csv("local adaptation/data/raw-data/TPC analyses/monkeyflower_minT.csv")
+# colnames(daily_min) <- c("date", "minT")
+# daily_mean <- read.csv("local adaptation/data/raw-data/TPC analyses/monkeyflower_meanT.csv")
+# colnames(daily_mean) <- c("date", "meanT")
+# daily_max <- read.csv("local adaptation/data/raw-data/TPC analyses/monkeyflower_maxT.csv")
+# colnames(daily_max) <- c("date", "maxT")
+
 daily_min <- read.csv("local adaptation/data/raw-data/TPC analyses/inner_daily_min.csv")
 colnames(daily_min) <- c("date", "minT")
 daily_mean <- read.csv("local adaptation/data/raw-data/TPC analyses/inner_daily_mean.csv")
 colnames(daily_mean) <- c("date", "meanT")
 daily_max <- read.csv("local adaptation/data/raw-data/TPC analyses/inner_daily_max.csv")
 colnames(daily_max) <- c("date", "maxT")
+
+
 
 temp_list <- list(
   min = daily_min,
@@ -43,14 +52,14 @@ mean_DTR <- mean(temp$maxT) - mean(temp$minT)
 mean_nightT <- mean(temp$minT)
 mean_dayT <- mean(temp$maxT)
   
-mean(temp$maxT - temp$meanT) 
-mean(temp$meanT - temp$minT) 
+range(temp$minT)
+range(temp$maxT)
 
 daily_mean_q <- quantile(temp$meanT, probs = c(0.1,0.25,0.5,0.75, 0.9))
 
 daily_mean_q+0.5*mean_DTR
 daily_mean_q-0.5*mean_DTR
-
+mean_DTR
 ```
 ## RH
 
@@ -60,5 +69,7 @@ mean((RH$maxRH+RH$minRH)/2)
 
 mean(RH$maxRH)
 mean(RH$minRH)
+
+quantile((RH$maxRH+RH$minRH)/2,  probs = c(0.1,0.25,0.5,0.75, 0.9))
 ```
 

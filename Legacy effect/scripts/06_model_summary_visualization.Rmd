@@ -67,6 +67,18 @@ modelplot(list("probability of survival"=survival_mod,"probability of fruiting"=
 ```{r}
 ##  see on average how many plants are in a population
 
+mean(VFT$T_LA[which(VFT$site == "B1" | VFT$site == "B2")])
+sd(VFT$T_LA[which(VFT$site == "B1" | VFT$site == "B2")])
+
+mean(VFT$T_LA[which(VFT$site != "B1" | VFT$site != "B2")]) 
+sd(VFT$T_LA[which(VFT$site != "B1" | VFT$site != "B2")]) 
+
+mean(VFT$P_LA[which(VFT$site == "B1" | VFT$site == "B2")])
+sd(VFT$P_LA[which(VFT$site == "B1" | VFT$site == "B2")])
+
+mean(VFT$P_LA[which(VFT$site != "B1" | VFT$site != "B2")]) 
+sd(VFT$P_LA[which(VFT$site != "B1" | VFT$site != "B2")]) 
+
 
 
 ```

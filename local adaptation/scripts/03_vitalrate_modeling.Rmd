@@ -10,6 +10,10 @@ library(foreach)
 library(AICcmodavg)
 library(readr)
 library(cAIC4)
+library(performance)
+library(DHARMa)
+
+
 ```
 
 ```{r}
@@ -178,7 +182,7 @@ sur_m1 <- glmer(
 )     
 
 rePCA(sur_m1)  ## after axis 4, standard deviations drops to essentially 0.
-
+summary(sur_m1)
 
 ## m2: maximal complexity with random slope on quadratic term 
 sur_m2 <- glmer(
@@ -556,9 +560,62 @@ lme4::rePCA(sur_m2)
 
 ```
 
-## model selection 
+## model diagnostics
 
 ```{r}
-getwd()
+
+
+view_resid_dm <- function(mod) {
+  mod_name <- deparse(substitute(mod))
+  plot(simulateResiduals(fittedModel = mod))
+}
+
+view_hist <- function(mod) {
+  mod_name <- deparse(substitute(mod))
+  hist(resid(mod))
+}
 ```
+####sur
+```{r}
+sur_list <- list(sur_m0, sur_m1, sur_m2, sur_m3, sur_m4, sur_m5)
+
+lapply(sur_list, view_resid_dm)
+```
+####gr
+```{r}
+gr_list <- list(gr_m0, gr_m1, gr_m2, gr_m3, gr_m4, gr_m5)
+
+lapply(gr_list, view_hist)
+```
+####prep
+```{r}
+prep_list <- list(prep_m0, prep_m1, prep_m2, prep_m3, prep_m4, prep_m5,prep_m6)
+
+lapply(prep_list, view_resid_dm)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
