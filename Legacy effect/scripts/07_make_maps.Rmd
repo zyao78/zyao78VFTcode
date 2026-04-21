@@ -1,0 +1,61 @@
+
+```{r}
+library(sf)
+library(ggplot2)
+```
+
+## load in shape files
+
+```{r}
+vft_populations <- st_read("Legacy effect/data/map making/VFT_populations.shp")
+vft_populations <- vft_populations[-7,] ## delete empty rows
+
+vft_extant_counties <- st_read("Legacy effect/data/map making/extant_counties.shp")
+
+vft_extirpated_counties <- st_read("Legacy effect/data/map making/extirpated_counties.shp")
+
+```
+## transform shapefile coordinates to be consistent
+```{r}
+st_crs(vft_populations)
+vft_extant_counties <- st_transform(vft_extant_counties, st_crs(vft_populations))
+vft_extirpated_counties <- st_transform(vft_extirpated_counties, st_crs(vft_populations))
+
+isTRUE(st_crs(vft_populations) == st_crs(vft_extant_counties))
+isTRUE(st_crs(vft_extant_counties) == st_crs(vft_extirpated_counties))
+
+```
+
+## overlay shapefiles
+
+```{r}
+
+## first make jitters to prevent overlap
+
+xy <- st_coordinates(vft_populations)
+
+set.seed(123)
+
+xy[vft_pop_jit$Population == "B1", "X"]     <- xy[vft_pop_jit$Population == "B1", "X"] - 1500
+xy[vft_pop_jit$Population == "B2", "X"]     <- xy[vft_pop_jit$Population == "B2", "X"] + 1500
+xy[vft_pop_jit$Population == "GSP-LI", "X"] <- xy[vft_pop_jit$Population == "GSP-LI", "X"] - 2000
+xy[vft_pop_jit$Population == "GSP-BI", "X"] <- xy[vft_pop_jit$Population == "GSP-BI", "X"] + 2000
+
+st_geometry(vft_pop_jit) <- st_as_sfc(
+  lapply(seq_len(nrow(xy)), function(i) st_point(xy[i, c("X", "Y")])),
+  crs = st_crs(vft_pop_jit)
+)
+
+
+
+## plot
+
+ggplot() +
+  geom_sf(data = vft_extant_counties, fill = "grey", color = "black") +
+  geom_sf(data = vft_extirpated_counties, fill = "white", color = "black") +
+  geom_sf(data = vft_pop_jit, color = "red", size = 1.5) +
+  theme_minimal()
+
+
+```
+
