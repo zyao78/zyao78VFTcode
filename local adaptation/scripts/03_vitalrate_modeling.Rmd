@@ -733,6 +733,12 @@ mod <- glmer(
 
 confint(mod, method = "boot", nsim = 500)
 
+boot_fun <- function(x) fixef(x)
+
+set.seed(1)
+bootMer(mod, FUN = boot_fun, nsim = 2)
+
+
 ```
 
 
