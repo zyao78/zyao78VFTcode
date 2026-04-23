@@ -12,6 +12,9 @@ library(readr)
 library(cAIC4)
 library(performance)
 library(DHARMa)
+library(sjPlot)
+library(insight)
+library(MASS)
 
 
 ```
@@ -230,9 +233,15 @@ sur_m5 <- glmer(
   # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
 )
 
-## 
-# sur_modelselection <- cAIC(sur_m0, sur_m1, sur_m2, sur_m3, sur_m4, sur_m5)
-# cAIC(sur_m0)
+sur_list <- list(
+  sur_intercept        = sur_m0,
+  sur_max_linear       = sur_m1,
+  sur_max_quad         = sur_m2,
+  sur_temp_only        = sur_m3,
+  sur_precip_only      = sur_m4,
+  sur_highest_var_only = sur_m5
+)
+
 
 ```
 
@@ -343,10 +352,26 @@ gr_m5 <- lmer(
   # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
 )
 
+## m6: highest variance only
+gr_m6 <- lmer(
+  logsize1 ~ s.logsize0 + s.P_RH + s.sq.T_LA + s.T_LA + s.T_LD + s.TBF + 
+    (1 + s.T_LA | site),
+  data = gr_subset_R_2,
+  na.action = "na.fail", 
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)
+
 ## model selection
 
-# anocAIC(gr_m0, gr_m1, gr_m2, gr_m3, gr_m4, gr_m5)
-
+gr_list <- list(
+  gr_intercept        = gr_m0,
+  gr_max_linear       = gr_m1,
+  gr_max_quad         = gr_m2,
+  gr_temp_only        = gr_m3,
+  gr_temp_only_quad   = gr_m4,
+  gr_precip_only      = gr_m5,
+  gr_highest_var_only = gr_m6
+)
 ```
 
 
@@ -473,8 +498,28 @@ prep_m6 <- glmer(
   # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
 ) 
 
-# prep_modelselection <- model.sel(prep_mod, prep_m1, prep_m2, prep_m3, prep_m4, prep_m5, prep_m6)
+### m7: highest variance term 
+prep_m7 <- glmer(
+  prep1 ~  s.logsize0 + s.P_RA + s.P_RH + s.sq.P_RA + s.sq.T_LA + s.T_LA + 
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF + (1+s.T_LH|site),
+  data = prep_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+)
 
+
+###
+prep_list <- list(
+  prep_intercept        = prep_m0,
+  prep_max_linear       = prep_m1,
+  prep_max_quad         = prep_m2,
+  prep_temp_only        = prep_m3,
+  prep_temp_only_quad   = prep_m4,
+  prep_precip_only      = prep_m5,
+  prep_precip_only_quad = prep_m6,
+  prep_highest_var_only = prep_m7
+)
 ```
 
 # number of fruits
@@ -596,6 +641,58 @@ lapply(prep_list, view_resid_dm)
 
 
 
+## model selection
+
+#### check singularity
+```{r}
+
+
+for (i in 1: length(sur_list)) { if (lme4::isSingular(sur_list[[i]]) == "TRUE") { print(names(sur_list[i]))} else {print("no singularity issue")}
+}
+for (i in 1: length(gr_list)) { if (lme4::isSingular(gr_list[[i]]) == "TRUE") { print(names(gr_list[i]))} else {print("no singularity issue")}
+}
+for (i in 1: length(prep_list)) { if (lme4::isSingular(prep_list[[i]]) == "TRUE") { print(names(prep_list[i]))} else {print("no singularity issue")}
+}
+
+## delete singular models
+
+prep_list <- prep_list[-which(names(prep_list) == "prep_max_linear")]
+```
+
+
+#### check convergence
+
+```{r}
+
+check_mod_convergence <- function(m) {
+  w <- m@optinfo$conv$lme4$messages
+  if (is.null(w))  {return("no warning message")}
+  else if (any(grepl("failed to converge", w))) {return("fail to converge")} 
+  else {return("check warning message")}
+}
+
+lapply(sur_list, check_mod_convergence)
+lapply(gr_list, check_mod_convergence)
+lapply(prep_list, check_mod_convergence)
+
+### delete problematic models or refer to the 00_fix_lme4_warnings scripts under Legacy effect/scripts to try to fix it
+
+```
+
+
+#### compare AICc 
+
+```{r}
+## use sapply since we want the output to be a vector not a list
+## use double [[]] to extract model itself in a list
+
+sur_bestfit <- sur_list[[which(names(sur_list) == names(which.min(sapply(sur_list, AICc))))]]
+
+gr_bestfit <- gr_list[[which(names(gr_list) == names(which.min(sapply(gr_list, AICc))))]]
+
+prep_bestfit <- prep_list[[which(names(prep_list) == names(which.min(sapply(prep_list, AICc))))]]
+
+```
 
 
 
@@ -603,10 +700,40 @@ lapply(prep_list, view_resid_dm)
 
 
 
+## graph
+
+#### coefficient plots with random effects
+
+```{r}
+### make random effect plot (visualize random effect sign for each site). Not always useful.
+
+# plot_model(sur_bestfit, type =  "re")
+# plot_model(gr_bestfit, type =  "re")
+# plot_model(prep_bestfit, type =  "re")
+
+### plot random effect variance
+
+varcorr <- as.data.frame(VarCorr(sur_bestfit, comp = "Variance"))
+attributes(VarCorr(sur_bestfit)$site)$stddev
+
+confint(sur_bestfit)
+
+confint(sur_bestfit, method = "boot", nsim = 500)
 
 
+mod <- glmer(
+  sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    (1 + s.T_LA + s.sq.T_LH  + s.T_LD + s.P_RH + s.P_RD | site),
+  data = sur_subset_R,
+  family = "binomial",
+  na.action = "na.fail",
+  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+) 
 
+confint(mod, method = "boot", nsim = 500)
 
+```
 
 
 

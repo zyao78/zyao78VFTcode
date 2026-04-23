@@ -128,7 +128,7 @@ vargrowth_model_terms <- terms(vargrowth_mod)
 vargrowth_term <- attr(vargrowth_model_terms, "term.labels")
 vargrowth_term <- reformulate(vargrowth_term)
 
-rec_model_terms <- terms(recruit_mod)
+rec_model_terms <- terms(recruit_mod)=
 rec_term <- attr(rec_model_terms, "term.labels")
 rec_term <- reformulate(rec_term)
 
