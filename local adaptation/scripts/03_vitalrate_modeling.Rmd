@@ -15,6 +15,9 @@ library(DHARMa)
 library(sjPlot)
 library(insight)
 library(MASS)
+library(ggplot2)
+library(merTools)
+library(merTools)
 
 
 ```
@@ -26,9 +29,9 @@ VFT_long$s.TSF <- scale(VFT_long$TSF)
 VFT_long$s.TBF <- scale(VFT_long$TBF)
 
 ```
-# explore candidate source of local adaptation (variables that vary among sites)
+## explore candidate source of local adaptation (variables that vary among sites)
 
-##plot time series
+#### plot time series
 ```{r}
 SoilT_list <- c("T_LA", "T_LW", "T_LH", "T_LD", "T_LC")
 SoilMoisture_list <- c("P_LA", "P_LD", "P_LH", "P_LW")
@@ -165,7 +168,7 @@ sur_subset_R <-
 ## intercept only
 sur_m0 <- glmer(
   sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
-    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF +
     (1 | site),
   data = sur_subset_R,
   family = "binomial",
@@ -176,7 +179,7 @@ sur_m0 <- glmer(
 ## maximal random effect complexity
 sur_m1 <- glmer(
   sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
-    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF +
     (1 + s.T_LA + s.T_LH  + s.T_LD + s.P_RH + s.P_RD | site),
   data = sur_subset_R,
   family = "binomial",
@@ -184,13 +187,12 @@ sur_m1 <- glmer(
   # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
 )     
 
-rePCA(sur_m1)  ## after axis 4, standard deviations drops to essentially 0.
-summary(sur_m1)
+
 
 ## m2: maximal complexity with random slope on quadratic term 
 sur_m2 <- glmer(
   sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
-    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF +
     (1 + s.T_LA + s.sq.T_LH  + s.T_LD + s.P_RH + s.P_RD | site),
   data = sur_subset_R,
   family = "binomial",
@@ -203,7 +205,7 @@ summary(sur_m2)
 
 sur_m3 <- glmer(
   sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
-    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF +
     (1 + s.T_LA + s.T_LH  + s.T_LD | site),
   data = sur_subset_R,
   family = "binomial",
@@ -214,7 +216,7 @@ sur_m3 <- glmer(
 ## m4: random slope on precip
 sur_m4 <- glmer(
   sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
-    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF +
     (1 +    s.P_RH + s.P_RD | site),
   data = sur_subset_R,
   family = "binomial",
@@ -225,7 +227,7 @@ sur_m4 <- glmer(
 ## m5: just one random slope on s.T_LA (high variance)
 sur_m5 <- glmer(
   sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
-    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_LH + s.TBF:s.TSF +
     (1 +  s.T_LA | site),
   data = sur_subset_R,
   family = "binomial",
@@ -702,53 +704,311 @@ prep_bestfit <- prep_list[[which(names(prep_list) == names(which.min(sapply(prep
 
 ## graph
 
-#### coefficient plots with random effects
+#### coefficient plots with random effects (gave up on plotting random effect variance CI). The most likely issue is that the model is too delicate to run Confint() on. 
+
 
 ```{r}
 ### make random effect plot (visualize random effect sign for each site). Not always useful.
 
-# plot_model(sur_bestfit, type =  "re")
-# plot_model(gr_bestfit, type =  "re")
-# plot_model(prep_bestfit, type =  "re")
+# plot_model(sur_m2, type =  "re")
+# # plot_model(gr_bestfit, type =  "re")
+# # plot_model(prep_bestfit, type =  "re")
 
 ### plot random effect variance
 
-varcorr <- as.data.frame(VarCorr(sur_bestfit, comp = "Variance"))
-attributes(VarCorr(sur_bestfit)$site)$stddev
-
-confint(sur_bestfit)
-
-confint(sur_bestfit, method = "boot", nsim = 500)
-
-
-mod <- glmer(
-  sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
-    s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
-    (1 + s.T_LA + s.sq.T_LH  + s.T_LD + s.P_RH + s.P_RD | site),
-  data = sur_subset_R,
-  family = "binomial",
-  na.action = "na.fail",
-  # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
-) 
-
-confint(mod, method = "boot", nsim = 500)
-
-boot_fun <- function(x) fixef(x)
-
-set.seed(1)
-bootMer(mod, FUN = boot_fun, nsim = 2)
+# varcorr <- as.data.frame(VarCorr(sur_bestfit, comp = "Variance"))
+# attributes(VarCorr(sur_bestfit)$site)$stddev
+# 
+# confint(sur_m0)
+# confint(sur_m0, parm = "theta_", method = "profile")
+# 
+# confint(sur_bestfit, method = "boot", nsim = 500)
+# 
+# 
+# mod <- glmer(
+#   sur0_1_tp ~  s.logsize0 + s.P_RD + s.P_RH + s.sq.T_LH + s.T_LA + s.T_LD +
+#     s.T_LH + s.TBF + s.TSF + s.P_RH:s.T_RH + s.TBF:s.TSF +
+#     (1 + s.T_LA + s.sq.T_LH  + s.T_LD + s.P_RH + s.P_RD | site),
+#   data = sur_subset_R,
+#   family = "binomial",
+#   na.action = "na.fail",
+#   # control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))            ## increase maxfun number fron 10,0000
+# ) 
+# 
+# confint(mod, method = "boot", nsim = 500)
+# 
+# boot_fun <- function(x) fixef(x)
+# 
+# set.seed(1)
+# bootMer(mod, FUN = boot_fun, nsim = 2)
 
 
 ```
 
+```{r, extract random effect variance without CI}
+
+sur_revar <- as.data.frame(VarCorr(sur_bestfit))
+sur_revar <- sur_revar %>%
+  filter(is.na(var2)) %>%
+  dplyr::select(var1,sdcor) %>% 
+  rename(random_effect=var1, standard_deviation=sdcor)
+
+gr_revar <- as.data.frame(VarCorr(gr_bestfit))
+gr_revar <- gr_revar %>%
+  filter(is.na(var2)) %>%
+  dplyr::select(var1,sdcor) %>% 
+  rename(random_effect=var1, standard_deviation=sdcor)
+  
+prep_revar <- as.data.frame(VarCorr(prep_bestfit))
+prep_revar <- prep_revar %>%
+  filter(is.na(var2)) %>%
+  dplyr::select(var1,sdcor) %>% 
+  rename(random_effect=var1, standard_deviation=sdcor)
+
+revar_list <- list(
+  survival = sur_revar,
+  growth = gr_revar,
+  Prob_reproduction = prep_revar)
+
+revar_allVR <- bind_rows(revar_list, .id = "vital rate")
+revar_allVR <- revar_allVR[which(!is.na(revar_allVR$random_effect)),]
 
 
+plt1 <- ggplot(revar_allVR, aes(x=random_effect, y=standard_deviation, fill = `vital rate`)) +
+  geom_col(position = position_dodge(width = 0.8)) +
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
 
 
+highest var random effect: 
+sur: T_LA
+gr: T_LA
+prep: T_LH
+
+## MerTools::Predict, graph VR against the highest variance random effect term and the highest fixed effect coefficient size term
+```{r}
+VFT_site <- c("B1", "B2", "CM", "CH", "IA", "ME", "GSP-BI", "GSP-LI")
+```
 
 
+#### sur ~ T_LA
+```{r, make new data}
+attr(terms(sur_bestfit), "term.labels")
+data_new1 <- as.data.frame((rep(mean(sur_subset_R$s.logsize0, na.rm=TRUE), 50)))
+names(data_new1)[1] <- "s.logsize0"
+data_new1[c("s.P_RD", "s.P_RH", "s.sq.T_LH", "s.T_LD", "s.T_LH", "s.TBF", "s.TSF")] <- list(rep(mean(VFT_long$s.P_RD, na.rm=TRUE), 50), 
+        rep(mean(VFT_long$s.P_RH, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.sq.T_LH, na.rm=TRUE), 50), 
+        rep(mean(VFT_long$s.T_LD, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.T_LH, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.TBF, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.TSF, na.rm=TRUE), 50)
+        )
+
+mean_TA <- mean(VFT_long$T_LA, na.rm=TRUE)
+sd_TA <- sd(VFT_long$T_LA, na.rm=TRUE)
+new_T_LA <- ((seq(min(VFT_long$T_LA), max(VFT_long$T_LA)+2, length.out = 50))-mean_TA)/sd_TA
+## upper bound of prediction set to be past max + 2, which is a rather extreme case
+data_new1$s.T_LA <- new_T_LA      
+data_new1$T_LA <- seq(min(VFT_long$T_LA), max(VFT_long$T_LA)+2, length.out = 50)
+
+## replicate 8 times to store site effect
+data_new1 <- bind_rows(replicate(8, data_new1, simplify = FALSE))
+data_new1$site <- rep(VFT_site, each = 50)
+
+data_new1$sur <- merTools::predictInterval(sur_bestfit, data_new1, type = "probability",level= 0.95,n.sims= 1000)
+
+plt2 <- ggplot(data= data_new1, aes(x= T_LA, y= sur$fit)) +
+  geom_line(aes(color = site)) + 
+  # geom_ribbon(aes(ymin = data_new1$sur$lwr, ymax = data_new1$sur$upr, fill = site), alpha = 0.1) + 
+  #ylim(0,1) +
+   labs(y= "probability of survival", x = "annual mean soil temperature", size = 1.5) +
+  theme_bw() + theme(legend.position='none') +
+  theme(legend.position = "right") +
+  theme(text = element_text(size = 13))                                                                                             
+```
+
+#### sur ~ T_LH (highest coef est)
+
+```{r}
+data_new1 <- as.data.frame((rep(mean(sur_subset_R$s.logsize0, na.rm=TRUE), 50)))
+names(data_new1)[1] <- "s.logsize0"
+data_new1[c("s.P_RD", "s.P_RH", "s.T_LD", "s.T_LA", "s.TBF", "s.TSF")] <- list(rep(mean(VFT_long$s.P_RD, na.rm=TRUE), 50), 
+        rep(mean(VFT_long$s.P_RH, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.T_LD, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.T_LA, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.TBF, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.TSF, na.rm=TRUE), 50)
+        )
+
+mean_TLH <- mean(VFT_long$T_LH, na.rm=TRUE)
+sd_TLH <- sd(VFT_long$T_LH, na.rm=TRUE)
+mean_TLH2 <- mean(VFT_long$T_LH^2, na.rm=TRUE)
+sd_TLH2 <- sd(VFT_long$T_LH^2, na.rm=TRUE)
+
+new_T_LH <- seq(min(VFT_long$T_LH), max(VFT_long$T_LH)+2, length.out = 50)
+## upper bound of prediction set to be past max + 2, which is a rather extreme case
+data_new1$T_LH <- new_T_LH      
+data_new1$s.T_LH <- (seq(min(VFT_long$T_LH), max(VFT_long$T_LH)+2, length.out=50)-mean_TLH)/sd_TLH
+
+data_new1$s.sq.T_LH <- (seq(min(VFT_long$T_LH)^2, (max(VFT_long$T_LH)+2)^2, length.out=50)-mean_TLH2)/sd_TLH2
 
 
+## replicate 8 times to store site effect
+data_new1 <- bind_rows(replicate(8, data_new1, simplify = FALSE))
+data_new1$site <- rep(VFT_site, each = 50)
+
+data_new1$sur <- merTools::predictInterval(sur_bestfit, data_new1, type = "probability",level= 0.95,n.sims= 1000)
+
+plt3 <- ggplot(data= data_new1, aes(x= T_LH, y= sur$fit)) +
+  geom_line(aes(color = site)) + 
+  # geom_ribbon(aes(ymin = data_new1$sur$lwr, ymax = data_new1$sur$upr, fill = site), alpha = 0.1) + 
+  #ylim(0,1) +
+   labs(y= "probability of survival", x = " hottest month soil temperature", size = 1.5) +
+  theme_bw() + theme(legend.position='none') +
+  theme(legend.position = "right") +
+  theme(text = element_text(size = 13))    
+```
+#### gr ~ T_LA 
+
+```{r}
+data_new1 <- as.data.frame((rep(mean(gr_subset_R_2$s.logsize0, na.rm=TRUE), 50)))
+names(data_new1)[1] <- "s.logsize0"
+data_new1[c("s.P_RH", "s.T_LD", "s.TBF")] <- list(rep(mean(VFT_long$s.P_RH, na.rm=TRUE), 50), 
+        rep(mean(VFT_long$s.T_LD, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.TBF, na.rm=TRUE), 50)
+        )
+new_T_LA <- seq(min(VFT_long$T_LA), max(VFT_long$T_LA)+2, length.out = 50)
+## upper bound of prediction set to be past max + 2, which is a rather extreme case
+mean_T_LA2 <- mean(VFT_long$T_LA^2, na.rm=TRUE)
+sd_T_LA2 <- sd(VFT_long$T_LA^2, na.rm=TRUE)
+
+data_new1$T_LA <- new_T_LA      
+data_new1$s.T_LA <- (seq(min(VFT_long$T_LA), max(VFT_long$T_LA)+2, length.out=50)-mean_TA)/sd_TA
+data_new1$s.sq.T_LA <- (seq(min(VFT_long$T_LA)^2, (max(VFT_long$T_LA)+2)^2, length.out=50)-mean_T_LA2)/sd_T_LA2
+
+
+## replicate 8 times to store site effect
+data_new1 <- bind_rows(replicate(8, data_new1, simplify = FALSE))
+data_new1$site <- rep(VFT_site, each = 50)
+
+data_new1$gr <- merTools::predictInterval(gr_bestfit, data_new1, type = "linear.prediction",level= 0.95,n.sims= 1000)
+
+plt4 <- ggplot(data= data_new1, aes(x= T_LA, y= gr$fit)) +
+  geom_line(aes(color = site)) + 
+  # geom_ribbon(aes(ymin = data_new1$sur$lwr, ymax = data_new1$sur$upr, fill = site), alpha = 0.1) + 
+  #ylim(0,1) +
+   labs(y= "growth", x = " mean annual soil temperature", size = 1.5) +
+  theme_bw() + theme(legend.position='none') +
+  theme(legend.position = "right") +
+  theme(text = element_text(size = 13))   
+```
+
+
+#### prep ~ T_LH 
+
+```{r}
+data_new1 <- as.data.frame((rep(mean(prep_subset_R$s.logsize0, na.rm=TRUE), 50)))
+names(data_new1)[1] <- "s.logsize0"
+data_new1[c("s.P_RA", "s.P_RH", "s.sq.P_RA", "s.sq.T_LA","s.T_LA", "s.TBF", "s.TSF")] <- list(rep(mean(VFT_long$s.P_RA, na.rm=TRUE), 50), 
+        rep(mean(VFT_long$s.P_RH, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.sq.P_RA, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.sq.T_LA, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.T_LA, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.TBF, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.TSF, na.rm=TRUE), 50)
+        )
+
+
+## upper bound of prediction set to be past max + 2, which is a rather extreme case
+data_new1$T_LH <- new_T_LH      
+data_new1$s.T_LH <- (seq(min(VFT_long$T_LH), max(VFT_long$T_LH)+2, length.out=50)-mean_TLH)/sd_TLH
+
+data_new1$s.sq.T_LH <- (seq(min(VFT_long$T_LH)^2, (max(VFT_long$T_LH)+2)^2, length.out=50)-mean_TLH2)/sd_TLH2
+
+
+## replicate 8 times to store site effect
+data_new1 <- bind_rows(replicate(8, data_new1, simplify = FALSE))
+data_new1$site <- rep(VFT_site, each = 50)
+
+data_new1$prep <- merTools::predictInterval(prep_bestfit, data_new1, type = "probability",level= 0.95,n.sims= 1000)
+
+plt5 <- ggplot(data= data_new1, aes(x= T_LH, y= prep$fit)) +
+  geom_line(aes(color = site)) + 
+  # geom_ribbon(aes(ymin = data_new1$sur$lwr, ymax = data_new1$sur$upr, fill = site), alpha = 0.1) + 
+  #ylim(0,1) +
+   labs(y= "probability of reproduction", x = " hottest month soil temperature", size = 1.5) +
+  theme_bw() + theme(legend.position='none') +
+  theme(legend.position = "right") +
+  theme(text = element_text(size = 13))  
+```
+
+#### prep ~ T_LA
+```{r}
+data_new1 <- as.data.frame((rep(mean(prep_subset_R$s.logsize0, na.rm=TRUE), 50)))
+names(data_new1)[1] <- "s.logsize0"
+data_new1[c("s.P_RA", "s.P_RH", "s.sq.P_RA","s.T_LH", "s.TBF", "s.TSF")] <- list(rep(mean(VFT_long$s.P_RA, na.rm=TRUE), 50), 
+        rep(mean(VFT_long$s.P_RH, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.sq.P_RA, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.T_LH, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.TBF, na.rm=TRUE), 50),
+        rep(mean(VFT_long$s.TSF, na.rm=TRUE), 50)
+        )
+
+
+## upper bound of prediction set to be past max + 2, which is a rather extreme case
+data_new1$T_LA <- new_T_LA      
+data_new1$s.T_LA <- (seq(min(VFT_long$T_LA), max(VFT_long$T_LA)+2, length.out=50)-mean_TA)/sd_TA
+
+data_new1$s.sq.T_LA <- (seq(min(VFT_long$T_LA)^2, (max(VFT_long$T_LA)+2)^2, length.out=50)-mean_T_LA2)/sd_T_LA2
+
+
+## replicate 8 times to store site effect
+data_new1 <- bind_rows(replicate(8, data_new1, simplify = FALSE))
+data_new1$site <- rep(VFT_site, each = 50)
+
+data_new1$prep <- merTools::predictInterval(prep_bestfit, data_new1, type = "probability",level= 0.95,n.sims= 1000)
+
+plt6 <- ggplot(data= data_new1, aes(x= T_LA, y= prep$fit)) +
+  geom_line(aes(color = site)) + 
+  # geom_ribbon(aes(ymin = data_new1$sur$lwr, ymax = data_new1$sur$upr, fill = site), alpha = 0.1) + 
+  #ylim(0,1) +
+   labs(y= "probability of reproduction", x = " mean annual soil temperature", size = 1.5) +
+  theme_bw() + theme(legend.position='none') +
+  theme(legend.position = "right") +
+  theme(text = element_text(size = 13)) 
+```
+
+### plot time series for only T_LA and T_LH
+
+```{r}
+ggplot(VFT_long,
+         aes(x = as.factor(startyear),
+             y = T_LA,
+             colour = site,
+             group = site)) +
+    geom_line() +
+    geom_point() +
+    labs(y = "T_LA", x = "Year") +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 8)
+    ) 
+```
+
+```{r}
+ggplot(VFT_long,
+         aes(x = as.factor(startyear),
+             y = T_LH,
+             colour = site,
+             group = site)) +
+    geom_line() +
+    geom_point() +
+    labs(y = "T_LH", x = "Year") +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 8)
+    ) 
+```
 
 
 
