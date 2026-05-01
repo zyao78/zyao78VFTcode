@@ -1,0 +1,232 @@
+
+
+##load 
+```{r}
+library(AICcmodavg)
+library(lme4)
+library(tidyverse)
+library(dplyr)
+library(glue)
+library(zoo)
+library(MASS)
+```
+```{r}
+load("local adaptation/data/processed data/VR_bestfits.Rdata") # loads in the VR functions
+
+```
+
+## parameterize IPM
+```{r}
+VFT_long$logsize0 <- (log(VFT_long$size0+0.1))
+VFT_long$s.logsize0 <- scale(VFT_long$logsize0) 
+VFT_long$s.TBF <- scale(VFT_long$TBF) 
+VFT_long$s.TSF <- scale(VFT_long$TSF) 
+VFT_long$sq.TSF <- (VFT_long$TSF)^2
+VFT_long$s.sq.TSF <- scale(VFT_long$sq.TSF) 
+IPM_bounds <- range(VFT_long$logsize0, na.rm = TRUE)  # our IPM will be based on logsize as a size metric. 
+no_bins <- 100
+bin_edges <- seq(IPM_bounds[1], IPM_bounds[2], length.out= no_bins+1)
+bin_mids <- zoo::rollmean(bin_edges,2)
+
+
+##################################
+rows_with_new <- VFT_long[grepl("\\bnew", VFT_long$comm1), ]
+rows_with_new <- rows_with_new[!grepl("no new", rows_with_new$comm1), ] # delete "no new"
+rows_with_new <- rows_with_new[!grepl("no news", rows_with_new$comm1), ] # delete "no new" 
+rows_with_new <- rows_with_new[!grepl("not possible to see new plants", rows_with_new$comm1), ]
+rows_with_new <- rows_with_new[!grepl("No news", rows_with_new$comm1), ]
+rows_with_new <- rows_with_new[!grepl("new lvs", rows_with_new$comm1), ]
+rows_with_new <- rows_with_new[!grepl("new nail", rows_with_new$comm1), ]
+
+mean_seedling_logsize <- mean(rows_with_new$logsize1, na.rm=T) # get the mean logsize of seedings   ### the mean seedling size is very large
+var_seedling_logsize <- var(rows_with_new$logsize1,na.rm=T)
+```
+
+```{r, build possible scenarios}
+possible_scenarios <- 
+  as.data.frame(matrix(NA, nrow= 50, ncol = 28))
+names(possible_scenarios) <- c("s.TSF","s.TBF","s.T_LA", "s.T_LH",
+  "s.sq.T_LH",
+  "s.sq.P_LA",
+  "s.T_LC",
+  "s.T_LD",
+  "s.P_LD",
+  "s.sq.T_LA",
+  "s.P_LA",
+  "s.P_LW",
+  "s.P_LH",
+  "s.T_RA",
+  "s.sq.T_RA",
+  "s.P_RA",
+  "s.T_RH",
+  "s.P_RH",
+  "s.T_RC",
+  "s.T_RW",
+  "s.T_RD",
+  "s.sq.T_RC",
+  "s.P_RW",
+  "s.P_RD",
+  "s.sq.T_RH",
+  "s.sq.P_RA",
+  "s.sq.P_RW",
+  "s.sq.P_RD")
+
+
+possible_scenarios[, c("s.TSF","s.TBF","s.T_LA", "s.T_LH",
+  "s.sq.T_LH",
+  "s.sq.P_LA",
+  "s.T_LC",
+  "s.T_LD",
+  "s.P_LD",
+  "s.sq.T_LA",
+  "s.P_LA",
+  "s.P_LW",
+  "s.P_LH",
+  "s.T_RA",
+  "s.sq.T_RA",
+  "s.P_RA",
+  "s.T_RH",
+  "s.P_RH",
+  "s.T_RC",
+  "s.T_RW",
+  "s.T_RD",
+  "s.sq.T_RC",
+  "s.P_RW",
+  "s.P_RD",
+  "s.sq.T_RH",
+  "s.sq.P_RA",
+  "s.sq.P_RW",
+  "s.sq.P_RD")] <- 0 # setting all climate variable to their mean
+
+my_sites <- unique(VFT_long$site)
+
+```
+
+```{r, run this code if plot against T_LA}
+mean_T_LA <- mean(VFT_long$T_LA, na.rm=TRUE)
+sd_T_LA <- sd(VFT_long$T_LA, na.rm=TRUE)
+new_T_LA <- seq(min(VFT_long$T_LA), max(VFT_long$T_LA)+2, length.out = 50)
+
+mean_T_LA2 <- mean(VFT_long$T_LA^2, na.rm=TRUE)
+sd_T_LA2 <- sd(VFT_long$T_LA^2, na.rm=TRUE)
+
+possible_scenarios$mean_annual_Temp <- new_T_LA      
+possible_scenarios$s.T_LA <- (seq(min(VFT_long$T_LA), max(VFT_long$T_LA)+2, length.out=50)-mean_T_LA)/sd_T_LA
+possible_scenarios$s.sq.T_LA <- (seq(min(VFT_long$T_LA)^2, (max(VFT_long$T_LA)+2)^2, length.out=50)-mean_T_LA2)/sd_T_LA2
+```
+
+## build empty dataframe to store lambda
+```{r}
+
+pop_gr_rate <- as.data.frame(matrix(NA, nrow= 50*length(my_sites), ncol = 3))
+names(pop_gr_rate) <- c("lambda","T_LA", "site")
+pop_gr_rate$site <- rep(my_sites, each = 50)
+temp_scenario <- seq(min(VFT_long$T_LA), max(VFT_long$T_LA)+2, length.out = 50)
+pop_gr_rate$T_LA <- temp_scenario
+
+
+```
+
+## extract mod terms
+```{r}
+sur_model_terms <- terms(sur_bestfit)
+sur_term <- attr(sur_model_terms, "term.labels")
+sur_term <- reformulate(sur_term)
+
+gr_model_terms <- terms(growth_mod)
+gr_term <- attr(gr_model_terms, "term.labels")
+gr_term <- reformulate(gr_term)
+
+prep_model_terms <- terms(prep_mod)
+prep_term <- attr(prep_model_terms, "term.labels")
+prep_term <- reformulate(prep_term)
+
+crep_model_terms <- terms(crep_mod)
+crep_term <- attr(crep_model_terms, "term.labels")
+crep_term <- reformulate(crep_term)
+
+vargrowth_model_terms <- terms(vargrowth_mod)
+vargrowth_term <- attr(vargrowth_model_terms, "term.labels")
+vargrowth_term <- reformulate(vargrowth_term)
+
+rec_model_terms <- terms(recruit_mod)=
+rec_term <- attr(rec_model_terms, "term.labels")
+rec_term <- reformulate(rec_term)
+```
+
+
+## initialize IPM
+```{r}
+for (s in my_sites) {
+  possible_scenarios_s <- possible_scenarios
+  possible_scenarios_s$site <- s
+  
+  for (i in 1: dim(possible_scenarios_s)[1]) {
+  i_scenario <- possible_scenarios_s[i,]
+  mx_prod <- diag(no_bins+1) ### setting up an identity matrix
+  data_for_prediction <- i_scenario[rep(seq_len(nrow(i_scenario)), length(bin_mids)), ]
+  data_for_prediction$s.logsize0 <-   scale(bin_mids, center= attr(VFT_long$s.logsize0,"scaled:center"), 
+                                                    scale= attr(VFT_long$s.logsize0,"scaled:scale"))
+  
+  predicted_sur <- merTools::predictInterval(sur_bestfit, data_for_prediction, type = "probability",level= 0.95,n.sims= 1000)
+  predicted_sur <- predicted_sur$fit
+  
+  predicted_gr <- merTools::predictInterval(gr_bestfit, data_for_prediction, type = "linear.prediction",level= 0.95,n.sims= 1000)
+  predicted_gr <- predicted_gr$fit
+  
+  predicted_prep <- merTools::predictInterval(prep_bestfit, data_for_prediction, type = "probability",level= 0.95,n.sims= 1000)
+  predicted_prep <- predicted_prep$fit
+  
+  predicted_crep <- merTools::predictInterval(crep_bestfit, data_for_prediction, type = "linear.prediction",level= 0.95,n.sims= 1000)
+  predicted_crep <- predicted_crep$fit
+  
+  predicted_vargrowth <- merTools::predictInterval(vargrowth_bestfit, data_for_prediction, type = "linear.prediction",level= 0.95,n.sims= 1000)
+  predicted_vargrowth <- predicted_vargrowth$fit
+  predicted_vargrowth[which(predicted_vargrowth<0)] <- 0.000000000001
+  
+  predicted_rec <- merTools::predictInterval(recruit_bestfit, data_for_prediction, type = "linear.prediction",level= 0.95,n.sims= 1000)
+  predicted_rec <- (predicted_rec$fit)*log(1.1)
+  predicted_rec[which(predicted_rec<0)] <- 0
+  
+  gmx <- matrix(NA, length(bin_mids),length(bin_mids)) ## create empty gmx before entering the no_bins loop
+  
+  for (ss in 1:no_bins) {
+    growcdf <- pnorm(bin_edges,predicted_gr[ss],sqrt(predicted_vargrowth[ss])) # Yes. Vargrowth=(pred - obs)^2
+    grows <- growcdf[2:length(bin_edges)]-growcdf[1:(length(bin_edges)-1)]
+    if(sum(grows)>0){grows <- grows/sum(grows)
+    gmx[,ss] <- grows
+    } else if (sum(grows)==0 & grow_vals[ss]< min(bin_edges)) { 
+      gmx[,ss] <- c(1, rep(0, length(binmids)-1))  
+    } else if (sum(grows)==0 & grow_vals[ss]> max(bin_edges)) { 
+      gmx[,ss] <- c(rep(0, length(binmids)-1), 1)  } else { # deals with complete eviction-- OUT OF THE BOUNDS  of the kernel
+        gmx[,ss] <- NA} 
+    # this if statement breaks the code (puts NA's into the matrix) if the sum of the PDF is zero (which happens if all the probability is outside of the size bounds)
+  }
+  
+  survgmx <- gmx*t(matrix( rep(predicted_sur,no_bins),no_bins)) # Yes, this is doing element-wise multiplication 
+  reprow <-  predicted_sur*predicted_prep*predicted_crep # prob that you survive, reproduce, then number fruits|reproduce; this multiplcation does it element by element
+  
+  mx_prod <- matrix(0, no_bins+1, no_bins+1)
+  mx_prod[2:(no_bins+1), 2:(no_bins+1)] = survgmx
+  mx_prod[1,2:(no_bins+1)] = reprow # FRUIT ROW
+  
+  sdlng_cdf <- pnorm(bin_edges,mean_seedling_logsize,sqrt(var_seedling_logsize)) 
+  sdlng_pdf <- sdlng_cdf[2:length(bin_edges)]-sdlng_cdf[1:(length(bin_edges)-1)]
+  if(sum(sdlng_pdf)>0){
+    sdlng_pdf <- sdlng_pdf/sum(sdlng_pdf)} else {
+      sdlng_pdf <- NA} 
+  
+  mx_prod[2:(no_bins+1),1]  = predicted_rec *sdlng_pdf 
+  pop_gr_rate[which(pop_gr_rate$site==s & pop_gr_rate$T_LA ==i_scenario$mean_annual_Temp),1] <- popbio::lambda(mx_prod)
+  }
+}
+
+
+
+
+
+
+
+
+```
+

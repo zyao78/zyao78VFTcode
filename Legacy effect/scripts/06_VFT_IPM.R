@@ -226,7 +226,7 @@ for (i in 1: dim(possible_scenarios)[1]) {
     
     m_vg <- model.matrix(vargrowth_term,data=s_data_for_prediction)
     p2_vg <- rvar_coefs %*% t(m_vg) # 
-    predicted_vg_allsites[s,] <- exp(p2_vg)  
+    predicted_vg_allsites[s,] <- p2_vg
     
     m_rec <- model.matrix(rec_term , data=s_data_for_prediction_rec)
     p2_rec <- rrec_coefs %*% t(m_rec) # check on whether this coef(survival_mod is a column or a row!!!!!!!!

@@ -57,13 +57,7 @@ Plot_clim <- function(x, data) {
 
 p_soilT <- lapply(SoilT_list, Plot_clim, data = VFT_long)
 
-p_soilT <- ggpubr::ggarrange(
-  plotlist = p_soilT[1:5],
-  ncol = 3,
-  nrow = 2,
-  common.legend = TRUE,
-  legend = "right"
-)
+
 
 p_soilmoisture <- lapply(SoilMoisture_list, Plot_clim, data = VFT_long)
 
@@ -96,12 +90,21 @@ p_regTemp <- ggpubr::ggarrange(
   legend = "right"
 )
 
-
+p_soilT +
+  facet_wrap(~variable, 
+             labeller = labeller(variable = c(
+               T_LA = "Annual mean soil temperature",
+               T_LW = "Mean soil temperature (wettest month)",
+               T_LH = "Maximum soil temperature (hottest month)",
+               T_LD = "Mean soil moisture (driest month)",
+               T_LC = "Minimum soil temperature (coldest month)"
+             )))
 
 print(p_regTemp)
 print(p_precip)
 print(p_soilT)
 print(p_soilmoisture)
+ggsave("local adaptation/figures/climate summary/soil temp time series.wmf", plot = p_soilT, device = "wmf", width = 6, height = 4)
 
 ```
 
@@ -825,7 +828,7 @@ plt2 <- ggplot(data= data_new1, aes(x= T_LA, y= sur$fit)) +
   #ylim(0,1) +
    labs(y= "probability of survival", x = "annual mean soil temperature", size = 1.5) +
   theme_bw() + theme(legend.position='none') +
-  theme(legend.position = "right") +
+  # theme(legend.position = "right") +
   theme(text = element_text(size = 13))                                                                                             
 ```
 
@@ -866,8 +869,8 @@ plt3 <- ggplot(data= data_new1, aes(x= T_LH, y= sur$fit)) +
   # geom_ribbon(aes(ymin = data_new1$sur$lwr, ymax = data_new1$sur$upr, fill = site), alpha = 0.1) + 
   #ylim(0,1) +
    labs(y= "probability of survival", x = " hottest month soil temperature", size = 1.5) +
-  theme_bw() + theme(legend.position='none') +
-  theme(legend.position = "right") +
+  theme_bw() + 
+  # theme(legend.position = "right") +
   theme(text = element_text(size = 13))    
 ```
 #### gr ~ T_LA 
@@ -900,7 +903,7 @@ plt4 <- ggplot(data= data_new1, aes(x= T_LA, y= gr$fit)) +
   # geom_ribbon(aes(ymin = data_new1$sur$lwr, ymax = data_new1$sur$upr, fill = site), alpha = 0.1) + 
   #ylim(0,1) +
    labs(y= "growth", x = " mean annual soil temperature", size = 1.5) +
-  theme_bw() + theme(legend.position='none') +
+  theme_bw() + 
   theme(legend.position = "right") +
   theme(text = element_text(size = 13))   
 ```
@@ -975,10 +978,92 @@ plt6 <- ggplot(data= data_new1, aes(x= T_LA, y= prep$fit)) +
   # geom_ribbon(aes(ymin = data_new1$sur$lwr, ymax = data_new1$sur$upr, fill = site), alpha = 0.1) + 
   #ylim(0,1) +
    labs(y= "probability of reproduction", x = " mean annual soil temperature", size = 1.5) +
-  theme_bw() + theme(legend.position='none') +
-  theme(legend.position = "right") +
+  theme_bw() + 
+  # theme(legend.position = "right") +
   theme(text = element_text(size = 13)) 
 ```
+
+## add non-random slope vital rates
+
+```{r, crep}
+
+crep_mod
+
+
+
+
+crep_subset_R <- 
+  VFT_long %>% 
+  filter_at(vars(logcrep1, s.logsize0, TSF, TBF, site, s.T_RA, s.T_RH), all_vars(!is.na(.)))
+
+crep_bestfit <- lmer(logcrep1 ~ s.T_LA + s.T_LH + (1 | site),
+  data = crep_subset_R,
+  na.action = "na.fail"
+)
+
+
+
+```
+```{r, vargrowth}
+
+growth_terms <- attr(terms(gr_bestfit), "term.labels")
+int_terms <- grep(":", growth_terms, value = TRUE)
+int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
+main_terms <- growth_terms[!grepl(":", growth_terms)]
+logsize1 <- c("logsize1")
+gr_all_terms <- unique(c(main_terms, int_terms_broken, logsize1))
+
+Vargrowth_subset <- 
+  VFT_long[which(VFT_long$sur0_1_tp == 1),] %>%      ## make sure to subset data to only alive plants
+  filter(across(all_of(gr_all_terms), ~ !is.na(.)))
+
+Vargrowth_subset$vargrowth <- NA
+Vargrowth_subset$predgrowth <- NA
+
+Vargrowth_subset$predgrowth <- predict(gr_bestfit,newdata=Vargrowth_subset)
+
+Vargrowth_subset$vargrowth <-
+  (Vargrowth_subset$predgrowth - # variance is equivalent to (predicted-expected)^2
+     Vargrowth_subset$logsize1)^2
+Vargrowth_subset$og_predgrowth <- exp(Vargrowth_subset$predgrowth)
+Vargrowth_subset$og_logsize1 <- exp(Vargrowth_subset$logsize1)
+
+
+#***** to prevent negative numbers later
+
+GM_vargrowth_R <- lmer(vargrowth ~ s.logsize0 + s.T_RA+ s.TSF * s.TBF  +
+                         s.P_RA  + s.sq.P_RA  + s.T_RC +s.T_RD +
+                         s.P_RD + s.P_RW
+                       + (1|site), #  
+                       data = Vargrowth_subset, na.action = "na.fail") 
+
+
+n_cores <- detectCores()
+cluster <- makeCluster(n_cores - 1)
+registerDoParallel(cluster)
+clusterExport(cluster, c("Vargrowth_subset"))   ### replace with different subset (different global models)
+clusterEvalQ(cluster, {library(lme4); library(MuMIn)})
+
+vargrowth_dredge_R <- MuMIn::dredge(
+  GM_vargrowth_R,
+  cluster = cluster,
+  trace   = 2
+)
+head(vargrowth_dredge_R)
+vargrowth_bestfit <- get.models(vargrowth_dredge_R, 1)[[1]]
+
+stopCluster(cluster)
+```
+```{r, recruit}
+recruit_bestfit <- recruit_mod
+```
+
+## export vital rate model
+```{r}
+save(sur_bestfit, gr_bestfit, prep_bestfit, crep_bestfit,vargrowth_bestfit,recruit_bestfit, VFT_long, file = "local adaptation/data/processed data/VR_bestfits.Rdata")
+
+```
+
 
 ### plot time series for only T_LA and T_LH
 
@@ -1010,5 +1095,39 @@ ggplot(VFT_long,
     ) 
 ```
 
+
+
+#### ggarange
+```{r}
+
+### against T_LA
+plt2 <- plt2 + labs(x = NULL)
+plt4 <- plt4 + labs(x = NULL)
+plt6 <- plt6 + labs(x = NULL)
+
+ggpubr::annotate_figure(
+  ggpubr::ggarrange(
+    plt2, plt4, plt6,
+    ncol = 2,
+    nrow = 2,
+    common.legend = TRUE,
+    legend = "right"
+  ),
+  bottom = ggpubr::text_grob("Mean annual soil temperature", size = 14)
+)
+
+
+### against T_LH
+plt3 <- plt3 + labs(x = NULL)
+plt5 <- plt5 + labs(x = NULL)
+ggpubr::annotate_figure(
+  ggpubr::ggarrange(
+    plt3, plt5,
+    common.legend = TRUE,
+    legend = "right"
+  ),
+  bottom = ggpubr::text_grob("maximum soil temperature (hottest month)", size = 14)
+)
+```
 
 
