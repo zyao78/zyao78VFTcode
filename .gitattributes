@@ -1,1 +1,2 @@
 *.RData filter=lfs diff=lfs merge=lfs -text
+local[[:space:]]adaptation/figures/Climate[[:space:]]summary/soil[[:space:]]temp[[:space:]]time[[:space:]]series* filter=lfs diff=lfs merge=lfs -text
