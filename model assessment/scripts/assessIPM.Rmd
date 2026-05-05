@@ -1,8 +1,15 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+# load packages
 
 ```{r}
 library(AICcmodavg)
@@ -17,16 +24,22 @@ library(doParallel)
 library(MuMIn)
 ```
 
+# load necessary data
 
-
-#load in necessary data. These were made from previous scripts
+Here I'm loading a list of best-fit viral rate models as well as a master long-formatted demographic dataset containing all years and sites (produced by scripts in a previous project).
 
 ```{r}
 load("model assessment/data/model_export_mar_2026.RData")    ## this environment contains vital rate functions plus the raw data used to build them.
 
 ```
 
-# global IPM
+# 1. global IPM
+
+First, we want to get population growth rate aggregating data from all sites, which assume the assumptions of SFTS (space for time substitution).
+
+First, using the models we just loaded, we'll first build an fire (TSF, TBF) and climate driven, deterministic IPM predicting long term population growth rate (lambda) against FRI (fire return interval) scenarios. This IPM will have 100 bins. Upper and lower bounds of the IPM are the upper and lower sizes observed across all years. Seedlings that enter the kernel all have the same distribution. In the code chunck below, I first set up the parameters of the IPM as mentioned above, then create a dataframe representing hypothetical FRI scenarios with or without a history of fire suppression; all other covariates were held constant at the means. We'll resample model parameter estimates (n=1000) to account for parameter uncertainty and ease the calculate of CI around lambda.
+
+## 1.1 initiate IPM
 
 ```{r}
 #size bounds for IPM
@@ -276,7 +289,13 @@ all_pop_growth_rates <- foreach(
   
 }
 
+```
 
+## 1.2 graph lambda \~ FRI, colored by TBF
+
+This is the relationship observed using aggregated data (Space for time substitution)
+
+```{r}
 ######################################
 ###################################### global IPM results, rep=1000 
 ######################################
@@ -314,14 +333,15 @@ plt1 <- ggplot(data= mean_lambda_across_scenarios, aes(x= FRI, y= mean_lambda)) 
   scale_x_continuous(breaks = 0:10) +
   theme(text = element_text(size = 16)) 
 plt1
-
-
-
 ```
 
-## use global IPM to predict regions
+## 1.3 Use the global IPM to predict region level responses
 
-#### Croatan (history of fire suppression)
+we can use the global IPM to make region specific inference, though variations among site are driven exclusively by fixed site intercepts.
+
+#### 1.3.1 Croatan
+
+The Croatan region contains CH and CM. Both sites had history of fire suppression
 
 ```{r}
 
@@ -513,7 +533,9 @@ plt2
 
 ```
 
-#### Green Swamp (no history of fire suppression)
+#### 1.3.2 Green Swamps (no history of fire suppression)
+
+The GSP (Green Swamp) region contains GSP-BI and GSP-LI, both sites were subject to fire management and didnot have histories of fire suppression.
 
 ```{r}
 all_pop_growth_rates_GSP <- matrix(data= NA, nrow= dim(possible_scenarios)[1], ncol= no_reps)
@@ -702,7 +724,7 @@ plt3 <- ggplot(data= mean_lambda_across_scenarios_GSP, aes(x= FRI, y= mean_lambd
 plt3
 ```
 
-## graph
+#### 1.3.3 graph region specific predictions together with the aggregated prediction
 
 ```{r}
 lambda_globalIPM <- bind_rows(
@@ -737,25 +759,24 @@ plt4
 
 ```
 
-Here, the differences in growth rate among regions are driven solely by the site fixed effect in two of the vital rate functions (survival and prob of reproduction).
+Again, the differences in growth rate among regions are driven solely by the site fixed effect in two of the vital rate functions (survival and prob of reproduction).
 
+# 2. build region specific IPM (refit vital rate functions using subsets of data)
 
+Now we want to build region specific IPMs with refitted vital rate functions using subsets of the master demographic data. This ensure that the vital rate functions and the IPM will capture region specific responses of plants to environmental drivers.
 
-# build region specific IPM (refit vital rate functions using subsets of data)
-
-
-
-
-##Croatan
+## 2.1 Croatan
 
 ```{r}
 TBF_long_Cro <- TBF_long %>%
   filter(site=="CH"|site=="CM")
 ```
 
-###refit vital rate functions 
+#### 2.1.1 refit vital rate functions
 
-####survival
+Refit vital rate functions. Here we start with the same global model and then perform model selection using AICc to determine the best fit model for each vital rate.
+
+###### survival
 
 ```{r}
 sur_subset_Cro <- 
@@ -791,7 +812,7 @@ summary(sur_mod_Cro)
 stopCluster(cluster)
 ```
 
-####growth
+###### growth
 
 ```{r}
 gr_subset_Cro <- 
@@ -824,7 +845,7 @@ stopCluster(cluster)
 
 ```
 
-####prep
+###### prep
 
 ```{r}
 prep_subset_Cro <- 
@@ -859,7 +880,7 @@ prep_mod_Cro <- get.models(prep_dredge_Cro, 1)[[1]]
 stopCluster(cluster)
 ```
 
-####crep
+###### crep
 
 ```{r}
 crep_subset_Cro <- 
@@ -890,7 +911,7 @@ crep_mod_Cro <- get.models(crep_dredge_Cro, 1)[[1]]
 stopCluster(cluster)
 ```
 
-#### recruitment
+###### recruitment
 
 since recruitment sample size is very low and subsetting would result in inadequate sample sizes, we use the recruitment model from the global IPM
 
@@ -898,7 +919,7 @@ since recruitment sample size is very low and subsetting would result in inadequ
 recruit_mod_Cro <- recruit_mod
 ```
 
-#### variance in growth
+###### variance in growth
 
 ```{r}
 growth_terms <- attr(terms(growth_mod_Cro), "term.labels")
@@ -950,7 +971,7 @@ vargrowth_mod_Cro <- get.models(vargrowth_dredge_Cro, 1)[[1]]
 stopCluster(cluster)
 ```
 
-### Croatan IPM
+#### 2.1.2 Croatan IPM
 
 keep the same IPM structure as the global IPM (for example, size bound is the same as the global IPM)
 
@@ -1196,8 +1217,44 @@ all_pop_growth_rates_Cro_reg <- foreach(
   }
     j_pop_gr_rate_Cro_reg
 }
+all_pop_growth_rates_Cro_reg <- cbind(possible_scenarios, all_pop_growth_rates_Cro_reg)
+names(all_pop_growth_rates_Cro_reg) <- c(names(possible_scenarios), paste("rep", 1:no_reps, sep = ""))
+rep_cols <- grep("^rep", names(all_pop_growth_rates_Cro_reg), value = TRUE)
 
+mean_lambda_across_scenarios_Cro_reg <- all_pop_growth_rates_Cro_reg %>%
+  rowwise() %>%
+  mutate(
+    mean_lambda = mean(c_across(all_of(rep_cols)), na.rm = TRUE),
+    lower_bound = quantile(c_across(all_of(rep_cols)), 0.025, na.rm = TRUE),
+    upper_bound = quantile(c_across(all_of(rep_cols)), 0.975, na.rm = TRUE)
+  ) %>%
+  dplyr::select(FRI,s.TBF,mean_lambda,lower_bound, upper_bound) %>%
+  mutate(TBF=NA) %>%
+  ungroup()
 
+mean_lambda_across_scenarios_Cro_reg$TBF[1:11] <- "Short TBF"
+mean_lambda_across_scenarios_Cro_reg$TBF[12:22] <- "Long TBF"
+
+##########. graph 
+##########
+
+plt5<- ggplot(data= mean_lambda_across_scenarios_Cro_reg, aes(x= FRI, y= mean_lambda)) +
+  geom_line(aes(color= TBF)) + 
+  geom_ribbon(aes(ymin = mean_lambda_across_scenarios_Cro_reg$lower_bound, ymax = mean_lambda_across_scenarios_Cro_reg$upper_bound, fill= TBF), alpha = 0.1) + 
+  #ylim(0,1) +
+  #xlim(c(0, 12)) +
+  labs(y= "Growth Rate", x = "Fire Return Interval",color = NULL, fill = NULL) +
+  theme_bw() + theme(legend.position='none') +
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = 0:10) +
+  theme(text = element_text(size = 16)) 
+plt5
+
+```
+
+#### 2.1.3 graph
+
+```{r}
 all_pop_growth_rates_Cro_reg <- cbind(possible_scenarios, all_pop_growth_rates_Cro_reg)
 names(all_pop_growth_rates_Cro_reg) <- c(names(possible_scenarios), paste("rep", 1:no_reps, sep = ""))
 rep_cols <- grep("^rep", names(all_pop_growth_rates_Cro_reg), value = TRUE)
@@ -1232,17 +1289,18 @@ plt5<- ggplot(data= mean_lambda_across_scenarios_Cro_reg, aes(x= FRI, y= mean_la
 plt5
 ```
 
-## Green Swamp
+## 2.2 Green Swamp
+
+Same procedure but for the GSP region.
 
 ```{r}
 TBF_long_GSP <- TBF_long %>%
   filter(site=="GSP-LI"|site=="GSP-BI")
 ```
 
+#### 2.2.1 refit vital rate
 
-###refit vital rate 
-
-####survival
+###### survival
 
 ```{r}
 sur_subset_GSP <- 
@@ -1278,7 +1336,7 @@ summary(sur_mod_GSP)
 stopCluster(cluster)
 ```
 
-####growth
+###### growth
 
 ```{r}
 gr_subset_GSP <- 
@@ -1308,7 +1366,8 @@ growth_mod_GSP<- get.models(gr_dredge_GSP, 1)[[1]]
 summary(growth_mod_GSP)
 stopCluster(cluster)
 ```
-####prep
+
+###### prep
 
 ```{r}
 prep_subset_GSP <- 
@@ -1343,7 +1402,7 @@ summary(prep_mod_GSP)
 stopCluster(cluster)
 ```
 
-####crep
+###### crep
 
 ```{r}
 
@@ -1374,11 +1433,14 @@ crep_mod_GSP <- get.models(crep_dredge_GSP, 1)[[1]]
 
 stopCluster(cluster)
 ```
-####recruitment
+
+###### recruitment
+
 ```{r}
 recruit_mod_GSP <- recruit_mod
 ```
-####variance in growth
+
+###### variance in growth
 
 ```{r}
 growth_terms <- attr(terms(growth_mod_GSP), "term.labels")
@@ -1429,7 +1491,8 @@ vargrowth_mod_GSP <- get.models(vargrowth_dredge_GSP, 1)[[1]]
 
 stopCluster(cluster)
 ```
-###Green Swamp IPM
+
+#### 2.2.2 GSP IPM
 
 ```{r}
 TBF_long$logsize0 <- (log(TBF_long$size0+0.1))
@@ -1672,7 +1735,11 @@ all_pop_growth_rates_GSP_reg <- foreach(
     j_pop_gr_rate_GSP_reg
 }
 
+```
 
+#### 2.2.3 graph
+
+```{r}
 all_pop_growth_rates_GSP_reg <- cbind(possible_scenarios, all_pop_growth_rates_GSP_reg)
 names(all_pop_growth_rates_GSP_reg) <- c(names(possible_scenarios), paste("rep", 1:no_reps, sep = ""))
 rep_cols <- grep("^rep", names(all_pop_growth_rates_GSP_reg), value = TRUE)
@@ -1707,22 +1774,18 @@ plt6<- ggplot(data= mean_lambda_across_scenarios_GSP_reg, aes(x= FRI, y= mean_la
 plt6
 ```
 
+## 2.3 Fort Bragg
 
-
-
-
-
-## FB
+The Fort Bragg region contains B1 and B2. These two populations are in only inland populations.
 
 ```{r}
 TBF_long_FB <- TBF_long %>%
   filter(site=="B1"|site=="B2")
 ```
 
+#### 2.3.1 refit vital rate
 
-###refit vital rate 
-
-####survival
+###### survival
 
 ```{r}
 sur_subset_FB <- 
@@ -1758,7 +1821,7 @@ summary(sur_mod_FB)
 stopCluster(cluster)
 ```
 
-####growth
+###### growth
 
 ```{r}
 gr_subset_FB <- 
@@ -1788,7 +1851,8 @@ growth_mod_FB<- get.models(gr_dredge_FB, 1)[[1]]
 summary(growth_mod_FB)
 stopCluster(cluster)
 ```
-####prep
+
+###### prep
 
 ```{r}
 prep_subset_FB <- 
@@ -1823,7 +1887,7 @@ summary(prep_mod_FB)
 stopCluster(cluster)
 ```
 
-####crep
+###### crep
 
 ```{r}
 
@@ -1854,11 +1918,14 @@ crep_mod_FB <- get.models(crep_dredge_FB, 1)[[1]]
 
 stopCluster(cluster)
 ```
-####recruitment
+
+###### recruitment
+
 ```{r}
 recruit_mod_FB <- recruit_mod
 ```
-####variance in growth
+
+###### variance in growth
 
 ```{r}
 growth_terms <- attr(terms(growth_mod_FB), "term.labels")
@@ -1909,7 +1976,8 @@ vargrowth_mod_FB <- get.models(vargrowth_dredge_FB, 1)[[1]]
 
 stopCluster(cluster)
 ```
-### FB IPM
+
+#### 2.3.2 FB IPM
 
 ```{r}
 TBF_long$logsize0 <- (log(TBF_long$size0+0.1))
@@ -2153,6 +2221,11 @@ all_pop_growth_rates_FB_reg <- foreach(
 }
 
 
+```
+
+#### 2.3.3 graph
+
+```{r}
 all_pop_growth_rates_FB_reg <- cbind(possible_scenarios, all_pop_growth_rates_FB_reg)
 names(all_pop_growth_rates_FB_reg) <- c(names(possible_scenarios), paste("rep", 1:no_reps, sep = ""))
 rep_cols <- grep("^rep", names(all_pop_growth_rates_FB_reg), value = TRUE)
@@ -2185,10 +2258,11 @@ plt7<- ggplot(data= mean_lambda_across_scenarios_FB_reg, aes(x= FRI, y= mean_lam
   scale_x_continuous(breaks = 0:10) +
   theme(text = element_text(size = 16)) 
 plt7
-
 ```
 
-##graph
+## 3. Result visualization
+
+Now we have created three region specific IPMs. For the final step, we want to compare predictions of sub-IPMs to see how good our global IPM is at capturing region level responses of plant population dynamics to fire.
 
 ```{r}
 lambda_regionalIPM <- bind_rows(
@@ -2218,14 +2292,3 @@ plt8 <- ggplot(lambda_regionalIPM, aes(x = FRI, y = mean_lambda)) +
 
 plt8
 ```
-```{r}
-
-table(TBF_long_Cro$TSF)
-table(TBF_long_Cro$TBF)
-
-table(TBF_long_FB$TSF)
-table(TBF_long_FB$TBF)
-
-```
-
-

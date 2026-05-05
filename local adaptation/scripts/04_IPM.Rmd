@@ -9,6 +9,9 @@ library(dplyr)
 library(glue)
 library(zoo)
 library(MASS)
+library(ggplot2)
+library(ggrepel)
+
 ```
 ```{r}
 load("local adaptation/data/processed data/VR_bestfits.Rdata") # loads in the VR functions
@@ -221,12 +224,100 @@ for (s in my_sites) {
   }
 }
 
+```
+
+## graph
+
+```{r}
+
+## put site labels on lines
+label <- pop_gr_rate %>%
+  group_by(site) %>%
+  slice_max(T_LA, n = 1)
 
 
+plt1 <- ggplot(pop_gr_rate, aes(x=T_LA, y=lambda, color=site))+
+  geom_line() +
+  labs(x="mean annual temperature") +
+  geom_text_repel(
+    data = label,
+    aes(label = site),
+    nudge_x = 0.1,
+    direction = "y",
+    hjust = 0,
+    segment.color = NA,
+    show.legend = F
+  )
+
+plt1
 
 
 
 
 
 ```
+## simulate fake data for presentations
+```{r}
+dat <- expand.grid(
+  soil_temperature = soil_temperature,
+  site = site
+)
+
+# Global (fixed) effects
+beta0 <- 2      # intercept
+beta1 <- 0.5    # slope (same for all sites)
+
+# Random intercepts for each site
+site_intercepts <- rnorm(length(site), mean = 0, sd = 1)
+names(site_intercepts) <- site
+
+site_slope <- rnorm(length(site), mean = 0, sd = 0.5)
+names(site_slope) <- site
+
+
+# Generate growth
+# dat$growth <- beta0 +
+#   beta1 * dat$soil_temperature +
+#   site_intercepts[dat$site]
+
+dat$growth <- beta0 +
+  (beta1+site_slope[dat$site]) * dat$soil_temperature +
+  site_intercepts[dat$site]
+
+
+ggplot(dat, aes(x = soil_temperature, y = growth, color = site)) +
+  geom_line() 
+  # scale_color_manual(values = site_cols) +
+  # theme_bw()
+
+```
+
+
+```{r}
+dat <- expand.grid(
+  soil_temperature = soil_temperature,
+  site = site
+)
+
+dat$soil_temperature_c <- dat$soil_temperature - mean(dat$soil_temperature)
+
+beta0 <- 5
+beta1 <- 0.4
+
+site_intercepts <- rnorm(length(site), mean = 0, sd = 1)
+names(site_intercepts) <- site
+
+site_slope <- rnorm(length(site), mean = 0, sd = 0.3)
+names(site_slope) <- site
+
+dat$growth <- beta0 +
+  site_intercepts[dat$site] +
+  (beta1 + site_slope[dat$site]) * dat$soil_temperature_c
+
+ggplot(dat, aes(x = soil_temperature, y = growth, color = site)) +
+  geom_line() 
+  # scale_color_manual(values = site_cols) +
+  # theme_bw()
+```
+
 
