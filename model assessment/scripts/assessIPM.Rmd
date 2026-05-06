@@ -1217,38 +1217,6 @@ all_pop_growth_rates_Cro_reg <- foreach(
   }
     j_pop_gr_rate_Cro_reg
 }
-all_pop_growth_rates_Cro_reg <- cbind(possible_scenarios, all_pop_growth_rates_Cro_reg)
-names(all_pop_growth_rates_Cro_reg) <- c(names(possible_scenarios), paste("rep", 1:no_reps, sep = ""))
-rep_cols <- grep("^rep", names(all_pop_growth_rates_Cro_reg), value = TRUE)
-
-mean_lambda_across_scenarios_Cro_reg <- all_pop_growth_rates_Cro_reg %>%
-  rowwise() %>%
-  mutate(
-    mean_lambda = mean(c_across(all_of(rep_cols)), na.rm = TRUE),
-    lower_bound = quantile(c_across(all_of(rep_cols)), 0.025, na.rm = TRUE),
-    upper_bound = quantile(c_across(all_of(rep_cols)), 0.975, na.rm = TRUE)
-  ) %>%
-  dplyr::select(FRI,s.TBF,mean_lambda,lower_bound, upper_bound) %>%
-  mutate(TBF=NA) %>%
-  ungroup()
-
-mean_lambda_across_scenarios_Cro_reg$TBF[1:11] <- "Short TBF"
-mean_lambda_across_scenarios_Cro_reg$TBF[12:22] <- "Long TBF"
-
-##########. graph 
-##########
-
-plt5<- ggplot(data= mean_lambda_across_scenarios_Cro_reg, aes(x= FRI, y= mean_lambda)) +
-  geom_line(aes(color= TBF)) + 
-  geom_ribbon(aes(ymin = mean_lambda_across_scenarios_Cro_reg$lower_bound, ymax = mean_lambda_across_scenarios_Cro_reg$upper_bound, fill= TBF), alpha = 0.1) + 
-  #ylim(0,1) +
-  #xlim(c(0, 12)) +
-  labs(y= "Growth Rate", x = "Fire Return Interval",color = NULL, fill = NULL) +
-  theme_bw() + theme(legend.position='none') +
-  theme(legend.position = "right") +
-  scale_x_continuous(breaks = 0:10) +
-  theme(text = element_text(size = 16)) 
-plt5
 
 ```
 
