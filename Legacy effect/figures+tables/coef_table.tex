@@ -1,0 +1,74 @@
+\begin{table}
+\centering
+\begin{talltblr}[         %% tabularray outer open
+entry=none,label=none,
+note{}={+ p \num{< 0.1}, * p \num{< 0.05}, ** p \num{< 0.01}, *** p \num{< 0.001}},
+]                     %% tabularray outer close
+{                     %% tabularray inner open
+colspec={Q[]Q[]Q[]Q[]Q[]Q[]Q[]},
+hline{2}={1-7}{solid, black, 0.05em},
+hline{50}={1-7}{solid, black, 0.05em},
+hline{1}={1-7}{solid, black, 0.08em},
+hline{58}={1-7}{solid, black, 0.08em},
+column{2-7}={}{halign=c},
+column{1}={}{halign=l},
+}                     %% tabularray inner close
+& Probability of survival & Growth & Probability of reproduction & Number of fruits & Variance in growth & Recruit \\
+Intercept & \num{3.88}*** & \num{4.57}*** & \num{-0.67}*** & \num{1.79}*** & \num{-1.51}*** & \num{0.03} \\
+& (\num{0.22}) & (\num{0.17}) & (\num{0.15}) & (\num{0.06}) & (\num{0.11}) & (\num{0.05}) \\
+Initial size & \num{0.53}*** & \num{0.28}*** & \num{0.68}*** &  &  &  \\
+& (\num{0.03}) & (\num{0.01}) & (\num{0.03}) &  &  &  \\
+TBF & \num{-0.09}+ & \num{-0.05}*** & \num{-0.29}*** &  &  &  \\
+& (\num{0.05}) & (\num{0.01}) & (\num{0.04}) &  &  &  \\
+TSF & \num{-0.19}*** &  & \num{-0.18}*** &  & \num{-0.17}*** &  \\
+& (\num{0.05}) &  & (\num{0.04}) &  & (\num{0.02}) &  \\
+Cumulative Precipitation (annual) &  &  & \num{5.68}*** &  &  &  \\
+&  &  & (\num{0.50}) &  &  &  \\
+Cumulative Precipitation (annual) \textasciicircum{}2 &  &  & \num{-5.42}*** &  & \num{-0.11}*** &  \\
+&  &  & (\num{0.49}) &  & (\num{0.03}) &  \\
+Cumulative Precipitation (driest month) & \num{-0.21}*** &  &  &  &  &  \\
+& (\num{0.04}) &  &  &  &  &  \\
+Cumulative Precipitation (wettest month) &  &  &  &  & \num{0.09}** &  \\
+&  &  &  &  & (\num{0.03}) &  \\
+Cumulative Precipitation (hottest month) & \num{-0.03} & \num{-0.04}*** & \num{0.22}*** &  &  & \num{0.11}*** \\
+& (\num{0.04}) & (\num{0.01}) & (\num{0.04}) &  &  & (\num{0.03}) \\
+mean Temperature (annual) & \num{-0.63}*** & \num{-3.64}*** & \num{-10.43}*** & \num{-0.15}*** &  &  \\
+& (\num{0.10}) & (\num{0.48}) & (\num{1.46}) & (\num{0.03}) &  &  \\
+mean Temperature (annual)\textasciicircum{}2 &  & \num{3.91}*** & \num{10.94}*** &  &  &  \\
+&  & (\num{0.48}) & (\num{1.47}) &  &  &  \\
+mean Temperature (driest month) & \num{0.26}*** & \num{-0.11}*** &  &  & \num{0.12}*** &  \\
+& (\num{0.05}) & (\num{0.01}) &  &  & (\num{0.02}) &  \\
+min Temperature (coldest month) &  & \num{0.05}*** &  &  &  &  \\
+&  & (\num{0.01}) &  &  &  &  \\
+max Temperature (hottest month) & \num{8.36}*** &  &  & \num{0.27}*** &  &  \\
+& (\num{1.26}) &  &  & (\num{0.02}) &  &  \\
+Max Temperature (hottest month) \textasciicircum{}2 & \num{-7.86}*** &  &  &  &  &  \\
+& (\num{1.23}) &  &  &  &  &  \\
+Site B2 & \num{-1.31}*** &  & \num{-0.55}*** &  &  &  \\
+& (\num{0.18}) &  & (\num{0.10}) &  &  &  \\
+Site CH & \num{-1.18}*** &  & \num{0.03} &  &  &  \\
+& (\num{0.26}) &  & (\num{0.20}) &  &  &  \\
+Site CM & \num{-1.41}*** &  & \num{-3.73}*** &  &  &  \\
+& (\num{0.30}) &  & (\num{0.24}) &  &  &  \\
+Site GSP-BI & \num{-1.13}*** &  & \num{-2.40}*** &  &  &  \\
+& (\num{0.26}) &  & (\num{0.20}) &  &  &  \\
+Site GSP-LI & \num{-1.18}*** &  & \num{-2.80}*** &  &  &  \\
+& (\num{0.28}) &  & (\num{0.22}) &  &  &  \\
+Site IA & \num{-1.65}*** &  & \num{-2.23}*** &  &  &  \\
+& (\num{0.27}) &  & (\num{0.20}) &  &  &  \\
+Site ME & \num{-1.14}*** &  & \num{-2.43}*** &  &  &  \\
+& (\num{0.28}) &  & (\num{0.23}) &  &  &  \\
+Precipitation x Temperature (annual) &  &  & \num{0.25}*** &  &  &  \\
+&  &  & (\num{0.04}) &  &  &  \\
+Precipitation x Temperature (hottest month) & \num{-0.09}* &  &  &  &  &  \\
+& (\num{0.04}) &  &  &  &  &  \\
+Num.Obs. & \num{16274} & \num{13235} & \num{15057} & \num{1905} & \num{13235} & \num{327} \\
+R2 Marg. &  & \num{0.108} &  & \num{0.134} & \num{0.010} & \num{0.046} \\
+R2 Cond. &  & \num{0.286} &  & \num{0.219} & \num{0.029} & \num{0.088} \\
+AIC & \num{8186.7} & \num{36109.2} & \num{9890.2} & \num{2922.7} & \num{59098.4} & \num{525.6} \\
+BIC & \num{8325.2} & \num{36184.1} & \num{10019.7} & \num{2950.4} & \num{59150.9} & \num{540.7} \\
+ICC &  & \num{0.2} &  & \num{0.1} & \num{0.0} & \num{0.0} \\
+Log.Lik. & \num{-4075.327} &  & \num{-4928.100} &  &  &  \\
+RMSE & \num{0.26} & \num{0.94} & \num{0.31} & \num{0.51} & \num{2.25} & \num{0.52} \\
+\end{talltblr}
+\end{table}

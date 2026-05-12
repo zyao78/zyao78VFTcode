@@ -387,9 +387,10 @@ plt1 <- ggplot(data= mean_lambda_across_scenarios, aes(x= FRI, y= mean_lambda)) 
   geom_ribbon(aes(ymin = mean_lambda_across_scenarios$lower_bound, ymax = mean_lambda_across_scenarios$upper_bound, fill= TBF), alpha = 0.1) + 
   #ylim(0,1) +
   #xlim(c(0, 12)) +
-  labs(y= "Growth Rate", x = "Fire Return Interval",color = NULL, fill = NULL) +
+  labs(y= "Population growth rate", x = "Fire return interval",color = NULL, fill = NULL) +
   theme_bw() + theme(legend.position='none') +
   theme(legend.position = "right") +
+  geom_hline(yintercept = 1.0, color="grey", linetype = "dashed", linewidth=1.0)+
   scale_x_continuous(breaks = 0:10) +
   theme(text = element_text(size = 16)) 
 plt1

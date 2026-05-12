@@ -83,4 +83,31 @@ sd(VFT$P_LA[which(VFT$site != "B1" | VFT$site != "B2")])
 
 ```
 
+#coef table
+
+```{r}
+
+
+mods <- list(
+  "Probability of survival" = survival_mod,
+  "Growth" = growth_mod,
+  "Probability of reproduction" = prep_mod,
+  "Number of fruits" = crep_mod,
+  "Variance in growth" = vargrowth_mod,
+  "Recruit" = recruit_mod
+)
+
+modelsummary(
+  mods,
+  coef_map = coef_map,
+  statistic = "std.error",
+  stars = TRUE,
+  fmt = 2,
+  gof_omit = ".*", ## omit the summary statistics
+  output = "F:/VFT/VFT_github/zyao78VFTcode/Legacy effect/figures+tables/coef_table.png"
+)
+
+# crep_mod, vargrowth_mod, recruit_mod,
+```
+
 
