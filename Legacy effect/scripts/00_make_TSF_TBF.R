@@ -88,7 +88,9 @@ for (i in 1:length(sites)){
   
 }
 
-
-
-
 write.csv(fire_histories, "F:/VFT/VFT_github/zyao78VFTcode/legacy effect/processed-data/fire_histories_landscape.csv")
+
+
+
+
+
