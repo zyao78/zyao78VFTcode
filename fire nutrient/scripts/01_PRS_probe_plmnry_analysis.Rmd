@@ -1,0 +1,106 @@
+## load packages
+```{r}
+library(tidyverse)
+library(vegan)
+library(MASS)
+library(ape)
+library(dplyr)
+library(readxl)
+library(corrplot)
+library(rpart.plot)
+
+
+```
+## Western Ag data interpretation help link 
+
+### https://www.westernag.ca/innovations/customer/interpretation
+
+## load data
+
+```{r}
+data1 <- read_excel("fire nutrient/raw_data/Nutrient Supply Rate Data Project_2605_first_batch_2025.xlsx", skip = 5)
+data2 <- read_excel("fire nutrient/raw_data/Nutrient Supply Rate Data_Project 2605_second_batch_2025.xlsx", skip = 5)
+
+## extract detection limit
+
+detection_limit <- data1 %>%
+  slice(1) %>%
+  select(-(2:7))
+
+## then remove detection limit column and merge 
+data1 <- data1[-1,]
+data2 <- data2[-1,]
+
+data <- bind_rows(data1, data2)
+
+## create site
+data <- data %>%
+  mutate(
+    site = str_remove(`Sample ID`, " #\\d+$"),
+    site = if_else(
+      str_detect(site, "^HS Site"),
+      str_remove(site, " B\\d+$"),
+      site
+    )
+  )
+
+table(data$site)
+
+#### fix anything werid by hand 
+
+data$site[which(data$site == "HS SIte1 B3")]<- "HS Site1"
+table(data$site)
+
+
+```
+
+## do some simple data visualization
+
+```{r}
+## soil nutrient vector
+soilnt <- colnames(data[,-(1:7)])   
+
+
+
+## look at Nitrogen
+
+ggplot(data = data, aes(x = site, y = `Total N`)) +
+  geom_boxplot()
+ggplot(data = data, aes(x = site, y = `NO3-N`)) +
+  geom_boxplot()
+ggplot(data = data, aes(x = site, y = `NH4-N`)) +
+  geom_boxplot()
+
+```
+## multivariate analyses
+
+#### prepare data into community format
+```{r}
+comm_data <- data %>%
+  select(site, all_of(soilnt)) %>%
+  group_by(site) %>%
+  summarise(across(all_of(soilnt), ~ mean(.x, na.rm = TRUE))) %>%
+  column_to_rownames(var = "site")
+
+```
+
+#### correlation plot
+```{r}
+M<-cor(comm_data)
+
+corrplot(M, method="color")
+```
+
+#### PCA
+```{r}
+distance<-vegdist(comm_data, method="bray")
+```
+
+#### run a regression tree on TSF 
+```{r}
+comm_data_TSF <- comm_data
+
+fit <- rpart(TotalN  ~ ., method="class", data=comm_data)
+
+```
+
