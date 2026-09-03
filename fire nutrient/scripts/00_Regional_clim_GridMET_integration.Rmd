@@ -1,0 +1,59 @@
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## regional T
+```{r}
+B1_clim <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/fire nutrient/raw_data/climate data/ClimateEngine_24_25_FB.csv") 
+B2_clim <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/fire nutrient/raw_data/climate data/ClimateEngine_24_25_FB.csv")
+CH_clim <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/fire nutrient/raw_data/climate data/ClimateEngine_24_25_CH.csv")
+CM_clim <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/fire nutrient/raw_data/climate data/ClimateEngine_24_25_CM.csv")
+IA_clim <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/fire nutrient/raw_data/climate data/ClimateEngine_24_25_IA.csv")
+GSP_BI_clim <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/fire nutrient/raw_data/climate data/ClimateEngine_24_25_GSP.csv")
+GSP_LI_clim <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/fire nutrient/raw_data/climate data/ClimateEngine_24_25_GSP.csv")
+HS_site1_clim <-read.csv("F:/VFT/VFT_github/zyao78VFTcode/fire nutrient/raw_data/climate data/ClimateEngine_24_25_HS_site1.csv")
+HS_site2_clim <-read.csv("F:/VFT/VFT_github/zyao78VFTcode/fire nutrient/raw_data/climate data/ClimateEngine_24_25_HS_site2.csv")
+HS_site3_clim <-read.csv("F:/VFT/VFT_github/zyao78VFTcode/fire nutrient/raw_data/climate data/ClimateEngine_24_25_HS_site3.csv")
+
+
+
+dat.list_clim <- list(
+  IA = IA_clim,
+  GSP_LI = GSP_LI_clim,
+  GSP_BI = GSP_BI_clim,
+  CM = CM_clim,
+  CH = CH_clim,  
+  B1 = B1_clim,
+  B2 = B2_clim,
+  HS_site1 = HS_site1_clim,
+  HS_site2 = HS_site2_clim,
+  HS_site3 = HS_site3_clim
+)
+
+dat.list_clim <- lapply(dat.list_clim, function(reg) {           
+  colnames(reg) <- c("date", "Prec", "Temp")
+  return(reg)
+})
+
+Clim_24_25 <- bind_rows(dat.list_clim, .id = "site") # vertically merge dataframes and create a new column that indicates sites
+
+
+Clim_24_25$date_parsed <- ymd(Clim_24_25$date)   # first parse the date that is in mdy_hms format
+Clim_24_25$month <- month(Clim_24_25$date_parsed)
+Clim_24_25$day   <- day(Clim_24_25$date_parsed)
+Clim_24_25$year  <- year(Clim_24_25$date_parsed)
+
+
+
+```
+## export
+```{r}
+write.csv(Clim_24_25, "F:/VFT/VFT_github/zyao78VFTcode/fire nutrient/processed_data/gridMET_climate_24_25.csv")
+```
+
+
+   
+
+
