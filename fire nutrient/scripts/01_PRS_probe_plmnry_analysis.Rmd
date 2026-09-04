@@ -245,16 +245,24 @@ comm_sqrt <- sqrt(comm_data)
 base_rda<-rda(comm_sqrt ~ env_data$TBF + env_data$TSF + env_data$annual_T + env_data$annual_P)
 summary(base_rda)
 ordiplot(base_rda, type = "t")
-
-
-  
   
 ```
-###### hypothesis testing
+###### hypothesis testing:run a permanova to identify environmental driver of nutrient composition
 ```{r}
 adonis2(distance ~ env_data$TBF + env_data$TSF + env_data$annual_T + env_data$annual_P, data=env_data, permutations=100,by ="term")
 
 
+```
+###### hypothesis testing: Mantel test for correlation between environment and nutrient multivariate space
+
+Present as to 2026, this Mantel test revealed no correlation between env and nutrient compositions. 
+```{r}
+distance_Nutrient<-vegdist(comm_data, method="bray")
+distance_env<-vegdist(env_data, method="bray")
+
+Mantel  = mantel(distance_Nutrient, distance_env, method = "spearman", permutations  = 9999, na.rm = TRUE)
+
+Mantel
 ```
 
 
