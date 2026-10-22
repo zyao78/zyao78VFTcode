@@ -1,0 +1,105 @@
+This part is less intuitive and deserves a separate code.
+
+The goal is to demonstrate a negative synergistic interaction between TBF and FRI on the population growth rate level.
+
+## load packages and data
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+load("Legacy effect/data/TBFxClimate/IPM_output_final_mixed_scale_linear.Rdata") 
+
+```
+
+## 1. Calculate FRI effects for each Monte Carlo draw (n=1000) under Short vs Long TBF.
+
+```{r}
+rep_cols <- grep("^rep", names(all_pop_growth_rates), value = TRUE)
+
+df <- all_pop_growth_rates %>%
+  dplyr::select(FRI,s.TBF,rep_cols) %>%
+  mutate(TBF=NA) 
+
+
+df$TBF[1:11] <- "Short TBF"
+df$TBF[12:22] <- "Long TBF"
+
+slope_cols <- paste0("Lambda_dif", 1:10, "_", 2:11)
+FRI_slopedif <- data.frame(rep = rep_cols,matrix(NA_real_,
+                                                          nrow = length(rep_cols),
+                                                          ncol = length(slope_cols),
+                                                          dimnames = list(NULL, slope_cols)))
+# i=1
+# ii=1
+
+for (i in 1: dim(FRI_slopedif)[1]) {
+  rep <- FRI_slopedif$rep[i]
+  for (ii in 1:10) {
+    colname <- paste0("Lambda_dif", ii, "_", ii+1)
+    
+    slope_short <- df[df$FRI == ii+1 & df$TBF == "Short TBF", rep] - df[df$FRI == ii  & df$TBF == "Short TBF", rep]
+    
+    slope_long  <- df[df$FRI == ii+1 & df$TBF == "Long TBF",  rep] - df[df$FRI == ii  & df$TBF == "Long TBF",  rep]
+    
+    FRI_slopedif[i, colname] <- slope_long-slope_short 
+  }
+}
+```
+
+Now that we extracted $\Delta \lambda$ differences (Δλ*long - Δλ*\_short ) across all FRI transitions, calculate CI of Δλ
+
+## 2. Calculate CI 
+
+```{r}
+## transform to long format
+
+FRI_slopedif_long <- FRI_slopedif %>%
+  pivot_longer(
+    cols = all_of(setdiff(names(FRI_slopedif),"rep")),
+    names_to = "FRI increment",
+    values_to = "value"
+  ) 
+```
+
+```{r}
+summarized_FRI_slopedif_long <- FRI_slopedif_long %>%
+  group_by(Δλ) %>%
+  summarise(
+    mean  = mean(value, na.rm = TRUE),
+    sd    = sd(value, na.rm = TRUE),
+    n     = sum(!is.na(value)),
+    se    = sd / sqrt(n),
+    lower = mean - 1.96 *se,
+    upper = mean + 1.96 *se,
+    .groups = "drop"
+  )
+
+summarized_FRI_slopedif_long$`Δλ` <- sub("Lambda_dif", "", summarized_FRI_slopedif_long$`Δλ`)
+
+
+summarized_FRI_slopedif_long$`Δλ` <- sub("_", " to ", summarized_FRI_slopedif_long$`Δλ`)
+```
+
+## 3. Plotting
+
+```{r}
+summarized_FRI_slopedif_long$Δλ <- factor(
+  summarized_FRI_slopedif_long$Δλ,
+  levels = paste0(1:10, " to ", 2:11)
+  )
+
+ggplot(summarized_FRI_slopedif_long, aes(x = Δλ, y = mean)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.15) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+  labs(
+    x = "FRI increments",
+    y = "TBF effect on Δλ",
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) 
+```

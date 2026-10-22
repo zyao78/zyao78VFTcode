@@ -38,6 +38,8 @@ TBF_long$s.TBF <- scale(TBF_long$TBF)
 TBF_long$s.TSF <- scale(TBF_long$TSF) 
 TBF_long$sq.TSF <- (TBF_long$TSF)^2
 TBF_long$s.sq.TSF <- scale(TBF_long$sq.TSF) 
+
+
 IPM_bounds <- range(TBF_long$logsize0, na.rm = TRUE)  # our IPM will be based on logsize as a size metric. 
 no_bins <- 100
 bin_edges <- seq(IPM_bounds[1], IPM_bounds[2], length.out= no_bins+1)
@@ -419,8 +421,8 @@ FRI_slopedif <- data.frame(rep = rep_cols,matrix(NA_real_,
                                                           nrow = length(rep_cols),
                                                           ncol = length(slope_cols),
                                                           dimnames = list(NULL, slope_cols)))
-i=1
-ii=1
+# i=1
+# ii=1
 
 for (i in 1: dim(FRI_slopedif)[1]) {
   rep <- FRI_slopedif$rep[i]
@@ -452,6 +454,7 @@ df <- slopediff %>%
     upper = quantile(value, 0.975, na.rm = TRUE),
     .groups = "drop"
   )
+
 df_ci_mean <- slopediff %>%
   group_by(slope) %>%
   summarise(
@@ -459,8 +462,8 @@ df_ci_mean <- slopediff %>%
     sd    = sd(value, na.rm = TRUE),
     n     = sum(!is.na(value)),
     se    = sd / sqrt(n),
-    lower = mean - 1.96 * se,
-    upper = mean + 1.96 * se,
+    lower = mean - 1.96 *se,
+    upper = mean + 1.96 *se,
     .groups = "drop"
   )
 
@@ -482,6 +485,8 @@ ggplot(df_ci_mean, aes(x = slope, y = mean)) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1)
   )
+
+
 
 save(all_pop_growth_rates, file = "Legacy effect/data/TBFxClimate/IPM_output_final_mixed_scale_linear.Rdata")
 
