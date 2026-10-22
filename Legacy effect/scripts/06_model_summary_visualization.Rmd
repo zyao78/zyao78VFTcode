@@ -6,10 +6,10 @@ date: "2026-03-30"
 
 ```{r}
 library(ggplot2)
-install.packages("modelsummary")
 library(modelsummary)
+library(readr)
 
-load("F:/VFT/VFT_github/zyao78VFTcode/Legacy effect/data/model_export_mar_2026.Rdata")
+load("Legacy effect/data/model_export_mar_2026.Rdata")
 ```
 
 # coef_map
@@ -43,12 +43,8 @@ coef_map <- c(
 )
 
 ```
- "number of fruits" = crep_mod,
-"number of seedlings per fruit"=recruit_mod
-       "variance in growth" = vargrowth_mod
-       "growth"=growth_mod
-# make coefficient plots for vital rate models
-## survival
+
+"number of fruits" = crep_mod, "number of seedlings per fruit"=recruit_mod "variance in growth" = vargrowth_mod "growth"=growth_mod \# make coefficient plots for vital rate models \## survival
 
 ```{r}
 sur_model_terms <- terms(survival_mod)
@@ -64,6 +60,7 @@ modelplot(list("probability of survival"=survival_mod,"probability of fruiting"=
 ```
 
 # some data summaries
+
 ```{r}
 ##  see on average how many plants are in a population
 
@@ -107,7 +104,20 @@ modelsummary(
   output = "F:/VFT/VFT_github/zyao78VFTcode/Legacy effect/figures+tables/coef_table.png"
 )
 
-# crep_mod, vargrowth_mod, recruit_mod,
+# crep_mod, vargrowth_mod, recruit_mod
 ```
 
+# TBF for each population
 
+```{r}
+FH <- read_csv("Legacy effect/processed-data/fire_histories_landscape.csv")
+FH_upto2024 <- FH %>%
+  filter(startyear>=2015 & startyear<2025)
+
+FH_upto2024 %>%
+  group_by(site) %>%
+  summarise( meanTBF = mean(TBF), range = range(TBF))
+
+range(TBF_long$startyear[which(TBF_long$site=="ME")])
+
+```

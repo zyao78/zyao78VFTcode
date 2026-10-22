@@ -11,14 +11,13 @@ rm(list = ls())
 fire_dates_manager <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "manager", startRow=2,detectDates=TRUE)
 fire_dates_field_notes <- openxlsx::read.xlsx( "F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "field_notes", startRow=2,detectDates=TRUE)
 fire_dates_landsat <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "landsat", startRow=2,detectDates=TRUE)
-fire_dates_landscape <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "landscape", startRow=2,detectDates=TRUE)
+fire_dates_landscape <- openxlsx::read.xlsx("fire nutrient/raw_data/fire history/excel fire histories.xlsx", sheet= "landscape", startRow=2,detectDates=TRUE)
 
 # reading in the last updated date to make sure you don't accidently say taht a fire was absent, just becuase the dates file hadn't been updated
 end_date_manager <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "manager", rows=1,colNames= FALSE) %>% stringr::str_remove("FILE CURRENT AS OF ") %>% as.Date("%m/%d/%y")
 end_date_field_notes <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "field_notes", rows=1,colNames= FALSE) %>% stringr::str_remove("FILE CURRENT AS OF ") %>% as.Date("%m/%d/%y")
 end_date_landsat <- openxlsx::read.xlsx("F:/VFT/VFT_github/zyao78VFTcode/raw-data/excel fire histories.xlsx", sheet= "landsat", rows=1,colNames= FALSE) %>% stringr::str_remove("FILE CURRENT AS OF ") %>% as.Date("%m/%d/%y")
-
-end_date_manager <- end_date_landsat
+end_date_landsat_landscape <- openxlsx::read.xlsx("fire nutrient/raw_data/fire history/excel fire histories.xlsx", sheet= "landscape", rows=1,colNames= FALSE) %>% stringr::str_remove("FILE CURRENT AS OF ") %>% as.Date("%m/%d/%y")
 
 sites <- c("B1", "B2", "CM", "CH", "IA", "ME", "GSP-LI", "GSP-BI")
 record_types <- c("manager", "field_notes", "landsat", "landscape")
@@ -88,7 +87,7 @@ for (i in 1:length(sites)){
   
 }
 
-write.csv(fire_histories, "F:/VFT/VFT_github/zyao78VFTcode/legacy effect/processed-data/fire_histories_landscape.csv")
+write.csv(fire_histories, "Legacy effect/processed-data/fire_histories_landscape.csv")
 
 
 
