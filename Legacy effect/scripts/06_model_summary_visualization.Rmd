@@ -20,17 +20,17 @@ coef_map <- c(
   "s.logsize0"    = "Initial size",
   "s.TBF"         = "TBF",
   "s.TSF"         = "TSF",
-  "s.P_RA"        = "Cumulative Precipitation (annual)",
-  "s.sq.P_RA"     = "Cumulative Precipitation (annual) ^2",
-  "s.P_RD"        = "Cumulative Precipitation (driest month)",
-  "s.P_RW"        = "Cumulative Precipitation (wettest month)" ,
-  "s.P_RH"        = "Cumulative Precipitation (hottest month)",
-  "s.T_LA"        = "mean Temperature (annual)",
-  "s.sq.T_LA"     = "mean Temperature (annual)^2",
-  "s.T_LD"        = "mean Temperature (driest month)",
-  "s.T_LC"        = "min Temperature (coldest month)",
-  "s.T_LH"        = "max Temperature (hottest month)",
-  "s.sq.T_LH"     = "Max Temperature (hottest month) ^2",
+  "s.P_RA"        = "Cumulative precipitation (annual)",
+  "s.sq.P_RA"     = "Cumulative precipitation (annual)²",
+  "s.P_RD"        = "Cumulative precipitation (driest month)",
+  "s.P_RW"        = "Cumulative precipitation (wettest month)" ,
+  "s.P_RH"        = "Cumulative precipitation (hottest month)",
+  "s.T_LA"        = "mean temperature (annual)",
+  "s.sq.T_LA"     = "mean temperature (annual)²",
+  "s.T_LD"        = "mean temperature (driest month)",
+  "s.T_LC"        = "min temperature (coldest month)",
+  "s.T_LH"        = "max temperature (hottest month)",
+  "s.sq.T_LH"     = "Max temperature (hottest month)²",
   "siteB2"        = "Site B2",
   "siteCH"        = "Site CH",
   "siteCM"        = "Site CM",
@@ -38,8 +38,8 @@ coef_map <- c(
   "siteGSP-LI"    = "Site GSP-LI",
   "siteIA"        = "Site IA",
   "siteME"        = "Site ME",
-  "s.P_RA:s.T_LA" = "Precipitation x Temperature (annual)",
-  "s.P_RH:s.T_LH" = "Precipitation x Temperature (hottest month)"
+  "s.P_RA:s.T_LA" = "Precipitation x temperature (annual)",
+  "s.P_RH:s.T_LH" = "Precipitation x temperature (hottest month)"
 )
 
 ```
@@ -101,11 +101,41 @@ modelsummary(
   stars = TRUE,
   fmt = 2,
   gof_omit = ".*", ## omit the summary statistics
-  output = "F:/VFT/VFT_github/zyao78VFTcode/Legacy effect/figures+tables/coef_table.png"
+  output = "Legacy effect/figures+tables/coef_table.png"
 )
 
+modelsummary::get_estimates(mods[[2]])
 # crep_mod, vargrowth_mod, recruit_mod
+
+summary(growth_mod)$coefficients
+
+lmerTest::as_lmerModLmerTest(growth_mod)
 ```
+## coefficient table with texreg (recommended by AML)
+```{r}
+library(texreg)
+
+texreg(list(survival_mod, growth_mod, prep_mod, crep_mod, vargrowth_mod, recruit_mod))
+
+
+wordreg(
+  list(survival_mod, growth_mod, prep_mod, crep_mod, vargrowth_mod, recruit_mod),
+  file = "Legacy effect/figures+tables/coef_table.doc",
+  # custom.model.names = c(
+  #   "Survival",
+  #   "Growth",
+  #   "Reproduction",
+  #   "Number of fruits",
+  #   "Growth variance",
+  #   "Recruitment"
+  # ),
+  digits = 2,
+  stars = c(0.001, 0.01, 0.05),
+  single.row = FALSE
+)
+
+```
+
 
 # TBF for each population
 

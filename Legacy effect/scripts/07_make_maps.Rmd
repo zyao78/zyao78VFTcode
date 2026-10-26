@@ -31,7 +31,7 @@ isTRUE(st_crs(vft_extant_counties) == st_crs(vft_extirpated_counties))
 ```{r}
 
 ## first make jitters to prevent overlap
-
+vft_pop_jit <- vft_populations
 xy <- st_coordinates(vft_populations)
 
 set.seed(123)

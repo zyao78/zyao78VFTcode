@@ -8,7 +8,7 @@ library(merTools)
 library(ggplot2)
 
 
-load("Legacy effect/data/TBFxClimate/VR_mod linear mixed scale.Rdata")# loads in the VR functions
+load("Legacy effect/data/TBFxClimate/VR_mod linear mixed scale.Rdata") # loads in the VR functions
 ########################################################################
 ######## TSFxTBF response for each vital rate            ###############
 ########################################################################
@@ -189,44 +189,58 @@ plt4
 #################################################################
 
 library(ggplot2)
+library(cowplot)
 
 plt1 <- ggplot(data= data_new1, aes(x= TSF, y= sur_fit)) +
   geom_line(aes(color= newTBF)) + 
   geom_ribbon(aes(ymin = data_new1$sur_lwr, ymax = data_new1$sur_upr, fill= newTBF), alpha = 0.1) + 
-  #ylim(0,1) +
+  ylim(0,1) +
   #xlim(c(0, 12)) +
-  labs(y= "Probability of Survival", x = "TSF", tag= "A",color = NULL, fill = NULL) +
+  labs(y= "Probability of survival", x = "Time since fire", tag= "A",color = NULL, fill = NULL) +
   theme_bw() + theme(legend.position='none') +
-  theme(legend.position = "right") +
+  # theme(legend.position = "right") +
   scale_x_continuous(breaks = 0:10) +
   theme(text = element_text(size = 16)) 
 plt2 <- ggplot(data= data_new1, aes(x= TSF, y= gr$fit)) +
   geom_line(aes(color= newTBF))+ 
   geom_ribbon(aes(ymin = data_new1$gr$lwr, ymax = data_new1$gr$upr, fill= newTBF), alpha = 0.1) + 
   scale_x_continuous(breaks = 0:10) +
-  labs(y= "Growth", x = "TSF", tag= "B",color = NULL, fill = NULL) + 
-  theme_bw() + theme(legend.position='none') + theme(text = element_text(size = 16)) 
+  labs(y= "Growth", x = "Time since fire", tag= "B",color = NULL, fill = NULL) + 
+  theme_bw()  +
+  theme(legend.position='none') +
+  theme(text = element_text(size = 16))
 plt3 <- ggplot(data= data_new1, aes(x= TSF, y= prep_fit)) +
   geom_line(aes(color= newTBF)) + 
   geom_ribbon(aes(ymin = data_new1$prep_lwr, ymax = data_new1$prep_upr, fill= newTBF), alpha = 0.1) + 
   ylim(0,1) +
-  labs(y= "Probability of reproduction", x = "TSF", tag= "C",color = NULL, fill = NULL) +
+  labs(y= "Probability of reproduction", x = "Time since fire", tag= "C",color = NULL, fill = NULL) +
   theme_bw()  +
-  theme(legend.position = "right") +
+  # theme(legend.position = "right") +
   scale_x_continuous(breaks = 0:10) +
-  theme(text = element_text(size = 16)) 
+  theme(legend.position='none')  + theme(text = element_text(size = 16))
 plt4 <- ggplot(data= data_new1, aes(x= TSF, y= crep$fit)) +
   geom_line(aes(color= newTBF))+ 
   geom_ribbon(aes(ymin = data_new1$crep$lwr, ymax = data_new1$crep$upr, fill= newTBF), alpha = 0.1) + 
   scale_x_continuous(breaks = 0:10) +
-  labs(y= "Number of fruit", x = "TSF", tag= "D",color = NULL, fill = NULL) + 
+  labs(y= "Number of fruit", x = "Time since fire", tag= "D",color = NULL, fill = NULL) + 
   theme_bw() + theme(legend.position='none') + theme(text = element_text(size = 16)) 
 
-ggpubr::ggarrange(plt1, plt2, plt3, plt4,
-                  ncol = 2, nrow = 2,
-                  common.legend = TRUE,
-                  legend = "right")
 
+### make tags closer to graphs
+tag_theme <- theme(
+  plot.tag.position = c(0.01, 1),
+  plot.tag = element_text(size = 16)
+)
+plt1 <- plt1 + tag_theme
+plt2 <- plt2 + tag_theme
+plt3 <- plt3 + tag_theme
+plt4 <- plt4 + tag_theme
+
+
+### make the four-panel figure
+ggpubr::ggarrange(plt1, plt2, plt3, plt4,
+                  ncol = 2, nrow = 2) 
+            
 
 
 
