@@ -8,6 +8,8 @@ The goal is to demonstrate a negative synergistic interaction between TBF and FR
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(ggtext)
+
 
 load("Legacy effect/data/TBFxClimate/IPM_output_final_mixed_scale_linear.Rdata") 
 
@@ -50,7 +52,7 @@ for (i in 1: dim(FRI_slopedif)[1]) {
 
 Now that we extracted $\Delta \lambda$ differences (Δλ*long - Δλ*\_short ) across all FRI transitions, calculate CI of Δλ
 
-## 2. Calculate CI 
+## 2. Calculate CI
 
 ```{r}
 ## transform to long format
@@ -58,7 +60,7 @@ Now that we extracted $\Delta \lambda$ differences (Δλ*long - Δλ*\_short ) a
 FRI_slopedif_long <- FRI_slopedif %>%
   pivot_longer(
     cols = all_of(setdiff(names(FRI_slopedif),"rep")),
-    names_to = "FRI increment",
+    names_to = "Δλ",
     values_to = "value"
   ) 
 ```
@@ -96,11 +98,10 @@ ggplot(summarized_FRI_slopedif_long, aes(x = Δλ, y = mean)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
   labs(
     x = "FRI transition (years)",
-    y = "TBF x FRI interaction effect on Δλ",
+    y = "ΔS <span style='font-size:9pt'>(TBF × FRI interaction effect on Δλ)</span>"
   ) +
-  theme_minimal(base_size = 13) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    axis.title = element_text(size = 12 )
-  ) 
+    axis.title.y = ggtext::element_markdown(size = 14),  ## use element markdown to shrink texts in parentheses
+    axis.title.x = element_text(size = 14)
+  )
 ```
