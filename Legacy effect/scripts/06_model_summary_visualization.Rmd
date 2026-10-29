@@ -8,6 +8,9 @@ date: "2026-03-30"
 library(ggplot2)
 library(modelsummary)
 library(readr)
+library(lmerTest)
+library(boot)
+library(dplyr)
 
 load("Legacy effect/data/model_export_mar_2026.Rdata")
 ```
@@ -82,6 +85,7 @@ sd(VFT$P_LA[which(VFT$site != "B1" | VFT$site != "B2")])
 
 #coef table
 
+## coef table with modelsummary
 ```{r}
 
 
@@ -101,40 +105,113 @@ modelsummary(
   stars = TRUE,
   fmt = 2,
   gof_omit = ".*", ## omit the summary statistics
-  output = "Legacy effect/figures+tables/coef_table.png"
+  output = "Legacy effect/figures+tables/coef_table.docx"
 )
 
-modelsummary::get_estimates(mods[[2]])
-# crep_mod, vargrowth_mod, recruit_mod
-
-summary(growth_mod)$coefficients
-
-lmerTest::as_lmerModLmerTest(growth_mod)
 ```
-## coefficient table with texreg (recommended by AML)
+
+We can't really trust the p values reported for the lmer mods since using a simple Wald t-distribution gives you inaccurate estimates of p values (not accounting for correlation among observation due to the random effect).
+
+## get bootsrapping P values for mixed effect model
+
+#### BootMer generates new samples, then calculate p value by hand
 ```{r}
-library(texreg)
+lmer_list <- list(growth_mod, crep_mod, recruit_mod, vargrowth_mod)
 
-texreg(list(survival_mod, growth_mod, prep_mod, crep_mod, vargrowth_mod, recruit_mod))
+## define a function to extract fixed effect coefs
+mySumm <- function(x) {
+  c(getME(x, "beta"), sigma(x))
+}
 
+## run bootMer
+boot_res <- bootMer(growth_mod, fixef, nsim = 1000, seed = 101)
 
-wordreg(
-  list(survival_mod, growth_mod, prep_mod, crep_mod, vargrowth_mod, recruit_mod),
-  file = "Legacy effect/figures+tables/coef_table.doc",
-  # custom.model.names = c(
-  #   "Survival",
-  #   "Growth",
-  #   "Reproduction",
-  #   "Number of fruits",
-  #   "Growth variance",
-  #   "Recruitment"
-  # ),
-  digits = 2,
-  stars = c(0.001, 0.01, 0.05),
-  single.row = FALSE
+boot_res$t  ### bootstrapping estimates for each (n=1000) bootstrapping dataset
+boot_res$t0 ### original fixed effect coef estimates
+
+p_values <- rbind(
+  (1 - apply(boot_res$t < 0, 2, mean)) * 2,
+  (1 - apply(boot_res$t > 0, 2, mean)) * 2
 )
 
+final_p_values <- apply(p_values, 2, min)
+
+hist(boot_res$t[,2])
+
 ```
+
+
+
+#### use lmersampler bootstrap_pvals
+```{r}
+install.packages("lmeresampler")
+library(lmeresampler)
+
+gr_subset_R_2 <- 
+  TBF_long[which(TBF_long$sur0_1 == 1),] %>%      ## make sure to subset data to only alive plants
+  filter_at(vars(logsize1, s.logsize0, s.TSF,s.sq.TSF, s.TBF, site, s.sq.T_RA,s.T_RA, s.P_RA, s.T_RC, 
+                 s.T_RD, s.P_RH), all_vars(!is.na(.)))
+boot_p_growth <- lmeresampler::bootstrap_pvals(
+  growth_mod,
+  type = "parametric",
+  B = 1000
+)
+
+
+crep_subset_R <- 
+  TBF_long %>% 
+  filter_at(vars(logcrep1, s.logsize0, TSF, TBF,s.sq.TSF, site, s.T_RA, s.T_RH), all_vars(!is.na(.)))
+boot_p_crep <- lmeresampler::bootstrap_pvals(
+  crep_mod,
+  type = "parametric",
+  B = 1000
+)
+
+recruit_df <- read_csv("Legacy effect/data/recruit_df_11_24_2025.csv")
+recruit_df$rec_perfruit <- recruit_df$num_news / (recruit_df$num_fr + 0.1)
+recruit_df$rec_per_logfruit <- recruit_df$num_news / recruit_df$log.fr
+recruit_df <- recruit_df %>%
+  select(rec_perfruit, rec_per_logfruit, everything())
+recruit_subset <- 
+  recruit_df %>% 
+  dplyr::filter(across(c(rec_per_logfruit, log.fr, TSF, TBF,site), ~ !is.na(.)))
+boot_p_recruit <- lmeresampler::bootstrap_pvals(
+  recruit_mod,
+  type = "parametric",
+  B = 1000
+)
+
+
+growth_terms <- attr(terms(growth_mod), "term.labels")
+int_terms <- grep(":", growth_terms, value = TRUE)
+int_terms_broken <- unique(unlist(strsplit(int_terms, ":", fixed = TRUE)))
+main_terms <- growth_terms[!grepl(":", growth_terms)]
+logsize1 <- c("logsize1")
+gr_all_terms <- unique(c(main_terms, int_terms_broken, logsize1))
+Vargrowth_subset <- 
+  TBF_long[which(TBF_long$sur0_1 == 1),] %>%      ## make sure to subset data to only alive plants
+  filter(across(all_of(gr_all_terms), ~ !is.na(.)))
+Vargrowth_subset$vargrowth <- NA
+Vargrowth_subset$predgrowth <- NA
+Vargrowth_subset$predgrowth <- predict(growth_mod,newdata=Vargrowth_subset)
+Vargrowth_subset$vargrowth <-
+  (Vargrowth_subset$predgrowth - # variance is equivalent to (predicted-expected)^2
+     Vargrowth_subset$logsize1)^2
+Vargrowth_subset$log.vargrowth <- log(Vargrowth_subset$vargrowth)
+boot_p_vargrowth <- lmeresampler::bootstrap_pvals(
+  vargrowth_mod,
+  type = "parametric",
+  B = 1000
+)
+
+#### make a list of bootstrap objects
+boot_list <- list(boot_p_growth, boot_p_crep, boot_p_recruit, boot_p_vargrowth)
+
+boot_list[[1]]$coefficients
+
+
+```
+
 
 
 # TBF for each population
