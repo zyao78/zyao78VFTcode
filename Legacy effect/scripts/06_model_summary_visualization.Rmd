@@ -207,7 +207,7 @@ boot_p_vargrowth <- lmeresampler::bootstrap_pvals(
 #### make a list of bootstrap objects
 boot_list <- list(boot_p_growth, boot_p_crep, boot_p_recruit, boot_p_vargrowth)
 
-boot_list[[1]]$coefficients
+boot_list[[4]]$coefficients
 
 
 ```

@@ -1,17 +1,17 @@
-
-
-
 ```{r}
 library(ggplot2)
+library(dplyr)
+library(tidyr)
+
 
 ```
 
 # load models and VFT long data with original attributes
 
 ```{r}
-load("F:/VFT/VFT_github/zyao78VFTcode/Legacy effect/data/model_export_mar_2026.Rdata")
+load("Legacy effect/data/model_export_mar_2026.Rdata")
 
-VFT_raw <- read.csv("F:/VFT/VFT_github/zyao78VFTcode/Legacy effect/data/TBFxClimate/TBF_long_landscape_2024.csv")
+VFT_raw <- read.csv("Legacy effect/data/TBFxClimate/TBF_long_landscape_2024.csv")
 
 VFT_raw$s.T_RA <- NA
 VFT_raw$s.T_RA <- scale(VFT_raw$T_RA) 
@@ -70,8 +70,7 @@ VFT_raw$s.sq.T_LA <- scale(VFT_raw$sq.T_LA)
 
 ```
 
-# get attributes 
-
+# get attributes
 
 ```{r}
 
@@ -123,18 +122,19 @@ data_new1$s.T_LC <- rep(mean(TBF_long$s.T_LC, na.rm=TRUE) )
 data_new1$s.P_RW <- rep(mean(TBF_long$s.P_RW, na.rm=TRUE) )
 ```
 
-# if predicting against Temp only, run this first 
+# if predicting against Temp only, run this first
+
 ```{r}
 data_new1$s.P_RA <-  rep(mean(TBF_long$s.P_RA, na.rm=TRUE) )
 data_new1$s.sq.P_RA <- rep(mean(TBF_long$s.sq.P_RA, na.rm=TRUE) )
 ```
 
-# if predicting against precip only, run this first 
+# if predicting against precip only, run this first
+
 ```{r}
 data_new1$s.T_LA <-  rep(mean(TBF_long$s.P_RA, na.rm=TRUE) )
 data_new1$s.sq.T_LA <- rep(mean(TBF_long$s.sq.P_RA, na.rm=TRUE) )
 ```
-
 
 # predict prep
 
@@ -149,13 +149,15 @@ data_new1$prep_lwr <- prep_mod$family$linkinv(prep_lwr_link)
 data_new1$prep_upr <- prep_mod$family$linkinv(prep_upr_link)
 ```
 
-# predict growth 
+# predict growth
 
 ```{r}
 data_new1$gr <- merTools::predictInterval(growth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
 
 ```
+
 # predict vargrowh
+
 ```{r}
 data_new1$vargr <- merTools::predictInterval(vargrowth_mod, data_new1, which= "fixed",level= 0.95,n.sims= 2000)
 
@@ -163,8 +165,67 @@ data_new1$vargr <- merTools::predictInterval(vargrowth_mod, data_new1, which= "f
 data_new1$vargr_origional <- exp(data_new1$vargr)
 ```
 
+# T.LH x P.RH interaction effect on Sur
 
-# plot 
+```{r}
+
+VFT_raw <- VFT_raw 
+
+mf <- model.frame(survival_mod)
+
+# Build a prediction grid and scale accordingly (make sure to use original scale attributes)
+pred_grid <- expand_grid(
+  T_LH = seq(
+    min(VFT_raw$T_LH),
+    max(VFT_raw$T_LH),
+    length.out = 50
+  ),
+  P_RH = quantile(VFT_raw$P_RH, c(0.3,0.6,0.9))
+)
+## scale
+pred_grid$s.T_LH <- (
+  pred_grid$T_LH -
+    attr(VFT_raw$s.T_LH, "scaled:center")
+) / attr(VFT_raw$s.T_LH, "scaled:scale")
+pred_grid$s.sq.T_LH <- (
+  pred_grid$T_LH^2 -
+    attr(VFT_raw$s.sq.T_LH, "scaled:center")
+) / attr(VFT_raw$s.sq.T_LH, "scaled:scale")
+pred_grid$s.P_RH <- (
+  pred_grid$P_RH -
+    attr(VFT_raw$s.P_RH, "scaled:center")
+) / attr(VFT_raw$s.P_RH, "scaled:scale")
+
+# Hold other predictors constant at representative values
+other_vars <- setdiff(
+  names(mf),
+  c(
+    names(mf)[1],
+    "s.T_LH", "s.P_RH",
+    "s.sq.T_LH"
+  )
+)
+pred_grid[other_vars] <- 0
+pred_grid$site <- "B1"
+
+
+## predict
+pred_vals <- predict.glm(survival_mod, pred_grid, type = "response", se.fit = TRUE)
+pred_grid$VR <- pred_vals$fit
+
+## graph
+ggplot(data= pred_grid, aes(x= T_LH, y= VR, colour = as.factor(P_RH))) +
+  geom_line() + 
+  # geom_ribbon(aes(ymin = data_new1$prep_lwr, ymax = data_new1$prep_upr), alpha = 0.1) + 
+  #ylim(0,1) +
+  # labs(y= "probability of reproduction", x = "annual mean soil temperature") +
+  theme_bw() + theme(legend.position='none') +
+  theme(legend.position = "right") +
+  theme(text = element_text(size = 20)) 
+
+```
+
+# plot
 
 ```{r}
 plt3 <- ggplot(data= data_new1, aes(x= annual_precip, y= prep_fit)) +
@@ -193,4 +254,3 @@ plt5 <- ggplot(data= data_new1, aes(x= annual_precip, y= vargr$fit)) +
   theme(text = element_text(size = 20)) 
 plt5
 ```
-

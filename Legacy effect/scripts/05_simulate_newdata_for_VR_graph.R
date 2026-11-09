@@ -231,10 +231,22 @@ tag_theme <- theme(
   plot.tag.position = c(0.01, 1),
   plot.tag = element_text(size = 16)
 )
-plt1 <- plt1 + tag_theme
-plt2 <- plt2 + tag_theme
-plt3 <- plt3 + tag_theme
-plt4 <- plt4 + tag_theme
+
+### delete unnecessary gridlines
+grid_theme <- theme(
+  panel.grid.minor = element_blank(),       # Remove minor gridlines
+  panel.grid.major.x = element_blank(),     # Remove vertical gridlines
+  panel.grid.major.y = element_line(
+    color = "grey90", linewidth = 0.3       # Keep light horizontal gridlines
+  )
+)
+
+### update themes
+
+plt1 <- plt1 + tag_theme + grid_theme
+plt2 <- plt2 + tag_theme+ grid_theme
+plt3 <- plt3 + tag_theme+ grid_theme
+plt4 <- plt4 + tag_theme+ grid_theme
 
 
 ### make the four-panel figure
