@@ -1,0 +1,62 @@
+## 0. Load
+
+```{r}
+library(readxl)
+library(dplyr)
+library(leaflet)  
+library(sf)  
+
+
+```
+
+```{r}
+Seeds<- read_excel("VFT TPC experiment/Raw data/Copy of DIOMUS_Seedbank_july2026.xlsx", sheet = 1, col_names = TRUE)
+```
+
+## 1. Make a map showing seed sources
+
+```{r}
+## Clean the coordinate columns.
+
+Seeds$Lat <- as.numeric(gsub("[^0-9.-]", "", Seeds$Lat)) ## Remove anything that's not a number or "." or "-".
+Seeds$Long <- as.numeric(gsub("[^0-9.-]", "", Seeds$Long))
+
+
+## Extract useful columns and make an interactive map
+Seeds_subset <- Seeds %>%
+  select(Location, Lat,Long, `Collection date`, Viability) 
+## Make sure Longitudes are negative or otherwise they end up in Tibet
+Seeds_subset$Long <- ifelse (Seeds_subset$Long < 0, Seeds_subset$Long,
+                             -1*Seeds_subset$Long)   
+  
+
+
+
+
+```
+
+```{r}
+## Add demographic sites to this map
+
+vft_populations <- st_read("VFT TPC experiment/Raw data/Shapefiles/VFT_populations_with_HS.shp")
+vft_populations <- vft_populations[which(!is.na(vft_populations$Population)),]
+
+vft_populations$Long <- st_coordinates(vft_populations)[,1]
+vft_populations$Lat <- st_coordinates(vft_populations)[,2]
+
+
+Seeds_map <- leaflet(data = Seeds_subset) %>%
+  addTiles() %>%  # Adds standard OpenStreetMap background
+  addCircleMarkers(
+    lng = ~Long,
+    lat = ~Lat,
+    radius = 2,
+    label = ~Location,
+    popup = ~Location,# Also show names on click,
+    labelOptions= labelOptions(noHide = TRUE)) %>%
+  addCircleMarkers(data=vft_populations, lng=~Long, lat=~Lat, 
+                    label = ~Population, color="green") %>%
+  addScaleBar()
+
+```
+
